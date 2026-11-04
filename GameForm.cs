@@ -92,6 +92,7 @@ public sealed class GameForm : Form
     private readonly Font _iconFont = new("Segoe UI Symbol", 17, FontStyle.Regular);
 
     private readonly SolidBrush _whiteBrush = new(White);
+    private readonly SolidBrush _darkBrush = new(Color.FromArgb(12, 23, 17));
     private readonly SolidBrush _mutedBrush = new(Muted);
     private readonly SolidBrush _greenBrush = new(Green);
     private readonly SolidBrush _goldBrush = new(Gold);
@@ -175,7 +176,10 @@ public sealed class GameForm : Form
         if (clip.IntersectsWith(_rightPanel))
             DrawDashboard(g);
 
-        DrawWindowControls(g);
+        if (clip.IntersectsWith(_minimizeButton))
+            DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
+        if (clip.IntersectsWith(_closeButton))
+            DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
     }
 
     private void BuildChrome()
@@ -280,7 +284,7 @@ public sealed class GameForm : Form
         Text(g, _score.ToString("0000"), _scoreFont, _whiteBrush,
             new Rectangle(842, 161, 154, 60), _leftFormat);
 
-        Text(g, _bestScore.ToString("0000"), _numberFont, _greenBrush,
+        Text(g, Math.Max(_bestScore, _score).ToString("0000"), _numberFont, _greenBrush,
             new Rectangle(1020, 172, 76, 42), _leftFormat);
 
         int level = 1 + _score / 50;
@@ -451,12 +455,6 @@ public sealed class GameForm : Form
         g.FillEllipse(_eyeBrush, eye2X, eye2Y, 3, 3);
     }
 
-    private void DrawWindowControls(Graphics g)
-    {
-        DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
-        DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
-    }
-
     private void DrawWindowButton(Graphics g, Rectangle rect, string label, bool hover)
     {
         FillRound(g, rect, 8, hover ? PanelLight : Panel);
@@ -482,19 +480,12 @@ public sealed class GameForm : Form
         Color fill = primary
             ? hover ? Color.FromArgb(190, 255, 134) : Green
             : hover ? Color.FromArgb(37, 53, 56) : Panel;
-        Color foreground = primary ? Color.FromArgb(12, 23, 17) : White;
-
         FillRound(g, rect, 10, fill);
         if (!primary)
             StrokeRound(g, rect, 10, Border);
 
         Text(g, label, primary ? _buttonFont : _iconFont,
-            primary ? _whiteBrush : _whiteBrush, rect, _centerFormat);
-        if (primary)
-        {
-            using var overlayTextBrush = new SolidBrush(Color.FromArgb(12, 23, 17));
-            Text(g, label, _buttonFont, overlayTextBrush, rect, _centerFormat);
-        }
+            primary ? _darkBrush : _whiteBrush, rect, _centerFormat);
     }
 
     private void DrawStaticPanel(Graphics g, Rectangle rect, Color? fill = null)
@@ -590,6 +581,7 @@ public sealed class GameForm : Form
         _nextDirection = Direction.Right;
         _foodEaten = 0;
         _combo = 0;
+        _lastFoodAt = default;
         _goldenFood = null;
         _goldenExpiresAt = null;
         PlaceFood();
@@ -865,7 +857,7 @@ public sealed class GameForm : Form
 
     private void SetDifficulty(Difficulty difficulty)
     {
-        if (_state == GameState.Playing)
+        if (_state is GameState.Playing or GameState.Paused)
             return;
 
         _difficulty = difficulty;
@@ -874,7 +866,7 @@ public sealed class GameForm : Form
 
     private void SetMode(GameMode mode)
     {
-        if (_state == GameState.Playing)
+        if (_state is GameState.Playing or GameState.Paused)
             return;
 
         _mode = mode;
@@ -1116,6 +1108,7 @@ public sealed class GameForm : Form
         _iconFont.Dispose();
 
         _whiteBrush.Dispose();
+        _darkBrush.Dispose();
         _mutedBrush.Dispose();
         _greenBrush.Dispose();
         _goldBrush.Dispose();

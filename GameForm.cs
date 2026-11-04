@@ -235,6 +235,7 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
+        g.Clear(Background);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
         g.Transform = _viewMatrix;

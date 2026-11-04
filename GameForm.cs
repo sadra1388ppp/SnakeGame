@@ -17,6 +17,8 @@ public sealed class GameForm : Form
     private const int Columns = 30;
     private const int Rows = 21;
     private const int BoardCells = Columns * Rows;
+    private const int DesignWidth = 1160;
+    private const int DesignHeight = 760;
 
     private static readonly Color Background = Color.FromArgb(8, 13, 17);
     private static readonly Color Panel = Color.FromArgb(16, 24, 30);
@@ -56,29 +58,51 @@ public sealed class GameForm : Form
     private bool _newRecord;
     private bool _wrappedThisStep;
     private bool _scoreSaveFailed;
+    private bool _isFullscreen;
+    private Rectangle _windowedBounds;
+    private float _viewScale = 1f;
+    private float _viewOffsetX;
+    private float _viewOffsetY;
+
+    private bool _goldBurstActive;
+    private DateTime _goldBurstStarted;
+    private PointF _goldBurstCenter;
+    private readonly GoldParticle[] _goldParticles = new GoldParticle[36];
+    private int _goldParticleCount;
+
+    private struct GoldParticle
+    {
+        public float X, Y, VelocityX, VelocityY, Age, Lifetime, Size;
+    }
 
     private Bitmap? _chrome;
-    private readonly GraphicsPath _overlayPath = RoundPath(new Rectangle(193, 267, 428, 245), 20);
+    private Bitmap? _appleSprite;
+    private Bitmap? _goldAppleSprite;
+    private readonly PointF[] _snakeCenters = new PointF[BoardCells];
+    private readonly GraphicsPath _snakePath = new();
+    private readonly GraphicsPath _snakeHighlightPath = new();
+    private readonly GraphicsPath _overlayPath = RoundPath(new Rectangle(138, 220, 538, 334), 20);
 
     private readonly Rectangle _boardCard = new(32, 100, 750, 600);
     private readonly Rectangle _field = new(62, 150, Columns * CellSize, Rows * CellSize);
     private readonly Rectangle _rightPanel = new(802, 100, 326, 600);
     private readonly Rectangle _scoreArea = new(824, 124, 280, 132);
-    private readonly Rectangle _statsArea = new(824, 268, 280, 78);
-    private readonly Rectangle _modeArea = new(824, 358, 280, 105);
-    private readonly Rectangle _difficultyArea = new(824, 475, 280, 105);
-    private readonly Rectangle _actionArea = new(824, 592, 280, 88);
+    private readonly Rectangle _modeArea = new(824, 270, 280, 105);
+    private readonly Rectangle _difficultyArea = new(824, 390, 280, 105);
+    private readonly Rectangle _actionArea = new(824, 510, 280, 170);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
-    private readonly Rectangle _overlayButton = new(292, 431, 230, 46);
-    private readonly Rectangle _mainButton = new(838, 622, 174, 42);
-    private readonly Rectangle _soundButton = new(1020, 622, 38, 42);
-    private readonly Rectangle _restartButton = new(1066, 622, 38, 42);
-    private readonly Rectangle _classicButton = new(838, 414, 82, 32);
-    private readonly Rectangle _wrapButton = new(926, 414, 82, 32);
-    private readonly Rectangle _rushButton = new(1014, 414, 82, 32);
-    private readonly Rectangle _easyButton = new(838, 531, 82, 32);
-    private readonly Rectangle _normalButton = new(926, 531, 82, 32);
-    private readonly Rectangle _hardButton = new(1014, 531, 82, 32);
+    private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
+    private readonly Rectangle _mainButton = new(838, 552, 174, 48);
+    private readonly Rectangle _soundButton = new(1020, 552, 38, 48);
+    private readonly Rectangle _restartButton = new(1066, 552, 38, 48);
+    private readonly Rectangle _classicButton = new(838, 324, 82, 36);
+    private readonly Rectangle _wrapButton = new(926, 324, 82, 36);
+    private readonly Rectangle _rushButton = new(1014, 324, 82, 36);
+    private readonly Rectangle _easyButton = new(838, 444, 82, 36);
+    private readonly Rectangle _normalButton = new(926, 444, 82, 36);
+    private readonly Rectangle _hardButton = new(1014, 444, 82, 36);
+    private readonly Rectangle _modeTimerRect = new(1037, 282, 58, 20);
+    private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
     private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
     private readonly Rectangle _closeButton = new(1110, 19, 34, 30);
 
@@ -92,7 +116,10 @@ public sealed class GameForm : Form
     private readonly Font _scoreFont = new("Segoe UI", 34, FontStyle.Bold);
     private readonly Font _numberFont = new("Segoe UI", 22, FontStyle.Bold);
     private readonly Font _heroFont = new("Segoe UI", 25, FontStyle.Bold);
-    private readonly Font _buttonFont = new("Segoe UI", 8, FontStyle.Bold);
+    private readonly Font _welcomeFont = new("Segoe UI", 30, FontStyle.Bold);
+    private readonly Font _welcomeSmallFont = new("Segoe UI", 9, FontStyle.Regular);
+    private readonly Font _effectFont = new("Segoe UI", 13, FontStyle.Bold);
+    private readonly Font _buttonFont = new("Segoe UI", 8.5f, FontStyle.Bold);
     private readonly Font _iconFont = new("Segoe UI Symbol", 17, FontStyle.Regular);
 
     private readonly SolidBrush _whiteBrush = new(White);
@@ -102,6 +129,8 @@ public sealed class GameForm : Form
     private readonly SolidBrush _goldBrush = new(Gold);
     private readonly SolidBrush _snakeBrush = new(Color.FromArgb(104, 193, 91));
     private readonly SolidBrush _headBrush = new(Color.FromArgb(183, 247, 122));
+    private readonly SolidBrush _headShadowBrush = new(Color.FromArgb(45, 138, 233, 104));
+    private readonly SolidBrush _eyeWhiteBrush = new(Color.FromArgb(246, 255, 249, 230));
     private readonly SolidBrush _eyeBrush = new(Color.FromArgb(10, 25, 20));
     private readonly SolidBrush _foodBrush = new(Color.FromArgb(255, 103, 105));
     private readonly SolidBrush _foodGlowBrush = new(Color.FromArgb(38, 255, 103, 105));
@@ -129,6 +158,19 @@ public sealed class GameForm : Form
     private readonly SolidBrush _overlayBrush = new(Color.FromArgb(218, 5, 10, 13));
     private readonly SolidBrush _cardBrush = new(Color.FromArgb(248, 19, 29, 35));
     private readonly Pen _goldPen = new(Color.FromArgb(235, Gold), 2);
+    private readonly Pen[] _goldBurstPens =
+    [
+        new Pen(Color.FromArgb(235, 255, 232, 151), 3.2f),
+        new Pen(Color.FromArgb(170, 255, 194, 83), 2.3f),
+        new Pen(Color.FromArgb(90, 255, 157, 55), 1.5f)
+    ];
+    private readonly SolidBrush[] _goldParticleBrushes =
+    [
+        new SolidBrush(Color.FromArgb(235, 255, 240, 166)),
+        new SolidBrush(Color.FromArgb(205, 255, 205, 87)),
+        new SolidBrush(Color.FromArgb(170, 255, 164, 66)),
+        new SolidBrush(Color.FromArgb(125, 255, 246, 207))
+    ];
     private readonly StringFormat _leftFormat = new()
     {
         Alignment = StringAlignment.Near,
@@ -167,6 +209,9 @@ public sealed class GameForm : Form
 
         _bestScore = LoadBestScore();
         ResetSnake();
+        UpdateViewTransform();
+        _appleSprite = CreateAppleSprite(false);
+        _goldAppleSprite = CreateAppleSprite(true);
         BuildChrome();
 
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
@@ -247,8 +292,6 @@ public sealed class GameForm : Form
         DrawStaticPanel(g, _boardCard);
         DrawStaticPanel(g, _rightPanel);
         DrawStaticPanel(g, _scoreArea, PanelLight);
-        DrawStaticPanel(g, new Rectangle(824, 268, 134, 78), PanelLight);
-        DrawStaticPanel(g, new Rectangle(970, 268, 134, 78), PanelLight);
         DrawStaticPanel(g, _modeArea, PanelLight);
         DrawStaticPanel(g, _difficultyArea, PanelLight);
         DrawStaticPanel(g, _actionArea, PanelLight);
@@ -277,16 +320,15 @@ public sealed class GameForm : Form
         using (var divider = new Pen(Border, 1))
             g.DrawLine(divider, 1004, 144, 1004, 232);
 
-        StaticText(g, "LEVEL", new Rectangle(842, 279, 100, 18), 7, FontStyle.Bold, Muted);
-        StaticText(g, "COMBO", new Rectangle(988, 279, 100, 18), 7, FontStyle.Bold, Muted);
-
-        StaticText(g, "GAME MODE", new Rectangle(842, 371, 180, 17), 8, FontStyle.Bold, Muted);
-        StaticText(g, "Pick your style", new Rectangle(842, 390, 180, 16), 7, FontStyle.Regular,
+        StaticText(g, "GAME MODE", new Rectangle(842, 282, 180, 18), 8, FontStyle.Bold, Muted);
+        StaticText(g, "Choose your run", new Rectangle(842, 302, 180, 16), 7, FontStyle.Regular,
             Color.FromArgb(105, 126, 128));
 
-        StaticText(g, "DIFFICULTY", new Rectangle(842, 488, 180, 17), 8, FontStyle.Bold, Muted);
-        StaticText(g, "Set the pace", new Rectangle(842, 507, 180, 16), 7, FontStyle.Regular,
+        StaticText(g, "DIFFICULTY", new Rectangle(842, 402, 180, 18), 8, FontStyle.Bold, Muted);
+        StaticText(g, "Choose your pace", new Rectangle(842, 422, 180, 16), 7, FontStyle.Regular,
             Color.FromArgb(105, 126, 128));
+
+        StaticText(g, "YOUR SESSION", new Rectangle(842, 528, 180, 18), 8, FontStyle.Bold, Muted);
 
         DrawStaticButton(g, _classicButton);
         DrawStaticButton(g, _wrapButton);

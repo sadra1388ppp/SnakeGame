@@ -1045,7 +1045,7 @@ public sealed class GameForm : Form
             _ => 112
         };
 
-        return Math.Max(48, start - (_score / 50 * 4));
+        return start;
     }
 
     private float CurrentProgress()

@@ -258,10 +258,10 @@ public sealed class GameForm : Form
                  ControlStyles.ResizeRedraw, true);
 
         _bestScore = LoadBestScore();
+        UpdateViewTransform();
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
         ResetSnake();
-        UpdateViewTransform();
         _appleSprite = CreateAppleSprite(false);
         _goldAppleSprite = CreateAppleSprite(true);
         BuildChrome();
@@ -1089,9 +1089,6 @@ public sealed class GameForm : Form
         _skinPatternPen.Color = skin.PatternColor;
         float phase = Environment.TickCount64 / 180f;
 
-        GraphicsState state = g.Save();
-        g.SetClip(_snakePath);
-
         int stride = skin.Pattern is SkinPattern.Dots or SkinPattern.Stars or SkinPattern.Galaxy ? 2 : 3;
         for (int i = 1; i < _snake.Count - 1; i += stride)
         {
@@ -1154,7 +1151,6 @@ public sealed class GameForm : Form
             }
         }
 
-        g.Restore(state);
     }
 
     private void DrawLegendaryAura(Graphics g, PointF head)
@@ -1836,6 +1832,9 @@ public sealed class GameForm : Form
 
         if (_skinButton.Contains(point))
         {
+            if (_state == GameState.Playing)
+                SetState(GameState.Paused);
+
             _showSkinPicker = true;
             InvalidateDesign(_field);
             return;

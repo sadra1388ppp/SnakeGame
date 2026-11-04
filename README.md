@@ -1,20 +1,22 @@
 # SnakeGame 🐍
 
-A small, polished **offline Snake game** made with C# and Windows Forms.
+A polished, fully offline Snake arcade game built with **C# and Windows Forms**.
 
-The game uses custom-drawn graphics, so it needs no downloaded images, game engine, account, or internet connection.
+## Highlights
 
-## Features
-
-- Clean dark arcade interface with neon-green accents
-- Classic Snake gameplay with smooth, grid-based movement
-- Keyboard controls: **WASD** or **Arrow Keys**
-- Three difficulty levels: Easy, Normal, and Hard
-- Speed increases as your score grows
-- Pause and resume at any time
-- Personal best saved locally on your PC
-- Restart button and game-over screen
-- No third-party NuGet packages
+- Minimal dark arcade interface with a redesigned start screen
+- Smooth animated movement with a 60 FPS rendering target
+- Cached interface and playfield graphics to reduce repeated drawing
+- Three game modes:
+  - **Classic** — hit a wall and the run ends
+  - **Wrap** — leave one edge and appear on the opposite side
+  - **Rush** — score as much as possible in 60 seconds
+- Three difficulty settings: Easy, Normal, and Hard
+- Golden bonus fruit appears every five regular fruits; collect it for **30 points**
+- Combo scoring for collecting fruit in quick succession
+- Pause, resume, and restart controls
+- Sound effects with a mute toggle
+- Local personal-best score; no account, network, or third-party packages
 
 ## Requirements
 
@@ -31,17 +33,17 @@ cd SnakeGame
 dotnet run
 ```
 
-## Build a release
+## Build a standalone Windows app
 
 ```powershell
 dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
 ```
 
-The standalone Windows executable will be in:
+The executable will be created at:
 
 `bin\Release\net10.0-windows\win-x64\publish\SnakeGame.exe`
 
-The self-contained build includes the .NET runtime, so it can run on a compatible 64-bit Windows PC without installing .NET separately.
+The self-contained build includes the .NET runtime, so a compatible 64-bit Windows PC does not need a separate .NET installation.
 
 ## Controls
 
@@ -54,13 +56,13 @@ The self-contained build includes the .NET runtime, so it can run on a compatibl
 | `Space` | Start, pause, or resume |
 | `Esc` | Pause or resume |
 
-## High score
+## Personal best
 
-Your best score is stored locally at:
+The best score is stored on your PC at:
 
 `%LOCALAPPDATA%\SnakeGame\best-score.txt`
 
-It is not uploaded or shared.
+It is never uploaded.
 
 ---
 

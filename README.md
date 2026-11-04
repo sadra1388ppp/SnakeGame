@@ -4,19 +4,22 @@ A polished, fully offline Snake arcade game built with **C# and Windows Forms**.
 
 ## Highlights
 
-- Minimal dark arcade interface with a redesigned start screen
-- Smooth animated movement with a 60 FPS rendering target
-- Cached interface and playfield graphics to reduce repeated drawing
+- A welcoming start screen with your personal best score
+- Smooth animated snake with anti-aliased, rounded body rendering
+- Custom red and golden apple sprites, drawn once and cached for fast rendering
+- Golden apple warning blink during its final 3 seconds
+- Golden apple collection triggers a particle burst, expanding ring, and +30 score popup
 - Three game modes:
-  - **Classic** — hit a wall and the run ends
+  - **Classic** — hitting a wall ends the run
   - **Wrap** — leave one edge and appear on the opposite side
   - **Rush** — score as much as possible in 60 seconds
 - Three difficulty settings: Easy, Normal, and Hard
-- Golden bonus fruit appears every five regular fruits; collect it for **30 points**
-- Combo scoring for collecting fruit in quick succession
+- Current score and saved personal best; no level system
 - Pause, resume, and restart controls
 - Sound effects with a mute toggle
-- Local personal-best score; no account, network, or third-party packages
+- Fullscreen mode with **F11**, **Alt + Enter**, or the fullscreen button
+- Cached interface and reusable drawing paths to reduce per-frame allocations
+- No account, internet connection, external assets, or third-party NuGet packages
 
 ## Requirements
 
@@ -54,15 +57,17 @@ The self-contained build includes the .NET runtime, so a compatible 64-bit Windo
 | `A` / `←` | Move left |
 | `D` / `→` | Move right |
 | `Space` | Start, pause, or resume |
-| `Esc` | Pause or resume |
+| `Esc` | Pause or exit fullscreen |
+| `F11` | Toggle fullscreen |
+| `Alt + Enter` | Toggle fullscreen |
 
 ## Personal best
 
-The best score is stored on your PC at:
+Your best score is stored locally at:
 
 `%LOCALAPPDATA%\SnakeGame\best-score.txt`
 
-It is never uploaded.
+The save is written immediately when you beat your record, using a temporary file and a backup copy. Scores are never uploaded.
 
 ---
 

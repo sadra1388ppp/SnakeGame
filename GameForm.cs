@@ -380,7 +380,8 @@ public sealed class GameForm : Form
             string subtitle = _state switch
             {
                 GameState.Paused => "Your run is saved right here.",
-                GameState.GameOver => _newRecord ? "NEW PERSONAL BEST" : $"FINAL SCORE  {_score:0000}",
+                GameState.GameOver => _scoreSaveFailed ? "SCORE SAVE FAILED" :
+                    _newRecord ? "NEW PERSONAL BEST" : $"FINAL SCORE  {_score:0000}",
                 _ => "A classic arcade game. One more round?"
             };
 
@@ -1290,9 +1291,16 @@ public sealed class GameForm : Form
             }
 
             if (File.Exists(path))
+            {
+                if (File.Exists(backupPath))
+                    File.Delete(backupPath);
+
                 File.Replace(temporaryPath, path, backupPath, true);
+            }
             else
+            {
                 File.Move(temporaryPath, path);
+            }
 
             _scoreSaveFailed = false;
         }

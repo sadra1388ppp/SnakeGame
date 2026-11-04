@@ -1,6 +1,8 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.Media;
+using System.Text;
 
 namespace SnakeGame;
 
@@ -52,6 +54,8 @@ public sealed class GameForm : Form
     private bool _soundEnabled = true;
     private bool _won;
     private bool _newRecord;
+    private bool _wrappedThisStep;
+    private bool _scoreSaveFailed;
 
     private Bitmap? _chrome;
     private readonly GraphicsPath _overlayPath = RoundPath(new Rectangle(193, 267, 428, 245), 20);
@@ -102,6 +106,26 @@ public sealed class GameForm : Form
     private readonly SolidBrush _foodBrush = new(Color.FromArgb(255, 103, 105));
     private readonly SolidBrush _foodGlowBrush = new(Color.FromArgb(38, 255, 103, 105));
     private readonly SolidBrush _goldGlowBrush = new(Color.FromArgb(42, 255, 194, 83));
+    private readonly SolidBrush _headHighlightBrush = new(Color.FromArgb(85, 255, 255, 255));
+    private readonly Pen _snakeOutlinePen = new(Color.FromArgb(42, 104, 57), CellSize - 1)
+    {
+        StartCap = LineCap.Round,
+        EndCap = LineCap.Round,
+        LineJoin = LineJoin.Round
+    };
+    private readonly Pen _snakeBodyPen = new(Color.FromArgb(111, 194, 91), CellSize - 6)
+    {
+        StartCap = LineCap.Round,
+        EndCap = LineCap.Round,
+        LineJoin = LineJoin.Round
+    };
+    private readonly Pen _snakeHighlightPen = new(Color.FromArgb(75, 223, 255, 187), 2.2f)
+    {
+        StartCap = LineCap.Round,
+        EndCap = LineCap.Round,
+        LineJoin = LineJoin.Round
+    };
+    private readonly Pen _headOutlinePen = new(Color.FromArgb(190, 57, 123, 64), 1.2f);
     private readonly SolidBrush _overlayBrush = new(Color.FromArgb(218, 5, 10, 13));
     private readonly SolidBrush _cardBrush = new(Color.FromArgb(248, 19, 29, 35));
     private readonly Pen _goldPen = new(Color.FromArgb(235, Gold), 2);
@@ -167,6 +191,9 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         g.DrawImageUnscaled(_chrome, 0, 0);
 
         Rectangle clip = e.ClipRectangle;
@@ -333,6 +360,9 @@ public sealed class GameForm : Form
     private void DrawBoardDynamic(Graphics g)
     {
         GraphicsState state = g.Save();
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.SetClip(_field);
 
         if (_state is GameState.Ready or GameState.GameOver or GameState.Paused)
@@ -379,80 +409,224 @@ public sealed class GameForm : Form
 
     private void DrawFood(Graphics g)
     {
-        DateTime now = DateTime.UtcNow;
-        float pulse = 1f + (float)Math.Sin(now.Millisecond / 1000f * Math.PI * 2) * 0.08f;
+        float pulse = 1f + (float)Math.Sin(Environment.TickCount64 / 180.0) * 0.055f;
+        DrawApple(g, _food, pulse, false);
 
-        RectangleF regular = CellBounds(_food, 13 * pulse);
-        g.FillEllipse(_foodGlowBrush, regular.X - 7, regular.Y - 7, regular.Width + 14, regular.Height + 14);
-        g.FillEllipse(_foodBrush, regular);
+        if (_goldenFood is Point golden)
+            DrawApple(g, golden, pulse, true);
+    }
 
-        if (_goldenFood is not Point golden)
-            return;
+    private void DrawApple(Graphics g, Point cell, float pulse, bool golden)
+    {
+        float centerX = _field.Left + cell.X * CellSize + CellSize / 2f;
+        float centerY = _field.Top + cell.Y * CellSize + CellSize / 2f;
+        float width = (golden ? 18f : 17f) * pulse;
+        float height = (golden ? 18f : 17f) * pulse;
 
-        RectangleF special = CellBounds(golden, 15 * pulse);
-        g.FillEllipse(_goldGlowBrush, special.X - 8, special.Y - 8,
-            special.Width + 16, special.Height + 16);
-        g.FillEllipse(_goldBrush, special);
+        RectangleF bounds = new(
+            centerX - width / 2f,
+            centerY - height / 2f + 1f,
+            width,
+            height);
 
-        float cx = special.X + special.Width / 2;
-        float cy = special.Y + special.Height / 2;
-        g.DrawLine(_goldPen, cx - 5, cy, cx + 5, cy);
-        g.DrawLine(_goldPen, cx, cy - 5, cx, cy + 5);
+        using (var glow = new SolidBrush(golden
+                   ? Color.FromArgb(48, 255, 190, 66)
+                   : Color.FromArgb(42, 255, 75, 75)))
+            g.FillEllipse(glow, bounds.X - 6, bounds.Y - 5, bounds.Width + 12, bounds.Height + 10);
+
+        float left = bounds.Left;
+        float right = bounds.Right;
+        float top = bounds.Top;
+        float bottom = bounds.Bottom;
+        float cx = bounds.Left + bounds.Width / 2f;
+
+        using var applePath = new GraphicsPath();
+        applePath.StartFigure();
+        applePath.AddBezier(cx, top + height * 0.27f,
+            cx - width * 0.17f, top - height * 0.03f,
+            left + width * 0.03f, top + height * 0.04f,
+            left + width * 0.04f, top + height * 0.43f);
+        applePath.AddBezier(left + width * 0.04f, top + height * 0.43f,
+            left - width * 0.02f, bottom - height * 0.10f,
+            cx - width * 0.24f, bottom + height * 0.02f,
+            cx, bottom - height * 0.06f);
+        applePath.AddBezier(cx, bottom - height * 0.06f,
+            cx + width * 0.23f, bottom + height * 0.02f,
+            right + width * 0.02f, bottom - height * 0.10f,
+            right - width * 0.04f, top + height * 0.43f);
+        applePath.AddBezier(right - width * 0.04f, top + height * 0.43f,
+            right - width * 0.02f, top + height * 0.04f,
+            cx + width * 0.17f, top - height * 0.03f,
+            cx, top + height * 0.27f);
+        applePath.CloseFigure();
+
+        Color topColor = golden ? Color.FromArgb(255, 231, 126) : Color.FromArgb(255, 117, 111);
+        Color bottomColor = golden ? Color.FromArgb(214, 132, 31) : Color.FromArgb(174, 31, 48);
+
+        using (var appleBrush = new LinearGradientBrush(bounds, topColor, bottomColor, 48f))
+            g.FillPath(appleBrush, applePath);
+
+        using (var outline = new Pen(golden ? Color.FromArgb(190, 156, 91, 26) :
+                   Color.FromArgb(205, 119, 31, 43), 0.9f))
+            g.DrawPath(outline, applePath);
+
+        using (var stem = new Pen(Color.FromArgb(132, 83, 43), 1.8f)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            g.DrawBezier(stem, cx, top + height * 0.28f,
+                cx + 0.5f, top + height * 0.05f,
+                cx + width * 0.16f, top - height * 0.02f,
+                cx + width * 0.20f, top + height * 0.09f);
+
+        using var leafPath = new GraphicsPath();
+        leafPath.AddBezier(cx + width * 0.08f, top + height * 0.17f,
+            cx + width * 0.25f, top - height * 0.08f,
+            cx + width * 0.53f, top - height * 0.03f,
+            cx + width * 0.48f, top + height * 0.20f);
+        leafPath.AddBezier(cx + width * 0.48f, top + height * 0.20f,
+            cx + width * 0.30f, top + height * 0.27f,
+            cx + width * 0.18f, top + height * 0.23f,
+            cx + width * 0.08f, top + height * 0.17f);
+
+        using (var leafBrush = new LinearGradientBrush(
+                   bounds, Color.FromArgb(181, 231, 115), Color.FromArgb(43, 128, 70), 45f))
+            g.FillPath(leafBrush, leafPath);
+
+        using (var leafPen = new Pen(Color.FromArgb(170, 42, 111, 57), 0.7f))
+            g.DrawPath(leafPen, leafPath);
+
+        if (!golden)
+        {
+            using var shine = new SolidBrush(Color.FromArgb(95, 255, 232, 220));
+            g.FillEllipse(shine, left + width * 0.20f, top + height * 0.34f,
+                width * 0.17f, height * 0.27f);
+        }
+        else
+        {
+            using var shine = new SolidBrush(Color.FromArgb(130, 255, 245, 194));
+            g.FillEllipse(shine, left + width * 0.20f, top + height * 0.34f,
+                width * 0.17f, height * 0.27f);
+        }
     }
 
     private void DrawSnake(Graphics g)
     {
-        float progress = _state == GameState.Playing ? CurrentProgress() : 1f;
+        if (_snake.Count == 0)
+            return;
 
-        for (int i = _snake.Count - 1; i >= 0; i--)
+        float progress = _state == GameState.Playing ? CurrentProgress() : 1f;
+        PointF[] centers = new PointF[_snake.Count];
+
+        for (int i = 0; i < _snake.Count; i++)
         {
             Point from = i < _previousSnake.Length ? _previousSnake[i] : _snake[i];
             Point to = _snake[i];
 
-            float x = _field.Left + (from.X + (to.X - from.X) * progress) * CellSize;
-            float y = _field.Top + (from.Y + (to.Y - from.Y) * progress) * CellSize;
-            float inset = i == 0 ? 2.5f : 3.5f;
-            RectangleF part = new(x + inset, y + inset,
-                CellSize - inset * 2, CellSize - inset * 2);
+            // A wrapped head teleports to the opposite edge instead of being
+            // interpolated across the entire board.
+            float cellX = _wrappedThisStep && i == 0
+                ? to.X
+                : from.X + (to.X - from.X) * progress;
+            float cellY = _wrappedThisStep && i == 0
+                ? to.Y
+                : from.Y + (to.Y - from.Y) * progress;
 
-            g.FillEllipse(i == 0 ? _headBrush : _snakeBrush, part);
+            centers[i] = new PointF(
+                _field.Left + cellX * CellSize + CellSize / 2f,
+                _field.Top + cellY * CellSize + CellSize / 2f);
         }
 
-        if (_snake.Count == 0)
+        // Draw separate smooth body sections when the snake crosses a wrap edge.
+        int sectionStart = 0;
+        for (int i = 1; i < centers.Length; i++)
+        {
+            float dx = centers[i].X - centers[i - 1].X;
+            float dy = centers[i].Y - centers[i - 1].Y;
+
+            if (Math.Abs(dx) > CellSize * 1.5f || Math.Abs(dy) > CellSize * 1.5f)
+            {
+                DrawSnakeSection(g, centers, sectionStart, i - 1);
+                sectionStart = i;
+            }
+        }
+
+        DrawSnakeSection(g, centers, sectionStart, centers.Length - 1);
+        DrawSnakeHead(g, centers[0]);
+    }
+
+    private void DrawSnakeSection(Graphics g, PointF[] centers, int start, int end)
+    {
+        if (end < start)
             return;
 
-        Point oldHead = _previousSnake.Length > 0 ? _previousSnake[0] : _snake[0];
-        Point newHead = _snake[0];
-        float headX = _field.Left + (oldHead.X + (newHead.X - oldHead.X) * progress) * CellSize;
-        float headY = _field.Top + (oldHead.Y + (newHead.Y - oldHead.Y) * progress) * CellSize;
+        if (end == start)
+        {
+            const float diameter = CellSize - 4;
+            g.FillEllipse(_snakeBrush, centers[start].X - diameter / 2f,
+                centers[start].Y - diameter / 2f, diameter, diameter);
+            return;
+        }
 
-        float eye1X;
-        float eye1Y;
-        float eye2X;
-        float eye2Y;
+        PointF[] points = new PointF[end - start + 1];
+        Array.Copy(centers, start, points, 0, points.Length);
 
+        using var path = new GraphicsPath();
+        path.AddLines(points);
+
+        g.DrawPath(_snakeOutlinePen, path);
+        g.DrawPath(_snakeBodyPen, path);
+
+        // A soft highlight gives the body a rounded, glossy surface.
+        PointF[] highlightPoints = new PointF[points.Length];
+        for (int i = 0; i < points.Length; i++)
+            highlightPoints[i] = new PointF(points[i].X - 1.2f, points[i].Y - 3.2f);
+
+        using var highlightPath = new GraphicsPath();
+        highlightPath.AddLines(highlightPoints);
+        g.DrawPath(_snakeHighlightPen, highlightPath);
+    }
+
+    private void DrawSnakeHead(Graphics g, PointF center)
+    {
+        const float size = CellSize - 3;
+        RectangleF head = new(center.X - size / 2f, center.Y - size / 2f, size, size);
+
+        using (var shadow = new SolidBrush(Color.FromArgb(45, 138, 233, 104)))
+            g.FillEllipse(shadow, head.X - 3, head.Y - 3, head.Width + 6, head.Height + 6);
+
+        using (var fill = new LinearGradientBrush(head,
+                   Color.FromArgb(211, 255, 150), Color.FromArgb(92, 177, 78), 45f))
+            g.FillEllipse(fill, head);
+
+        g.DrawEllipse(_headOutlinePen, head);
+        g.FillEllipse(_headHighlightBrush, head.X + 3.5f, head.Y + 2.5f, 5.5f, 3.2f);
+
+        PointF eyeOne;
+        PointF eyeTwo;
         switch (_direction)
         {
             case Direction.Up:
-                eye1X = headX + 7; eye1Y = headY + 6;
-                eye2X = headX + 16; eye2Y = headY + 6;
+                eyeOne = new PointF(center.X - 4.2f, center.Y - 4.0f);
+                eyeTwo = new PointF(center.X + 4.2f, center.Y - 4.0f);
                 break;
             case Direction.Down:
-                eye1X = headX + 7; eye1Y = headY + 16;
-                eye2X = headX + 16; eye2Y = headY + 16;
+                eyeOne = new PointF(center.X - 4.2f, center.Y + 4.0f);
+                eyeTwo = new PointF(center.X + 4.2f, center.Y + 4.0f);
                 break;
             case Direction.Left:
-                eye1X = headX + 6; eye1Y = headY + 7;
-                eye2X = headX + 6; eye2Y = headY + 16;
+                eyeOne = new PointF(center.X - 4.0f, center.Y - 4.2f);
+                eyeTwo = new PointF(center.X - 4.0f, center.Y + 4.2f);
                 break;
             default:
-                eye1X = headX + 16; eye1Y = headY + 7;
-                eye2X = headX + 16; eye2Y = headY + 16;
+                eyeOne = new PointF(center.X + 4.0f, center.Y - 4.2f);
+                eyeTwo = new PointF(center.X + 4.0f, center.Y + 4.2f);
                 break;
         }
 
-        g.FillEllipse(_eyeBrush, eye1X, eye1Y, 3, 3);
-        g.FillEllipse(_eyeBrush, eye2X, eye2Y, 3, 3);
+        using var eyeWhite = new SolidBrush(Color.FromArgb(246, 255, 249, 230));
+        g.FillEllipse(eyeWhite, eyeOne.X - 2.0f, eyeOne.Y - 2.0f, 4f, 4f);
+        g.FillEllipse(eyeWhite, eyeTwo.X - 2.0f, eyeTwo.Y - 2.0f, 4f, 4f);
+        g.FillEllipse(_eyeBrush, eyeOne.X - 0.8f, eyeOne.Y - 0.8f, 2.2f, 2.2f);
+        g.FillEllipse(_eyeBrush, eyeTwo.X - 0.8f, eyeTwo.Y - 0.8f, 2.2f, 2.2f);
     }
 
     private void DrawWindowButton(Graphics g, Rectangle rect, string label, bool hover)
@@ -581,6 +755,7 @@ public sealed class GameForm : Form
         _nextDirection = Direction.Right;
         _foodEaten = 0;
         _combo = 0;
+        _wrappedThisStep = false;
         _lastFoodAt = default;
         _goldenFood = null;
         _goldenExpiresAt = null;
@@ -717,8 +892,10 @@ public sealed class GameForm : Form
             _ => new Point(head.X + 1, head.Y)
         };
 
+        bool wrapped = false;
         if (_mode == GameMode.Wrap)
         {
+            wrapped = next.X < 0 || next.X >= Columns || next.Y < 0 || next.Y >= Rows;
             next.X = (next.X + Columns) % Columns;
             next.Y = (next.Y + Rows) % Rows;
         }
@@ -742,6 +919,7 @@ public sealed class GameForm : Form
             }
         }
 
+        _wrappedThisStep = wrapped;
         _snake.Insert(0, next);
 
         if (eatingRegular || eatingGolden)
@@ -754,7 +932,13 @@ public sealed class GameForm : Form
             _lastFoodAt = now;
 
             _score += eatingGolden ? 30 : 10 + (_combo - 1) * 2;
-            _newRecord = _score > _bestScore;
+
+            if (_score > _bestScore)
+            {
+                _bestScore = _score;
+                _newRecord = true;
+                SaveBestScore();
+            }
 
             PlaySound(eatingGolden ? 2 : 0);
 
@@ -825,13 +1009,14 @@ public sealed class GameForm : Form
     {
         _animationTimer.Stop();
         _state = GameState.GameOver;
-        _newRecord = _score > _bestScore;
-
-        if (_newRecord)
+        if (_score > _bestScore)
         {
             _bestScore = _score;
-            SaveBestScore();
+            _newRecord = true;
         }
+
+        if (_newRecord || _scoreSaveFailed)
+            SaveBestScore();
 
         PlaySound(_won ? 2 : 1);
         Invalidate();
@@ -1060,30 +1245,70 @@ public sealed class GameForm : Form
 
     private int LoadBestScore()
     {
+        if (TryReadScore(BestScorePath(), out int score))
+            return score;
+
+        // Recover the last known good score if a previous save was interrupted.
+        return TryReadScore(BestScorePath() + ".bak", out score) ? score : 0;
+    }
+
+    private static bool TryReadScore(string path, out int score)
+    {
+        score = 0;
+
         try
         {
-            string path = BestScorePath();
-            return File.Exists(path) && int.TryParse(File.ReadAllText(path), out int value)
-                ? Math.Max(0, value)
-                : 0;
+            return File.Exists(path) &&
+                   int.TryParse(File.ReadAllText(path).Trim(),
+                       NumberStyles.Integer, CultureInfo.InvariantCulture, out score) &&
+                   score >= 0;
         }
         catch
         {
-            return 0;
+            return false;
         }
     }
 
     private void SaveBestScore()
     {
+        string path = BestScorePath();
+        string directory = Path.GetDirectoryName(path)!;
+        string temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        string backupPath = path + ".bak";
+
         try
         {
-            string path = BestScorePath();
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, _bestScore.ToString());
+            Directory.CreateDirectory(directory);
+
+            using (var stream = new FileStream(temporaryPath, FileMode.CreateNew,
+                       FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
+            {
+                writer.Write(_bestScore.ToString(CultureInfo.InvariantCulture));
+                writer.Flush();
+                stream.Flush(true);
+            }
+
+            if (File.Exists(path))
+                File.Replace(temporaryPath, path, backupPath, true);
+            else
+                File.Move(temporaryPath, path);
+
+            _scoreSaveFailed = false;
         }
         catch
         {
-            // A failed save must not interrupt the game.
+            _scoreSaveFailed = true;
+
+            try
+            {
+                if (File.Exists(temporaryPath))
+                    File.Delete(temporaryPath);
+            }
+            catch
+            {
+                // A leftover temporary file is safe; the previous score is untouched.
+            }
         }
     }
 
@@ -1122,6 +1347,14 @@ public sealed class GameForm : Form
         _overlayBrush.Dispose();
         _cardBrush.Dispose();
         _goldPen.Dispose();
+        _headHighlightBrush.Dispose();
+        _snakeOutlinePen.Dispose();
+        _snakeBodyPen.Dispose();
+        _snakeHighlightPen.Dispose();
+        _headOutlinePen.Dispose();
+
+        if (_scoreSaveFailed)
+            SaveBestScore();
 
         _leftFormat.Dispose();
         _centerFormat.Dispose();

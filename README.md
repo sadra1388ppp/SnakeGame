@@ -4,21 +4,24 @@ A polished, fully offline Snake arcade game built with **C# and Windows Forms**.
 
 ## Highlights
 
-- A welcoming start screen with your personal best score
-- Smooth animated snake with anti-aliased, rounded body rendering
-- Custom red and golden apple sprites, drawn once and cached for fast rendering
-- Golden apple warning blink during its final 3 seconds
-- Golden apple collection triggers a particle burst, expanding ring, and +30 score popup
+- Welcoming start screen with your personal best score
+- Smooth animated snake and custom red/golden apple sprites
+- 20 custom snake skins plus the **Legendary Phoenix** skin
+- Skin patterns include stripes, waves, scales, flames, frost, circuits, galaxy, neon, and more
+- Legendary Phoenix has a glowing aura and animated sparks around the snake
+- Skin choice is saved locally and restored next time the game starts
+- Golden apple blinks during its final 3 seconds
+- Collecting a golden apple triggers gold particles, an expanding ring, and a +30 popup
 - Three game modes:
   - **Classic** — hitting a wall ends the run
   - **Wrap** — leave one edge and appear on the opposite side
   - **Rush** — score as much as possible in 60 seconds
 - Three difficulty settings: Easy, Normal, and Hard
-- Current score and saved personal best; no level system
-- Pause, resume, and restart controls
-- Sound effects with a mute toggle
-- Fullscreen mode with **F11**, **Alt + Enter**, or the fullscreen button
-- Cached interface and reusable drawing paths to reduce per-frame allocations
+- Current score and personal best; no level system
+- Reset Best Score button with confirmation
+- Pause, resume, restart, and sound toggle
+- Fullscreen with **F11**, **Alt + Enter**, or the fullscreen button
+- Cached UI, apple sprites, reusable drawing paths, and effect resources
 - No account, internet connection, external assets, or third-party NuGet packages
 
 ## Requirements
@@ -57,17 +60,21 @@ The self-contained build includes the .NET runtime, so a compatible 64-bit Windo
 | `A` / `←` | Move left |
 | `D` / `→` | Move right |
 | `Space` | Start, pause, or resume |
-| `Esc` | Pause or exit fullscreen |
+| `Esc` | Close skin picker, pause, or exit fullscreen |
 | `F11` | Toggle fullscreen |
 | `Alt + Enter` | Toggle fullscreen |
 
-## Personal best
+## Local data
 
-Your best score is stored locally at:
+The personal best score is stored at:
 
 `%LOCALAPPDATA%\SnakeGame\best-score.txt`
 
-The save is written immediately when you beat your record, using a temporary file and a backup copy. Scores are never uploaded.
+The selected skin is stored at:
+
+`%LOCALAPPDATA%\SnakeGame\selected-skin.txt`
+
+Both stay on your PC. No game data is uploaded.
 
 ---
 

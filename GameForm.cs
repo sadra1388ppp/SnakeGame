@@ -206,15 +206,15 @@ public sealed class GameForm : Form
         }
 
         FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
-        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
+        StaticDrawLabel(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
             Background, StringAlignment.Center);
 
-        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
-        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
+        StaticDrawLabel(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
 
         FillRound(g, new Rectangle(864, 24, 7, 7), 4, Green);
-        StaticText(g, "OFFLINE", new Rectangle(879, 17, 80, 20), 8, FontStyle.Bold, Muted);
-        StaticText(g, "NO LOGIN  ·  NO ADS", new Rectangle(879, 37, 145, 15), 7, FontStyle.Regular,
+        StaticDrawLabel(g, "OFFLINE", new Rectangle(879, 17, 80, 20), 8, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "NO LOGIN  ·  NO ADS", new Rectangle(879, 37, 145, 15), 7, FontStyle.Regular,
             Color.FromArgb(90, 111, 115));
 
         DrawStaticPanel(g, _boardCard);
@@ -226,7 +226,7 @@ public sealed class GameForm : Form
         DrawStaticPanel(g, _difficultyArea, PanelLight);
         DrawStaticPanel(g, _actionArea, PanelLight);
 
-        StaticText(g, "PLAYFIELD", new Rectangle(62, 116, 180, 22), 8, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "PLAYFIELD", new Rectangle(62, 116, 180, 22), 8, FontStyle.Bold, Muted);
         FillRound(g, _field, 12, Color.FromArgb(8, 15, 18));
         StrokeRound(g, _field, 12, Color.FromArgb(48, 74, 66));
 
@@ -245,20 +245,20 @@ public sealed class GameForm : Form
             }
         }
 
-        StaticText(g, "SCORE", new Rectangle(844, 139, 100, 16), 7, FontStyle.Bold, Muted);
-        StaticText(g, "BEST", new Rectangle(1020, 139, 70, 16), 7, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "SCORE", new Rectangle(844, 139, 100, 16), 7, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "BEST", new Rectangle(1020, 139, 70, 16), 7, FontStyle.Bold, Muted);
         using (var divider = new Pen(Border, 1))
             g.DrawLine(divider, 1004, 144, 1004, 232);
 
-        StaticText(g, "LEVEL", new Rectangle(842, 279, 100, 18), 7, FontStyle.Bold, Muted);
-        StaticText(g, "COMBO", new Rectangle(988, 279, 100, 18), 7, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "LEVEL", new Rectangle(842, 279, 100, 18), 7, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "COMBO", new Rectangle(988, 279, 100, 18), 7, FontStyle.Bold, Muted);
 
-        StaticText(g, "GAME MODE", new Rectangle(842, 371, 180, 17), 8, FontStyle.Bold, Muted);
-        StaticText(g, "Pick your style", new Rectangle(842, 390, 180, 16), 7, FontStyle.Regular,
+        StaticDrawLabel(g, "GAME MODE", new Rectangle(842, 371, 180, 17), 8, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "Pick your style", new Rectangle(842, 390, 180, 16), 7, FontStyle.Regular,
             Color.FromArgb(105, 126, 128));
 
-        StaticText(g, "DIFFICULTY", new Rectangle(842, 488, 180, 17), 8, FontStyle.Bold, Muted);
-        StaticText(g, "Set the pace", new Rectangle(842, 507, 180, 16), 7, FontStyle.Regular,
+        StaticDrawLabel(g, "DIFFICULTY", new Rectangle(842, 488, 180, 17), 8, FontStyle.Bold, Muted);
+        StaticDrawLabel(g, "Set the pace", new Rectangle(842, 507, 180, 16), 7, FontStyle.Regular,
             Color.FromArgb(105, 126, 128));
 
         DrawStaticButton(g, _classicButton);
@@ -271,30 +271,30 @@ public sealed class GameForm : Form
         DrawStaticButton(g, _soundButton);
         DrawStaticButton(g, _restartButton);
 
-        StaticText(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
+        StaticDrawLabel(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
             Color.FromArgb(95, 118, 118));
-        StaticText(g, "WASD  /  ARROWS", new Rectangle(201, 650, 160, 20), 7, FontStyle.Bold,
+        StaticDrawLabel(g, "WASD  /  ARROWS", new Rectangle(201, 650, 160, 20), 7, FontStyle.Bold,
             Color.FromArgb(95, 118, 118));
-        StaticText(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
+        StaticDrawLabel(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
             Color.FromArgb(133, 115, 78));
     }
 
     private void DrawDashboard(Graphics g)
     {
-        Text(g, _score.ToString("0000"), _scoreFont, _whiteBrush,
+        DrawLabel(g, _score.ToString("0000"), _scoreFont, _whiteBrush,
             new Rectangle(842, 161, 154, 60), _leftFormat);
 
-        Text(g, Math.Max(_bestScore, _score).ToString("0000"), _numberFont, _greenBrush,
+        DrawLabel(g, Math.Max(_bestScore, _score).ToString("0000"), _numberFont, _greenBrush,
             new Rectangle(1020, 172, 76, 42), _leftFormat);
 
         int level = 1 + _score / 50;
-        Text(g, level.ToString("00"), _numberFont, _whiteBrush,
+        DrawLabel(g, level.ToString("00"), _numberFont, _whiteBrush,
             new Rectangle(842, 297, 100, 39), _leftFormat);
 
         string secondStat = _mode == GameMode.Rush
             ? $"{Math.Ceiling(_rushTimeLeft.TotalSeconds):00}s"
             : $"x{Math.Max(1, _combo)}";
-        Text(g, secondStat, _numberFont, _mode == GameMode.Rush ? _goldBrush : _whiteBrush,
+        DrawLabel(g, secondStat, _numberFont, _mode == GameMode.Rush ? _goldBrush : _whiteBrush,
             new Rectangle(988, 297, 100, 39), _leftFormat);
 
         DrawChoice(g, _classicButton, "CLASSIC", _mode == GameMode.Classic);
@@ -316,7 +316,7 @@ public sealed class GameForm : Form
         DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
         DrawActionButton(g, _restartButton, "↻", false);
 
-        Text(g, _state switch
+        DrawLabel(g, _state switch
         {
             GameState.Playing => "IN PLAY",
             GameState.Paused => "PAUSED",
@@ -354,10 +354,10 @@ public sealed class GameForm : Form
                 _ => "A classic arcade game. One more round?"
             };
 
-            Text(g, title, _heroFont, _whiteBrush,
+            DrawLabel(g, title, _heroFont, _whiteBrush,
                 new Rectangle(220, 304, 374, 54), _centerFormat);
 
-            Text(g, subtitle, _smallFont,
+            DrawLabel(g, subtitle, _smallFont,
                 _state == GameState.GameOver && _newRecord ? _goldBrush : _mutedBrush,
                 new Rectangle(220, 366, 374, 25), _centerFormat);
 
@@ -365,7 +365,7 @@ public sealed class GameForm : Form
                 _state == GameState.Paused ? "RESUME" :
                 _state == GameState.GameOver ? "PLAY AGAIN" : "START GAME", true);
 
-            Text(g, "PRESS SPACE", _labelFont, _mutedBrush,
+            DrawLabel(g, "PRESS SPACE", _labelFont, _mutedBrush,
                 new Rectangle(280, 490, 254, 20), _centerFormat);
         }
         else
@@ -458,7 +458,7 @@ public sealed class GameForm : Form
     private void DrawWindowButton(Graphics g, Rectangle rect, string label, bool hover)
     {
         FillRound(g, rect, 8, hover ? PanelLight : Panel);
-        Text(g, label, _iconFont, _whiteBrush, rect, _centerFormat);
+        DrawLabel(g, label, _iconFont, _whiteBrush, rect, _centerFormat);
     }
 
     private void DrawChoice(Graphics g, Rectangle rect, string label, bool selected)
@@ -470,7 +470,7 @@ public sealed class GameForm : Form
 
         FillRound(g, rect, 8, fill);
         StrokeRound(g, rect, 8, selected ? Color.FromArgb(88, 148, 78) : Border);
-        Text(g, label, _buttonFont, selected ? _greenBrush : foreground == White ? _whiteBrush : _mutedBrush,
+        DrawLabel(g, label, _buttonFont, selected ? _greenBrush : foreground == White ? _whiteBrush : _mutedBrush,
             rect, _centerFormat);
     }
 
@@ -484,7 +484,7 @@ public sealed class GameForm : Form
         if (!primary)
             StrokeRound(g, rect, 10, Border);
 
-        Text(g, label, primary ? _buttonFont : _iconFont,
+        DrawLabel(g, label, primary ? _buttonFont : _iconFont,
             primary ? _darkBrush : _whiteBrush, rect, _centerFormat);
     }
 
@@ -514,7 +514,7 @@ public sealed class GameForm : Form
         g.DrawString(value, font, brush, rect, format);
     }
 
-    private static void Text(Graphics g, string value, Font font, Brush brush,
+    private static void DrawLabel(Graphics g, string value, Font font, Brush brush,
         Rectangle rect, StringFormat format) =>
         g.DrawString(value, font, brush, rect, format);
 

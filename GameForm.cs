@@ -513,6 +513,8 @@ public sealed class GameForm : Form
 
         if (_state is GameState.Ready or GameState.Paused or GameState.GameOver)
             DrawOverlay(g);
+        else
+            _overlayButton = Rectangle.Empty;
     }
 
     private void DrawSnake(Graphics g)
@@ -827,6 +829,7 @@ public sealed class GameForm : Form
 
     private static GraphicsPath RoundedPath(Rectangle rect, int radius)
     {
+        radius = Math.Max(1, Math.Min(radius, Math.Min(rect.Width, rect.Height) / 2));
         int diameter = radius * 2;
         var path = new GraphicsPath();
 
@@ -852,7 +855,14 @@ public sealed class GameForm : Form
             FormatFlags = StringFormatFlags.NoWrap
         };
 
-        g.DrawString(text, font, brush, rect, format);
+        try
+        {
+            g.DrawString(text, font, brush, rect, format);
+        }
+        finally
+        {
+            font.Dispose();
+        }
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)

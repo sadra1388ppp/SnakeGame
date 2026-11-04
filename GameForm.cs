@@ -51,8 +51,6 @@ public sealed class GameForm : Form
     private int _score;
     private int _bestScore;
     private int _foodEaten;
-    private int _combo;
-    private DateTime _lastFoodAt;
     private bool _soundEnabled = true;
     private bool _won;
     private bool _newRecord;
@@ -63,6 +61,7 @@ public sealed class GameForm : Form
     private float _viewScale = 1f;
     private float _viewOffsetX;
     private float _viewOffsetY;
+    private Matrix _viewMatrix = new(1, 0, 0, 1, 0, 0);
 
     private bool _goldBurstActive;
     private DateTime _goldBurstStarted;
@@ -238,7 +237,7 @@ public sealed class GameForm : Form
         Graphics g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.Transform = new Matrix(_viewScale, 0, 0, _viewScale, _viewOffsetX, _viewOffsetY);
+        g.Transform = _viewMatrix;
         g.DrawImageUnscaled(_chrome, 0, 0);
 
         Rectangle clip = ClientToDesign(e.ClipRectangle);
@@ -263,6 +262,8 @@ public sealed class GameForm : Form
             : 1f;
         _viewOffsetX = (ClientSize.Width - DesignWidth * _viewScale) / 2f;
         _viewOffsetY = (ClientSize.Height - DesignHeight * _viewScale) / 2f;
+        _viewMatrix.Dispose();
+        _viewMatrix = new Matrix(_viewScale, 0, 0, _viewScale, _viewOffsetX, _viewOffsetY);
     }
 
     private Point ClientToDesign(Point point) =>
@@ -678,12 +679,12 @@ public sealed class GameForm : Form
 
             if (Math.Abs(dx) > CellSize * 1.5f || Math.Abs(dy) > CellSize * 1.5f)
             {
-                AddSnakeSection(sectionStart, i - 1);
+                AddSnakeSection(g, sectionStart, i - 1);
                 sectionStart = i;
             }
         }
 
-        AddSnakeSection(sectionStart, _snake.Count - 1);
+        AddSnakeSection(g, sectionStart, _snake.Count - 1);
 
         if (_snakePath.PointCount > 0)
         {
@@ -696,7 +697,7 @@ public sealed class GameForm : Form
         DrawSnakeHead(g, _snakeCenters[0]);
     }
 
-    private void AddSnakeSection(int start, int end)
+    private void AddSnakeSection(Graphics g, int start, int end)
     {
         if (end < start)
             return;
@@ -705,8 +706,7 @@ public sealed class GameForm : Form
         {
             PointF center = _snakeCenters[start];
             const float diameter = CellSize - 6;
-            _snakePath.StartFigure();
-            _snakePath.AddEllipse(center.X - diameter / 2f, center.Y - diameter / 2f,
+            g.FillEllipse(_snakeBrush, center.X - diameter / 2f, center.Y - diameter / 2f,
                 diameter, diameter);
             return;
         }
@@ -976,9 +976,7 @@ public sealed class GameForm : Form
         _direction = Direction.Right;
         _nextDirection = Direction.Right;
         _foodEaten = 0;
-        _combo = 0;
         _wrappedThisStep = false;
-        _lastFoodAt = default;
         _goldenFood = null;
         _goldenExpiresAt = null;
         PlaceFood();
@@ -1263,7 +1261,7 @@ public sealed class GameForm : Form
             return;
 
         _difficulty = difficulty;
-        Invalidate(_rightPanel);
+        InvalidateDesign(_rightPanel);
     }
 
     private void SetMode(GameMode mode)
@@ -1274,7 +1272,7 @@ public sealed class GameForm : Form
         _mode = mode;
         _rushTimeLeft = TimeSpan.FromSeconds(60);
         _lastDisplayedSecond = 60;
-        Invalidate(_rightPanel);
+        InvalidateDesign(_rightPanel);
     }
 
     private void PlaySound(int type)
@@ -1374,9 +1372,9 @@ public sealed class GameForm : Form
         _mousePoint = point;
 
         if (!oldRect.IsEmpty)
-            Invalidate(oldRect);
+            InvalidateDesign(oldRect);
         if (!newRect.IsEmpty)
-            Invalidate(newRect);
+            InvalidateDesign(newRect);
     }
 
     private int GetHoverId(Point point)
@@ -1462,7 +1460,7 @@ public sealed class GameForm : Form
         if (_soundButton.Contains(point))
         {
             _soundEnabled = !_soundEnabled;
-            Invalidate(_soundButton);
+            InvalidateDesign(_soundButton);
         }
 
         if (_restartButton.Contains(point))
@@ -1576,6 +1574,9 @@ public sealed class GameForm : Form
         _scoreFont.Dispose();
         _numberFont.Dispose();
         _heroFont.Dispose();
+        _welcomeFont.Dispose();
+        _welcomeSmallFont.Dispose();
+        _effectFont.Dispose();
         _buttonFont.Dispose();
         _iconFont.Dispose();
 
@@ -1593,6 +1594,15 @@ public sealed class GameForm : Form
         _overlayBrush.Dispose();
         _cardBrush.Dispose();
         _goldPen.Dispose();
+        foreach (Pen pen in _goldBurstPens)
+            pen.Dispose();
+        foreach (SolidBrush brush in _goldParticleBrushes)
+            brush.Dispose();
+        _appleSprite?.Dispose();
+        _goldAppleSprite?.Dispose();
+        _snakePath.Dispose();
+        _snakeHighlightPath.Dispose();
+        _viewMatrix.Dispose();
         _headHighlightBrush.Dispose();
         _snakeOutlinePen.Dispose();
         _snakeBodyPen.Dispose();

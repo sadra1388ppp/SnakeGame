@@ -12,6 +12,41 @@ public sealed class GameForm : Form
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
     private enum GameMode { Classic, Wrap, Rush }
+    private enum SkinPattern
+    {
+        Plain, Stripes, Dots, Waves, Lightning, Scales, Flames, Frost,
+        Circuit, Galaxy, Camo, Candy, Coral, Prism, Stars, Honeycomb,
+        Tiger, Zebra, Neon, Royal, Legendary
+    }
+
+    private sealed record SnakeSkin(
+        string Name, Color Body, Color Head, Color Outline,
+        Color Highlight, Color PatternColor, SkinPattern Pattern, bool IsLegendary = false);
+
+    private static readonly SnakeSkin[] Skins =
+    [
+        new("Classic Lime", Color.FromArgb(104,193,91), Color.FromArgb(183,247,122), Color.FromArgb(42,104,57), Color.FromArgb(75,223,255,187), Color.FromArgb(165,239,104), SkinPattern.Plain),
+        new("Ruby Fang", Color.FromArgb(191,48,66), Color.FromArgb(255,112,120), Color.FromArgb(103,24,39), Color.FromArgb(255,190,190), Color.FromArgb(255,205,210), SkinPattern.Stripes),
+        new("Ocean Wave", Color.FromArgb(38,139,191), Color.FromArgb(103,211,245), Color.FromArgb(16,70,111), Color.FromArgb(180,233,255), Color.FromArgb(145,232,255), SkinPattern.Waves),
+        new("Arctic Frost", Color.FromArgb(142,207,224), Color.FromArgb(218,249,255), Color.FromArgb(61,120,151), Color.FromArgb(255,255,255), Color.FromArgb(236,255,255), SkinPattern.Frost),
+        new("Solar Gold", Color.FromArgb(218,157,41), Color.FromArgb(255,220,105), Color.FromArgb(117,74,18), Color.FromArgb(255,244,177), Color.FromArgb(255,231,142), SkinPattern.Stars),
+        new("Cyber Neon", Color.FromArgb(32,205,178), Color.FromArgb(115,255,224), Color.FromArgb(7,91,90), Color.FromArgb(190,255,245), Color.FromArgb(77,255,226), SkinPattern.Neon),
+        new("Toxic Slime", Color.FromArgb(115,190,43), Color.FromArgb(193,255,75), Color.FromArgb(45,91,22), Color.FromArgb(228,255,146), Color.FromArgb(211,255,74), SkinPattern.Dots),
+        new("Purple Haze", Color.FromArgb(131,86,190), Color.FromArgb(193,139,255), Color.FromArgb(61,38,111), Color.FromArgb(230,204,255), Color.FromArgb(213,161,255), SkinPattern.Stars),
+        new("Sunset Blaze", Color.FromArgb(224,91,52), Color.FromArgb(255,166,81), Color.FromArgb(117,43,38), Color.FromArgb(255,211,148), Color.FromArgb(255,194,104), SkinPattern.Flames),
+        new("Tiger Rush", Color.FromArgb(221,133,37), Color.FromArgb(255,190,76), Color.FromArgb(82,48,26), Color.FromArgb(255,229,160), Color.FromArgb(39,28,26), SkinPattern.Tiger),
+        new("Zebra Stripe", Color.FromArgb(218,224,229), Color.FromArgb(255,255,255), Color.FromArgb(55,62,72), Color.FromArgb(255,255,255), Color.FromArgb(54,63,76), SkinPattern.Zebra),
+        new("Mint Chip", Color.FromArgb(77,177,145), Color.FromArgb(154,238,195), Color.FromArgb(26,93,75), Color.FromArgb(218,255,228), Color.FromArgb(222,255,233), SkinPattern.Dots),
+        new("Candy Pop", Color.FromArgb(231,99,164), Color.FromArgb(255,174,213), Color.FromArgb(124,42,94), Color.FromArgb(255,223,241), Color.FromArgb(255,244,255), SkinPattern.Candy),
+        new("Lava Core", Color.FromArgb(184,58,35), Color.FromArgb(255,118,49), Color.FromArgb(75,25,24), Color.FromArgb(255,194,104), Color.FromArgb(255,224,93), SkinPattern.Flames),
+        new("Galaxy Dust", Color.FromArgb(72,70,153), Color.FromArgb(154,137,255), Color.FromArgb(34,28,93), Color.FromArgb(226,217,255), Color.FromArgb(255,221,135), SkinPattern.Galaxy),
+        new("Volt Strike", Color.FromArgb(62,120,217), Color.FromArgb(144,210,255), Color.FromArgb(26,52,122), Color.FromArgb(221,244,255), Color.FromArgb(255,237,99), SkinPattern.Lightning),
+        new("Jungle Camo", Color.FromArgb(91,119,57), Color.FromArgb(166,187,91), Color.FromArgb(39,65,36), Color.FromArgb(202,222,143), Color.FromArgb(44,69,40), SkinPattern.Camo),
+        new("Rose Quartz", Color.FromArgb(203,110,142), Color.FromArgb(255,188,206), Color.FromArgb(104,48,78), Color.FromArgb(255,229,238), Color.FromArgb(255,226,239), SkinPattern.Coral),
+        new("Diamond Skin", Color.FromArgb(100,183,205), Color.FromArgb(208,251,255), Color.FromArgb(42,103,133), Color.FromArgb(255,255,255), Color.FromArgb(225,255,255), SkinPattern.Honeycomb),
+        new("Shadow Ops", Color.FromArgb(66,79,91), Color.FromArgb(142,160,173), Color.FromArgb(22,29,39), Color.FromArgb(185,205,216), Color.FromArgb(114,235,203), SkinPattern.Circuit),
+        new("LEGENDARY PHOENIX", Color.FromArgb(151,74,205), Color.FromArgb(255,202,91), Color.FromArgb(74,31,130), Color.FromArgb(255,238,174), Color.FromArgb(255,178,63), SkinPattern.Legendary, true)
+    ];
 
     private const int CellSize = 23;
     private const int Columns = 30;
@@ -57,6 +92,8 @@ public sealed class GameForm : Form
     private bool _wrappedThisStep;
     private bool _scoreSaveFailed;
     private bool _isFullscreen;
+    private bool _showSkinPicker;
+    private int _selectedSkin;
     private Rectangle _windowedBounds;
     private float _viewScale = 1f;
     private float _viewOffsetX;
@@ -89,6 +126,10 @@ public sealed class GameForm : Form
     private readonly Rectangle _modeArea = new(824, 270, 280, 105);
     private readonly Rectangle _difficultyArea = new(824, 390, 280, 105);
     private readonly Rectangle _actionArea = new(824, 510, 280, 170);
+    private readonly Rectangle _skinButton = new(838, 606, 266, 34);
+    private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
+    private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
+    private readonly Rectangle _skinPickerClose = new(686, 176, 34, 30);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -126,9 +167,9 @@ public sealed class GameForm : Form
     private readonly SolidBrush _mutedBrush = new(Muted);
     private readonly SolidBrush _greenBrush = new(Green);
     private readonly SolidBrush _goldBrush = new(Gold);
-    private readonly SolidBrush _snakeBrush = new(Color.FromArgb(104, 193, 91));
-    private readonly SolidBrush _headBrush = new(Color.FromArgb(183, 247, 122));
-    private readonly SolidBrush _headShadowBrush = new(Color.FromArgb(45, 138, 233, 104));
+    private SolidBrush _snakeBrush = new(Color.FromArgb(104, 193, 91));
+    private SolidBrush _headBrush = new(Color.FromArgb(183, 247, 122));
+    private SolidBrush _headShadowBrush = new(Color.FromArgb(45, 138, 233, 104));
     private readonly SolidBrush _eyeWhiteBrush = new(Color.FromArgb(246, 255, 249, 230));
     private readonly SolidBrush _eyeBrush = new(Color.FromArgb(10, 25, 20));
     private readonly SolidBrush _foodBrush = new(Color.FromArgb(255, 103, 105));
@@ -154,6 +195,16 @@ public sealed class GameForm : Form
         LineJoin = LineJoin.Round
     };
     private readonly Pen _headOutlinePen = new(Color.FromArgb(190, 57, 123, 64), 1.2f);
+    private readonly Pen _skinPatternPen = new(Color.FromArgb(180, 255, 255, 255), 2.4f)
+    {
+        StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
+    };
+    private readonly Pen[] _legendaryPens =
+    [
+        new Pen(Color.FromArgb(155, 255, 206, 91), 2.4f),
+        new Pen(Color.FromArgb(115, 206, 130, 255), 1.6f),
+        new Pen(Color.FromArgb(210, 255, 241, 180), 1.2f)
+    ];
     private readonly SolidBrush _overlayBrush = new(Color.FromArgb(218, 5, 10, 13));
     private readonly SolidBrush _cardBrush = new(Color.FromArgb(248, 19, 29, 35));
     private readonly Pen _goldPen = new(Color.FromArgb(235, Gold), 2);
@@ -207,6 +258,8 @@ public sealed class GameForm : Form
                  ControlStyles.ResizeRedraw, true);
 
         _bestScore = LoadBestScore();
+        _selectedSkin = LoadSelectedSkin();
+        ApplySkin(_selectedSkin);
         ResetSnake();
         UpdateViewTransform();
         _appleSprite = CreateAppleSprite(false);
@@ -399,6 +452,8 @@ public sealed class GameForm : Form
         DrawStaticButton(g, _soundButton);
         DrawStaticButton(g, _restartButton);
         DrawStaticButton(g, _fullscreenButton);
+        DrawStaticButton(g, _skinButton);
+        DrawStaticButton(g, _resetBestButton);
 
         StaticText(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
             Color.FromArgb(95, 118, 118));
@@ -413,7 +468,7 @@ public sealed class GameForm : Form
         DrawLabel(g, _score.ToString("0000"), _scoreFont, _whiteBrush,
             new Rectangle(842, 161, 154, 60), _leftFormat);
 
-        DrawLabel(g, Math.Max(_bestScore, _score).ToString("0000"), _numberFont, _greenBrush,
+        DrawLabel(g, _bestScore.ToString("0000"), _numberFont, _greenBrush,
             new Rectangle(1020, 172, 76, 42), _leftFormat);
 
         if (_mode == GameMode.Rush)
@@ -438,6 +493,8 @@ public sealed class GameForm : Form
         DrawActionButton(g, _mainButton, mainText, true);
         DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
         DrawActionButton(g, _restartButton, "↻", false);
+        DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
+        DrawSecondaryButton(g, _resetBestButton, "RESET BEST SCORE", true);
 
         DrawLabel(g, _state switch
         {
@@ -461,7 +518,9 @@ public sealed class GameForm : Form
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.SetClip(_field);
 
-        if (_state == GameState.Ready)
+        if (_showSkinPicker)
+            DrawSkinPicker(g);
+        else if (_state == GameState.Ready)
             DrawWelcomeScreen(g);
         else if (_state is GameState.Paused or GameState.GameOver)
             DrawPauseOrGameOver(g);
@@ -695,6 +754,12 @@ public sealed class GameForm : Form
                 g.DrawPath(_snakeHighlightPen, _snakeHighlightPath);
         }
 
+        if (Skins[_selectedSkin].Pattern != SkinPattern.Plain)
+            DrawSkinPattern(g);
+
+        if (Skins[_selectedSkin].IsLegendary)
+            DrawLegendaryAura(g, _snakeCenters[0]);
+
         DrawSnakeHead(g, _snakeCenters[0]);
     }
 
@@ -849,6 +914,278 @@ public sealed class GameForm : Form
             DrawLabel(g, "+30", _effectFont, _goldBrush,
                 new Rectangle((int)_goldBurstCenter.X - 30,
                     (int)_goldBurstCenter.Y - 42 - yOffset, 60, 24), _centerFormat);
+        }
+    }
+
+    private void DrawSkinPicker(Graphics g)
+    {
+        g.FillRectangle(_overlayBrush, _field);
+        FillRound(g, _skinPickerPanel, 16, Color.FromArgb(250, 17, 26, 32));
+        StrokeRound(g, _skinPickerPanel, 16, Color.FromArgb(76, 103, 106));
+
+        DrawLabel(g, "CHOOSE YOUR SNAKE", _heroFont, _whiteBrush,
+            new Rectangle(100, 174, 430, 35), _leftFormat);
+        DrawLabel(g, "20 custom skins  ·  1 Legendary", _smallFont, _mutedBrush,
+            new Rectangle(102, 207, 430, 18), _leftFormat);
+        DrawWindowButton(g, _skinPickerClose, "×", _skinPickerClose.Contains(_mousePoint));
+
+        for (int i = 0; i < Skins.Length; i++)
+        {
+            Rectangle tile = SkinTileRect(i);
+            SnakeSkin skin = Skins[i];
+            bool selected = i == _selectedSkin;
+            bool hover = tile.Contains(_mousePoint);
+
+            FillRound(g, tile, 9, selected
+                ? Color.FromArgb(37, 68, 48)
+                : hover ? Color.FromArgb(34, 48, 54) : PanelLight);
+            StrokeRound(g, tile, 9, selected
+                ? Green
+                : skin.IsLegendary ? Gold : Border);
+
+            using var preview = new Pen(skin.Body, 8)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            g.DrawLine(preview, tile.X + 15, tile.Y + 19, tile.X + 32, tile.Y + 19);
+            using var head = new SolidBrush(skin.Head);
+            g.FillEllipse(head, tile.X + 27, tile.Y + 11, 16, 16);
+
+            DrawLabel(g, skin.Name, _buttonFont,
+                skin.IsLegendary ? _goldBrush : selected ? _greenBrush : _whiteBrush,
+                new Rectangle(tile.X + 48, tile.Y + 5, tile.Width - 54, 25), _leftFormat);
+
+            if (skin.IsLegendary)
+                DrawLabel(g, "LEGENDARY", _smallFont, _goldBrush,
+                    new Rectangle(tile.X + 48, tile.Y + 27, tile.Width - 54, 16), _leftFormat);
+            else if (selected)
+                DrawLabel(g, "EQUIPPED", _smallFont, _greenBrush,
+                    new Rectangle(tile.X + 48, tile.Y + 27, tile.Width - 54, 16), _leftFormat);
+        }
+
+        DrawLabel(g, "Select a skin to equip it. Your choice is saved on this PC.",
+            _smallFont, _mutedBrush, new Rectangle(100, 586, 600, 20), _leftFormat);
+    }
+
+    private static Rectangle SkinTileRect(int index)
+    {
+        int column = index % 4;
+        int row = index / 4;
+        return new Rectangle(94 + column * 157, 228 + row * 59, 149, 51);
+    }
+
+    private void DrawSecondaryButton(Graphics g, Rectangle rect, string label, bool warning = false)
+    {
+        bool hover = rect.Contains(_mousePoint);
+        FillRound(g, rect, 8, hover
+            ? Color.FromArgb(39, 52, 56)
+            : Panel);
+        StrokeRound(g, rect, 8, warning
+            ? Color.FromArgb(99, 67, 63)
+            : Border);
+        DrawLabel(g, label, _buttonFont,
+            warning ? (hover ? _whiteBrush : _mutedBrush) : (hover ? _greenBrush : _whiteBrush),
+            rect, _centerFormat);
+    }
+
+    private void ApplySkin(int index)
+    {
+        _selectedSkin = Math.Clamp(index, 0, Skins.Length - 1);
+        SnakeSkin skin = Skins[_selectedSkin];
+
+        _snakeBrush.Dispose();
+        _headBrush.Dispose();
+        _headShadowBrush.Dispose();
+
+        _snakeBrush = new SolidBrush(skin.Body);
+        _headBrush = new SolidBrush(skin.Head);
+        _headShadowBrush = new SolidBrush(Color.FromArgb(48, skin.Head));
+
+        _snakeOutlinePen.Color = skin.Outline;
+        _snakeBodyPen.Color = skin.Body;
+        _snakeHighlightPen.Color = skin.Highlight;
+        _headOutlinePen.Color = skin.Outline;
+        _skinPatternPen.Color = skin.PatternColor;
+
+        InvalidateDesign(_field);
+        InvalidateDesign(_rightPanel);
+    }
+
+    private void SaveSelectedSkin()
+    {
+        try
+        {
+            string path = SkinPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, _selectedSkin.ToString(CultureInfo.InvariantCulture));
+        }
+        catch
+        {
+            MessageBox.Show(this, "The skin could not be saved. It will remain selected for this session.",
+                "Skin Settings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private static int LoadSelectedSkin()
+    {
+        try
+        {
+            return File.Exists(SkinPath()) &&
+                   int.TryParse(File.ReadAllText(SkinPath()).Trim(),
+                       NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                ? Math.Clamp(index, 0, Skins.Length - 1)
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static string SkinPath() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnakeGame",
+            "selected-skin.txt");
+
+    private void ResetBestScore()
+    {
+        DialogResult answer = MessageBox.Show(this,
+            "Reset your personal best score to zero? This cannot be undone.",
+            "Reset Best Score", MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+
+        if (answer != DialogResult.Yes)
+            return;
+
+        try
+        {
+            string path = BestScorePath();
+            if (File.Exists(path))
+                File.Delete(path);
+            if (File.Exists(path + ".bak"))
+                File.Delete(path + ".bak");
+
+            _bestScore = 0;
+            _newRecord = false;
+            _scoreSaveFailed = false;
+            InvalidateDesign(_scoreArea);
+            InvalidateDesign(_field);
+
+            MessageBox.Show(this, "Your personal best has been reset.",
+                "Best Score", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Could not reset the saved score.\n{ex.Message}",
+                "Reset Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void DrawSkinPattern(Graphics g)
+    {
+        SnakeSkin skin = Skins[_selectedSkin];
+        _skinPatternPen.Color = skin.PatternColor;
+        float phase = Environment.TickCount64 / 180f;
+
+        GraphicsState state = g.Save();
+        g.SetClip(_snakePath);
+
+        int stride = skin.Pattern is SkinPattern.Dots or SkinPattern.Stars or SkinPattern.Galaxy ? 2 : 3;
+        for (int i = 1; i < _snake.Count - 1; i += stride)
+        {
+            PointF p = _snakeCenters[i];
+            PointF before = _snakeCenters[i - 1];
+            PointF after = _snakeCenters[i + 1];
+
+            float dx = after.X - before.X;
+            float dy = after.Y - before.Y;
+            float length = Math.Max(1f, MathF.Sqrt(dx * dx + dy * dy));
+            float nx = -dy / length;
+            float ny = dx / length;
+
+            switch (skin.Pattern)
+            {
+                case SkinPattern.Stripes:
+                case SkinPattern.Tiger:
+                case SkinPattern.Zebra:
+                case SkinPattern.Candy:
+                case SkinPattern.Neon:
+                    g.DrawLine(_skinPatternPen,
+                        p.X - nx * 7, p.Y - ny * 7, p.X + nx * 7, p.Y + ny * 7);
+                    break;
+
+                case SkinPattern.Dots:
+                case SkinPattern.Camo:
+                case SkinPattern.Coral:
+                    g.DrawEllipse(_skinPatternPen, p.X - 3.5f, p.Y - 3.5f, 7, 7);
+                    break;
+
+                case SkinPattern.Waves:
+                    g.DrawArc(_skinPatternPen, p.X - 8, p.Y - 5, 16, 10,
+                        (float)(phase * 20 % 180), 145);
+                    break;
+
+                case SkinPattern.Lightning:
+                case SkinPattern.Circuit:
+                    g.DrawLine(_skinPatternPen, p.X - 5, p.Y - 4, p.X + 1, p.Y);
+                    g.DrawLine(_skinPatternPen, p.X + 1, p.Y, p.X - 2, p.Y + 5);
+                    break;
+
+                case SkinPattern.Scales:
+                case SkinPattern.Honeycomb:
+                    g.DrawEllipse(_skinPatternPen, p.X - 5, p.Y - 4, 10, 8);
+                    break;
+
+                case SkinPattern.Flames:
+                    g.DrawLine(_skinPatternPen, p.X - 4, p.Y + 4, p.X, p.Y - 5);
+                    g.DrawLine(_skinPatternPen, p.X, p.Y - 5, p.X + 4, p.Y + 2);
+                    break;
+
+                case SkinPattern.Frost:
+                case SkinPattern.Stars:
+                case SkinPattern.Prism:
+                case SkinPattern.Galaxy:
+                case SkinPattern.Royal:
+                    g.DrawLine(_skinPatternPen, p.X - 4, p.Y, p.X + 4, p.Y);
+                    g.DrawLine(_skinPatternPen, p.X, p.Y - 4, p.X, p.Y + 4);
+                    break;
+            }
+        }
+
+        g.Restore(state);
+    }
+
+    private void DrawLegendaryAura(Graphics g, PointF head)
+    {
+        float time = Environment.TickCount64 / 260f;
+        float pulse = 1f + MathF.Sin(time) * 0.12f;
+        for (int ring = 0; ring < 3; ring++)
+        {
+            float radius = (18 + ring * 7) * pulse;
+            g.DrawEllipse(_legendaryPens[ring], head.X - radius, head.Y - radius,
+                radius * 2, radius * 2);
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            float angle = time + i * MathF.PI / 4;
+            float radius = 31 + MathF.Sin(time * 1.8f + i) * 5;
+            float x = head.X + MathF.Cos(angle) * radius;
+            float y = head.Y + MathF.Sin(angle) * radius;
+            float arm = i % 2 == 0 ? 5f : 3f;
+
+            g.DrawLine(_legendaryPens[i % 3], x - arm, y, x + arm, y);
+            g.DrawLine(_legendaryPens[i % 3], x, y - arm, x, y + arm);
+        }
+
+        for (int i = 3; i < _snake.Count; i += 7)
+        {
+            PointF p = _snakeCenters[i];
+            float twinkle = 2.5f + (MathF.Sin(time * 2 + i) + 1f) * 1.5f;
+            g.DrawLine(_legendaryPens[2], p.X - twinkle, p.Y, p.X + twinkle, p.Y);
+            g.DrawLine(_legendaryPens[2], p.X, p.Y - twinkle, p.X, p.Y + twinkle);
         }
     }
 
@@ -1298,6 +1635,16 @@ public sealed class GameForm : Form
 
     private void HandleKeyDown(object? sender, KeyEventArgs e)
     {
+        if (_showSkinPicker)
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                _showSkinPicker = false;
+                InvalidateDesign(_field);
+            }
+            return;
+        }
+
         switch (e.KeyCode)
         {
             case Keys.Up:
@@ -1380,9 +1727,19 @@ public sealed class GameForm : Form
 
     private int GetHoverId(Point point)
     {
+        if (_showSkinPicker)
+        {
+            if (_skinPickerClose.Contains(point)) return 16;
+            for (int i = 0; i < Skins.Length; i++)
+                if (SkinTileRect(i).Contains(point)) return 100 + i;
+            return 0;
+        }
+
         if (_closeButton.Contains(point)) return 2;
         if (_minimizeButton.Contains(point)) return 1;
         if (_fullscreenButton.Contains(point)) return 13;
+        if (_skinButton.Contains(point)) return 14;
+        if (_resetBestButton.Contains(point)) return 15;
         if (_mainButton.Contains(point)) return 3;
         if (_soundButton.Contains(point)) return 4;
         if (_restartButton.Contains(point)) return 5;
@@ -1396,23 +1753,32 @@ public sealed class GameForm : Form
         return 0;
     }
 
-    private Rectangle HoverRectangle(int id) => id switch
+    private Rectangle HoverRectangle(int id)
     {
-        1 => _minimizeButton,
-        2 => _closeButton,
-        3 => _mainButton,
-        4 => _soundButton,
-        5 => _restartButton,
-        6 => _overlayButton,
-        7 => _classicButton,
-        8 => _wrapButton,
-        9 => _rushButton,
-        10 => _easyButton,
-        11 => _normalButton,
-        12 => _hardButton,
-        13 => _fullscreenButton,
-        _ => Rectangle.Empty
-    };
+        if (id >= 100 && id < 100 + Skins.Length)
+            return SkinTileRect(id - 100);
+
+        return id switch
+        {
+            1 => _minimizeButton,
+            2 => _closeButton,
+            3 => _mainButton,
+            4 => _soundButton,
+            5 => _restartButton,
+            6 => _overlayButton,
+            7 => _classicButton,
+            8 => _wrapButton,
+            9 => _rushButton,
+            10 => _easyButton,
+            11 => _normalButton,
+            12 => _hardButton,
+            13 => _fullscreenButton,
+            14 => _skinButton,
+            15 => _resetBestButton,
+            16 => _skinPickerClose,
+            _ => Rectangle.Empty
+        };
+    }
 
     private void HandleMouseDown(object? sender, MouseEventArgs e)
     {
@@ -1432,6 +1798,30 @@ public sealed class GameForm : Form
     {
         Point point = ClientToDesign(e.Location);
 
+        if (_showSkinPicker)
+        {
+            if (_skinPickerClose.Contains(point))
+            {
+                _showSkinPicker = false;
+                InvalidateDesign(_field);
+                return;
+            }
+
+            for (int i = 0; i < Skins.Length; i++)
+            {
+                if (!SkinTileRect(i).Contains(point))
+                    continue;
+
+                ApplySkin(i);
+                SaveSelectedSkin();
+                _showSkinPicker = false;
+                InvalidateDesign(_field);
+                return;
+            }
+
+            return;
+        }
+
         if (_closeButton.Contains(point))
         {
             Close();
@@ -1441,6 +1831,19 @@ public sealed class GameForm : Form
         if (_fullscreenButton.Contains(point))
         {
             ToggleFullscreen();
+            return;
+        }
+
+        if (_skinButton.Contains(point))
+        {
+            _showSkinPicker = true;
+            InvalidateDesign(_field);
+            return;
+        }
+
+        if (_resetBestButton.Contains(point))
+        {
+            ResetBestScore();
             return;
         }
 
@@ -1597,6 +2000,9 @@ public sealed class GameForm : Form
         _overlayBrush.Dispose();
         _cardBrush.Dispose();
         _goldPen.Dispose();
+        _skinPatternPen.Dispose();
+        foreach (Pen pen in _legendaryPens)
+            pen.Dispose();
         foreach (Pen pen in _goldBurstPens)
             pen.Dispose();
         foreach (SolidBrush brush in _goldParticleBrushes)

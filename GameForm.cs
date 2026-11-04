@@ -1588,6 +1588,8 @@ public sealed class GameForm : Form
         _goldBrush.Dispose();
         _snakeBrush.Dispose();
         _headBrush.Dispose();
+        _headShadowBrush.Dispose();
+        _eyeWhiteBrush.Dispose();
         _eyeBrush.Dispose();
         _foodBrush.Dispose();
         _foodGlowBrush.Dispose();

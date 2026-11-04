@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
-using System.Drawing.Text;
+using System.Drawing.Imaging;
+using System.Media;
 
 namespace SnakeGame;
 
@@ -8,53 +9,124 @@ public sealed class GameForm : Form
     private enum GameState { Ready, Playing, Paused, GameOver }
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
+    private enum GameMode { Classic, Wrap, Rush }
 
     private const int CellSize = 23;
     private const int Columns = 30;
     private const int Rows = 21;
+    private const int BoardCells = Columns * Rows;
 
-    private static readonly Color Background = Color.FromArgb(10, 14, 19);
-    private static readonly Color Panel = Color.FromArgb(17, 24, 32);
-    private static readonly Color PanelLight = Color.FromArgb(22, 31, 40);
-    private static readonly Color Border = Color.FromArgb(40, 53, 64);
-    private static readonly Color Muted = Color.FromArgb(130, 148, 160);
-    private static readonly Color White = Color.FromArgb(235, 243, 246);
-    private static readonly Color Green = Color.FromArgb(157, 230, 93);
-    private static readonly Color GreenDark = Color.FromArgb(45, 112, 67);
-    private static readonly Color Cyan = Color.FromArgb(74, 208, 190);
+    private static readonly Color Background = Color.FromArgb(8, 13, 17);
+    private static readonly Color Panel = Color.FromArgb(16, 24, 30);
+    private static readonly Color PanelLight = Color.FromArgb(22, 32, 39);
+    private static readonly Color Border = Color.FromArgb(37, 53, 59);
+    private static readonly Color White = Color.FromArgb(238, 245, 242);
+    private static readonly Color Muted = Color.FromArgb(123, 143, 146);
+    private static readonly Color Green = Color.FromArgb(165, 239, 104);
+    private static readonly Color Gold = Color.FromArgb(255, 194, 83);
 
-    private readonly System.Windows.Forms.Timer _timer = new();
+    private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 16 };
     private readonly Random _random = new();
     private readonly List<Point> _snake = [];
+    private Point[] _previousSnake = [];
     private Point _food;
+    private Point? _goldenFood;
+
+    private GameState _state = GameState.Ready;
     private Direction _direction = Direction.Right;
     private Direction _nextDirection = Direction.Right;
-    private GameState _state = GameState.Ready;
     private Difficulty _difficulty = Difficulty.Normal;
-    private Point _mousePosition = new(-1, -1);
-    private Point _dragOffset;
-    private bool _dragging;
-    private bool _won;
+    private GameMode _mode = GameMode.Classic;
+
+    private DateTime _lastStepAt;
+    private DateTime _lastFrameAt;
+    private DateTime? _goldenExpiresAt;
+    private TimeSpan _rushTimeLeft = TimeSpan.FromSeconds(60);
+    private float _frozenProgress;
+    private int _lastDisplayedSecond = 60;
     private int _score;
     private int _bestScore;
     private int _foodEaten;
+    private int _combo;
+    private DateTime _lastFoodAt;
+    private bool _soundEnabled = true;
+    private bool _won;
+    private bool _newRecord;
 
-    private readonly Rectangle _boardRect = new(40, 132, 770, 570);
-    private readonly Rectangle _fieldRect = new(75, 166, Columns * CellSize, Rows * CellSize);
-    private readonly Rectangle _rightRect = new(838, 132, 302, 570);
-    private Rectangle _overlayButton;
-    private Rectangle _mainActionButton;
-    private Rectangle _restartButton;
-    private Rectangle _easyButton;
-    private Rectangle _normalButton;
-    private Rectangle _hardButton;
-    private Rectangle _minimizeButton = new(1080, 18, 34, 30);
-    private Rectangle _closeButton = new(1120, 18, 34, 30);
+    private Bitmap? _chrome;
+    private readonly GraphicsPath _overlayPath = RoundPath(new Rectangle(193, 267, 428, 245), 20);
+
+    private readonly Rectangle _boardCard = new(32, 100, 750, 600);
+    private readonly Rectangle _field = new(62, 150, Columns * CellSize, Rows * CellSize);
+    private readonly Rectangle _rightPanel = new(802, 100, 326, 600);
+    private readonly Rectangle _scoreArea = new(824, 124, 280, 132);
+    private readonly Rectangle _statsArea = new(824, 268, 280, 78);
+    private readonly Rectangle _modeArea = new(824, 358, 280, 105);
+    private readonly Rectangle _difficultyArea = new(824, 475, 280, 105);
+    private readonly Rectangle _actionArea = new(824, 592, 280, 88);
+    private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
+    private readonly Rectangle _overlayButton = new(292, 431, 230, 46);
+    private readonly Rectangle _mainButton = new(838, 622, 174, 42);
+    private readonly Rectangle _soundButton = new(1020, 622, 38, 42);
+    private readonly Rectangle _restartButton = new(1066, 622, 38, 42);
+    private readonly Rectangle _classicButton = new(838, 414, 82, 32);
+    private readonly Rectangle _wrapButton = new(926, 414, 82, 32);
+    private readonly Rectangle _rushButton = new(1014, 414, 82, 32);
+    private readonly Rectangle _easyButton = new(838, 531, 82, 32);
+    private readonly Rectangle _normalButton = new(926, 531, 82, 32);
+    private readonly Rectangle _hardButton = new(1014, 531, 82, 32);
+    private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
+    private readonly Rectangle _closeButton = new(1110, 19, 34, 30);
+
+    private Point _mousePoint = new(-1, -1);
+    private Point _dragOffset;
+    private bool _dragging;
+    private int _hoverId;
+
+    private readonly Font _smallFont = new("Segoe UI", 8, FontStyle.Regular);
+    private readonly Font _labelFont = new("Segoe UI", 8, FontStyle.Bold);
+    private readonly Font _scoreFont = new("Segoe UI", 34, FontStyle.Bold);
+    private readonly Font _numberFont = new("Segoe UI", 22, FontStyle.Bold);
+    private readonly Font _heroFont = new("Segoe UI", 25, FontStyle.Bold);
+    private readonly Font _buttonFont = new("Segoe UI", 8, FontStyle.Bold);
+    private readonly Font _iconFont = new("Segoe UI Symbol", 17, FontStyle.Regular);
+
+    private readonly SolidBrush _whiteBrush = new(White);
+    private readonly SolidBrush _mutedBrush = new(Muted);
+    private readonly SolidBrush _greenBrush = new(Green);
+    private readonly SolidBrush _goldBrush = new(Gold);
+    private readonly SolidBrush _snakeBrush = new(Color.FromArgb(104, 193, 91));
+    private readonly SolidBrush _headBrush = new(Color.FromArgb(183, 247, 122));
+    private readonly SolidBrush _eyeBrush = new(Color.FromArgb(10, 25, 20));
+    private readonly SolidBrush _foodBrush = new(Color.FromArgb(255, 103, 105));
+    private readonly SolidBrush _foodGlowBrush = new(Color.FromArgb(38, 255, 103, 105));
+    private readonly SolidBrush _goldGlowBrush = new(Color.FromArgb(42, 255, 194, 83));
+    private readonly SolidBrush _overlayBrush = new(Color.FromArgb(218, 5, 10, 13));
+    private readonly SolidBrush _cardBrush = new(Color.FromArgb(248, 19, 29, 35));
+    private readonly Pen _goldPen = new(Color.FromArgb(235, Gold), 2);
+    private readonly StringFormat _leftFormat = new()
+    {
+        Alignment = StringAlignment.Near,
+        LineAlignment = StringAlignment.Center,
+        FormatFlags = StringFormatFlags.NoWrap
+    };
+    private readonly StringFormat _centerFormat = new()
+    {
+        Alignment = StringAlignment.Center,
+        LineAlignment = StringAlignment.Center,
+        FormatFlags = StringFormatFlags.NoWrap
+    };
+    private readonly StringFormat _rightFormat = new()
+    {
+        Alignment = StringAlignment.Far,
+        LineAlignment = StringAlignment.Center,
+        FormatFlags = StringFormatFlags.NoWrap
+    };
 
     public GameForm()
     {
         Text = "SnakeGame";
-        ClientSize = new Size(1180, 780);
+        ClientSize = new Size(1160, 760);
         MinimumSize = Size;
         MaximumSize = Size;
         FormBorderStyle = FormBorderStyle.None;
@@ -65,35 +137,461 @@ public sealed class GameForm : Form
 
         SetStyle(ControlStyles.AllPaintingInWmPaint |
                  ControlStyles.UserPaint |
-                 ControlStyles.OptimizedDoubleBuffer, true);
+                 ControlStyles.OptimizedDoubleBuffer |
+                 ControlStyles.ResizeRedraw, true);
 
         _bestScore = LoadBestScore();
-        _timer.Interval = CurrentSpeed();
-        _timer.Tick += (_, _) => MoveSnake();
+        ResetSnake();
+        BuildChrome();
 
+        _animationTimer.Tick += (_, _) => UpdateGameFrame();
+        KeyDown += HandleKeyDown;
         MouseMove += HandleMouseMove;
         MouseDown += HandleMouseDown;
         MouseUp += (_, _) => _dragging = false;
         MouseClick += HandleMouseClick;
-        KeyDown += HandleKeyDown;
+        MouseLeave += (_, _) => UpdateHover(new Point(-1, -1));
+    }
 
-        ResetSnake();
+    protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        // The static interface is rendered once into _chrome.
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+
+        if (_chrome is null)
+            return;
+
+        Graphics g = e.Graphics;
+        g.DrawImageUnscaled(_chrome, 0, 0);
+
+        Rectangle clip = e.ClipRectangle;
+        if (clip.IntersectsWith(_field))
+            DrawBoardDynamic(g);
+
+        if (clip.IntersectsWith(_rightPanel))
+            DrawDashboard(g);
+
+        DrawWindowControls(g);
+    }
+
+    private void BuildChrome()
+    {
+        _chrome?.Dispose();
+        _chrome = new Bitmap(ClientSize.Width, ClientSize.Height, PixelFormat.Format32bppPArgb);
+
+        using Graphics g = Graphics.FromImage(_chrome);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+        using (var background = new LinearGradientBrush(
+                   new Rectangle(0, 0, Width, Height),
+                   Color.FromArgb(13, 21, 25), Background, 90f))
+            g.FillRectangle(background, ClientRectangle);
+
+        using (var ambientGlow = new SolidBrush(Color.FromArgb(15, 132, 205, 105)))
+            g.FillEllipse(ambientGlow, -210, 430, 500, 500);
+
+        using (var topLine = new Pen(Border, 1))
+        {
+            g.DrawLine(topLine, 0, 70, Width, 70);
+            g.DrawLine(topLine, 32, 724, 1128, 724);
+        }
+
+        FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
+        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
+            Background, StringAlignment.Center);
+
+        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
+        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
+
+        FillRound(g, new Rectangle(864, 24, 7, 7), 4, Green);
+        StaticText(g, "OFFLINE", new Rectangle(879, 17, 80, 20), 8, FontStyle.Bold, Muted);
+        StaticText(g, "NO LOGIN  ·  NO ADS", new Rectangle(879, 37, 145, 15), 7, FontStyle.Regular,
+            Color.FromArgb(90, 111, 115));
+
+        DrawStaticPanel(g, _boardCard);
+        DrawStaticPanel(g, _rightPanel);
+        DrawStaticPanel(g, _scoreArea, PanelLight);
+        DrawStaticPanel(g, new Rectangle(824, 268, 134, 78), PanelLight);
+        DrawStaticPanel(g, new Rectangle(970, 268, 134, 78), PanelLight);
+        DrawStaticPanel(g, _modeArea, PanelLight);
+        DrawStaticPanel(g, _difficultyArea, PanelLight);
+        DrawStaticPanel(g, _actionArea, PanelLight);
+
+        StaticText(g, "PLAYFIELD", new Rectangle(62, 116, 180, 22), 8, FontStyle.Bold, Muted);
+        FillRound(g, _field, 12, Color.FromArgb(8, 15, 18));
+        StrokeRound(g, _field, 12, Color.FromArgb(48, 74, 66));
+
+        using (var grid = new Pen(Color.FromArgb(19, 135, 163, 133), 1))
+        {
+            for (int x = 1; x < Columns; x++)
+            {
+                int px = _field.Left + x * CellSize;
+                g.DrawLine(grid, px, _field.Top + 1, px, _field.Bottom - 1);
+            }
+
+            for (int y = 1; y < Rows; y++)
+            {
+                int py = _field.Top + y * CellSize;
+                g.DrawLine(grid, _field.Left + 1, py, _field.Right - 1, py);
+            }
+        }
+
+        StaticText(g, "SCORE", new Rectangle(844, 139, 100, 16), 7, FontStyle.Bold, Muted);
+        StaticText(g, "BEST", new Rectangle(1020, 139, 70, 16), 7, FontStyle.Bold, Muted);
+        using (var divider = new Pen(Border, 1))
+            g.DrawLine(divider, 1004, 144, 1004, 232);
+
+        StaticText(g, "LEVEL", new Rectangle(842, 279, 100, 18), 7, FontStyle.Bold, Muted);
+        StaticText(g, "COMBO", new Rectangle(988, 279, 100, 18), 7, FontStyle.Bold, Muted);
+
+        StaticText(g, "GAME MODE", new Rectangle(842, 371, 180, 17), 8, FontStyle.Bold, Muted);
+        StaticText(g, "Pick your style", new Rectangle(842, 390, 180, 16), 7, FontStyle.Regular,
+            Color.FromArgb(105, 126, 128));
+
+        StaticText(g, "DIFFICULTY", new Rectangle(842, 488, 180, 17), 8, FontStyle.Bold, Muted);
+        StaticText(g, "Set the pace", new Rectangle(842, 507, 180, 16), 7, FontStyle.Regular,
+            Color.FromArgb(105, 126, 128));
+
+        DrawStaticButton(g, _classicButton);
+        DrawStaticButton(g, _wrapButton);
+        DrawStaticButton(g, _rushButton);
+        DrawStaticButton(g, _easyButton);
+        DrawStaticButton(g, _normalButton);
+        DrawStaticButton(g, _hardButton);
+        DrawStaticButton(g, _mainButton, true);
+        DrawStaticButton(g, _soundButton);
+        DrawStaticButton(g, _restartButton);
+
+        StaticText(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
+            Color.FromArgb(95, 118, 118));
+        StaticText(g, "WASD  /  ARROWS", new Rectangle(201, 650, 160, 20), 7, FontStyle.Bold,
+            Color.FromArgb(95, 118, 118));
+        StaticText(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
+            Color.FromArgb(133, 115, 78));
+    }
+
+    private void DrawDashboard(Graphics g)
+    {
+        Text(g, _score.ToString("0000"), _scoreFont, _whiteBrush,
+            new Rectangle(842, 161, 154, 60), _leftFormat);
+
+        Text(g, _bestScore.ToString("0000"), _numberFont, _greenBrush,
+            new Rectangle(1020, 172, 76, 42), _leftFormat);
+
+        int level = 1 + _score / 50;
+        Text(g, level.ToString("00"), _numberFont, _whiteBrush,
+            new Rectangle(842, 297, 100, 39), _leftFormat);
+
+        string secondStat = _mode == GameMode.Rush
+            ? $"{Math.Ceiling(_rushTimeLeft.TotalSeconds):00}s"
+            : $"x{Math.Max(1, _combo)}";
+        Text(g, secondStat, _numberFont, _mode == GameMode.Rush ? _goldBrush : _whiteBrush,
+            new Rectangle(988, 297, 100, 39), _leftFormat);
+
+        DrawChoice(g, _classicButton, "CLASSIC", _mode == GameMode.Classic);
+        DrawChoice(g, _wrapButton, "WRAP", _mode == GameMode.Wrap);
+        DrawChoice(g, _rushButton, "RUSH", _mode == GameMode.Rush);
+
+        DrawChoice(g, _easyButton, "EASY", _difficulty == Difficulty.Easy);
+        DrawChoice(g, _normalButton, "NORMAL", _difficulty == Difficulty.Normal);
+        DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
+
+        string mainText = _state switch
+        {
+            GameState.Playing => "PAUSE",
+            GameState.Paused => "RESUME",
+            _ => "PLAY NOW"
+        };
+
+        DrawActionButton(g, _mainButton, mainText, true);
+        DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
+        DrawActionButton(g, _restartButton, "↻", false);
+
+        Text(g, _state switch
+        {
+            GameState.Playing => "IN PLAY",
+            GameState.Paused => "PAUSED",
+            GameState.GameOver => "FINISHED",
+            _ => "READY"
+        }, _labelFont,
+            _state == GameState.Playing ? _greenBrush : _mutedBrush,
+            _boardStatus, _centerFormat);
+
+        using var statusPen = new Pen(Border, 1);
+        DrawRoundOutline(g, _boardStatus, 10, statusPen);
+    }
+
+    private void DrawBoardDynamic(Graphics g)
+    {
+        GraphicsState state = g.Save();
+        g.SetClip(_field);
+
+        if (_state is GameState.Ready or GameState.GameOver or GameState.Paused)
+        {
+            g.FillRectangle(_overlayBrush, _field);
+            g.FillPath(_cardBrush, _overlayPath);
+
+            string title = _state switch
+            {
+                GameState.Paused => "PAUSED",
+                GameState.GameOver => _won ? "PERFECT RUN" : "GAME OVER",
+                _ => "SNAKE"
+            };
+
+            string subtitle = _state switch
+            {
+                GameState.Paused => "Your run is saved right here.",
+                GameState.GameOver => _newRecord ? "NEW PERSONAL BEST" : $"FINAL SCORE  {_score:0000}",
+                _ => "A classic arcade game. One more round?"
+            };
+
+            Text(g, title, _heroFont, _whiteBrush,
+                new Rectangle(220, 304, 374, 54), _centerFormat);
+
+            Text(g, subtitle, _smallFont,
+                _state == GameState.GameOver && _newRecord ? _goldBrush : _mutedBrush,
+                new Rectangle(220, 366, 374, 25), _centerFormat);
+
+            DrawActionButton(g, _overlayButton,
+                _state == GameState.Paused ? "RESUME" :
+                _state == GameState.GameOver ? "PLAY AGAIN" : "START GAME", true);
+
+            Text(g, "PRESS SPACE", _labelFont, _mutedBrush,
+                new Rectangle(280, 490, 254, 20), _centerFormat);
+        }
+        else
+        {
+            DrawFood(g);
+            DrawSnake(g);
+        }
+
+        g.Restore(state);
+    }
+
+    private void DrawFood(Graphics g)
+    {
+        DateTime now = DateTime.UtcNow;
+        float pulse = 1f + (float)Math.Sin(now.Millisecond / 1000f * Math.PI * 2) * 0.08f;
+
+        RectangleF regular = CellBounds(_food, 13 * pulse);
+        g.FillEllipse(_foodGlowBrush, regular.X - 7, regular.Y - 7, regular.Width + 14, regular.Height + 14);
+        g.FillEllipse(_foodBrush, regular);
+
+        if (_goldenFood is not Point golden)
+            return;
+
+        RectangleF special = CellBounds(golden, 15 * pulse);
+        g.FillEllipse(_goldGlowBrush, special.X - 8, special.Y - 8,
+            special.Width + 16, special.Height + 16);
+        g.FillEllipse(_goldBrush, special);
+
+        float cx = special.X + special.Width / 2;
+        float cy = special.Y + special.Height / 2;
+        g.DrawLine(_goldPen, cx - 5, cy, cx + 5, cy);
+        g.DrawLine(_goldPen, cx, cy - 5, cx, cy + 5);
+    }
+
+    private void DrawSnake(Graphics g)
+    {
+        float progress = _state == GameState.Playing ? CurrentProgress() : 1f;
+
+        for (int i = _snake.Count - 1; i >= 0; i--)
+        {
+            Point from = i < _previousSnake.Length ? _previousSnake[i] : _snake[i];
+            Point to = _snake[i];
+
+            float x = _field.Left + (from.X + (to.X - from.X) * progress) * CellSize;
+            float y = _field.Top + (from.Y + (to.Y - from.Y) * progress) * CellSize;
+            float inset = i == 0 ? 2.5f : 3.5f;
+            RectangleF part = new(x + inset, y + inset,
+                CellSize - inset * 2, CellSize - inset * 2);
+
+            g.FillEllipse(i == 0 ? _headBrush : _snakeBrush, part);
+        }
+
+        if (_snake.Count == 0)
+            return;
+
+        Point oldHead = _previousSnake.Length > 0 ? _previousSnake[0] : _snake[0];
+        Point newHead = _snake[0];
+        float headX = _field.Left + (oldHead.X + (newHead.X - oldHead.X) * progress) * CellSize;
+        float headY = _field.Top + (oldHead.Y + (newHead.Y - oldHead.Y) * progress) * CellSize;
+
+        float eye1X;
+        float eye1Y;
+        float eye2X;
+        float eye2Y;
+
+        switch (_direction)
+        {
+            case Direction.Up:
+                eye1X = headX + 7; eye1Y = headY + 6;
+                eye2X = headX + 16; eye2Y = headY + 6;
+                break;
+            case Direction.Down:
+                eye1X = headX + 7; eye1Y = headY + 16;
+                eye2X = headX + 16; eye2Y = headY + 16;
+                break;
+            case Direction.Left:
+                eye1X = headX + 6; eye1Y = headY + 7;
+                eye2X = headX + 6; eye2Y = headY + 16;
+                break;
+            default:
+                eye1X = headX + 16; eye1Y = headY + 7;
+                eye2X = headX + 16; eye2Y = headY + 16;
+                break;
+        }
+
+        g.FillEllipse(_eyeBrush, eye1X, eye1Y, 3, 3);
+        g.FillEllipse(_eyeBrush, eye2X, eye2Y, 3, 3);
+    }
+
+    private void DrawWindowControls(Graphics g)
+    {
+        DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
+        DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
+    }
+
+    private void DrawWindowButton(Graphics g, Rectangle rect, string label, bool hover)
+    {
+        FillRound(g, rect, 8, hover ? PanelLight : Panel);
+        Text(g, label, _iconFont, _whiteBrush, rect, _centerFormat);
+    }
+
+    private void DrawChoice(Graphics g, Rectangle rect, string label, bool selected)
+    {
+        bool hover = rect.Contains(_mousePoint);
+        Color fill = selected ? Color.FromArgb(42, 75, 49) :
+            hover ? Color.FromArgb(34, 47, 51) : Panel;
+        Color foreground = selected ? Green : hover ? White : Muted;
+
+        FillRound(g, rect, 8, fill);
+        StrokeRound(g, rect, 8, selected ? Color.FromArgb(88, 148, 78) : Border);
+        Text(g, label, _buttonFont, selected ? _greenBrush : foreground == White ? _whiteBrush : _mutedBrush,
+            rect, _centerFormat);
+    }
+
+    private void DrawActionButton(Graphics g, Rectangle rect, string label, bool primary)
+    {
+        bool hover = rect.Contains(_mousePoint);
+        Color fill = primary
+            ? hover ? Color.FromArgb(190, 255, 134) : Green
+            : hover ? Color.FromArgb(37, 53, 56) : Panel;
+        Color foreground = primary ? Color.FromArgb(12, 23, 17) : White;
+
+        FillRound(g, rect, 10, fill);
+        if (!primary)
+            StrokeRound(g, rect, 10, Border);
+
+        Text(g, label, primary ? _buttonFont : _iconFont,
+            primary ? _whiteBrush : _whiteBrush, rect, _centerFormat);
+        if (primary)
+        {
+            using var overlayTextBrush = new SolidBrush(Color.FromArgb(12, 23, 17));
+            Text(g, label, _buttonFont, overlayTextBrush, rect, _centerFormat);
+        }
+    }
+
+    private void DrawStaticPanel(Graphics g, Rectangle rect, Color? fill = null)
+    {
+        FillRound(g, rect, 16, fill ?? Panel);
+        StrokeRound(g, rect, 16, Border);
+    }
+
+    private void DrawStaticButton(Graphics g, Rectangle rect, bool primary = false)
+    {
+        FillRound(g, rect, 9, primary ? Green : Panel);
+        StrokeRound(g, rect, 9, primary ? Color.FromArgb(180, Green) : Border);
+    }
+
+    private static void StaticText(Graphics g, string value, Rectangle rect, float size,
+        FontStyle style, Color color, StringAlignment alignment = StringAlignment.Near)
+    {
+        using var font = new Font("Segoe UI", size, style);
+        using var brush = new SolidBrush(color);
+        using var format = new StringFormat
+        {
+            Alignment = alignment,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+        g.DrawString(value, font, brush, rect, format);
+    }
+
+    private static void Text(Graphics g, string value, Font font, Brush brush,
+        Rectangle rect, StringFormat format) =>
+        g.DrawString(value, font, brush, rect, format);
+
+    private static RectangleF CellBounds(Point point, float diameter)
+    {
+        float offset = (CellSize - diameter) / 2f;
+        return new RectangleF(
+            62 + point.X * CellSize + offset,
+            150 + point.Y * CellSize + offset,
+            diameter, diameter);
+    }
+
+    private static void FillRound(Graphics g, Rectangle rect, int radius, Color color)
+    {
+        using var brush = new SolidBrush(color);
+        FillRound(g, rect, radius, brush);
+    }
+
+    private static void FillRound(Graphics g, Rectangle rect, int radius, Brush brush)
+    {
+        using var path = RoundPath(rect, radius);
+        g.FillPath(brush, path);
+    }
+
+    private static void StrokeRound(Graphics g, Rectangle rect, int radius, Color color)
+    {
+        using var pen = new Pen(color, 1);
+        using var path = RoundPath(rect, radius);
+        g.DrawPath(pen, path);
+    }
+
+    private static void DrawRoundOutline(Graphics g, Rectangle rect, int radius, Pen pen)
+    {
+        using var path = RoundPath(rect, radius);
+        g.DrawPath(pen, path);
+    }
+
+    private static GraphicsPath RoundPath(Rectangle rect, int radius)
+    {
+        radius = Math.Max(1, Math.Min(radius, Math.Min(rect.Width, rect.Height) / 2));
+        int diameter = radius * 2;
+        var path = new GraphicsPath();
+        path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
+        path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
+        path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     private void ResetSnake()
     {
         _snake.Clear();
-        int centerX = Columns / 2;
-        int centerY = Rows / 2;
+        int x = Columns / 2;
+        int y = Rows / 2;
 
-        _snake.Add(new Point(centerX, centerY));
-        _snake.Add(new Point(centerX - 1, centerY));
-        _snake.Add(new Point(centerX - 2, centerY));
-        _snake.Add(new Point(centerX - 3, centerY));
+        _snake.Add(new Point(x, y));
+        _snake.Add(new Point(x - 1, y));
+        _snake.Add(new Point(x - 2, y));
+        _snake.Add(new Point(x - 3, y));
 
+        _previousSnake = _snake.ToArray();
         _direction = Direction.Right;
         _nextDirection = Direction.Right;
         _foodEaten = 0;
+        _combo = 0;
+        _goldenFood = null;
+        _goldenExpiresAt = null;
         PlaceFood();
     }
 
@@ -101,27 +599,42 @@ public sealed class GameForm : Form
     {
         _score = 0;
         _won = false;
+        _newRecord = false;
+        _rushTimeLeft = TimeSpan.FromSeconds(60);
+        _lastDisplayedSecond = 60;
         ResetSnake();
+
         _state = GameState.Playing;
-        _timer.Interval = CurrentSpeed();
-        _timer.Start();
+        _lastStepAt = DateTime.UtcNow;
+        _lastFrameAt = _lastStepAt;
+        _frozenProgress = 0;
+        _animationTimer.Start();
         Focus();
         Invalidate();
     }
 
     private void SetState(GameState state)
     {
+        DateTime now = DateTime.UtcNow;
+
+        if (state == GameState.Paused && _state == GameState.Playing)
+            _frozenProgress = CurrentProgress();
+
+        bool resuming = state == GameState.Playing && _state == GameState.Paused;
         _state = state;
 
         if (state == GameState.Playing)
         {
-            _timer.Interval = CurrentSpeed();
-            _timer.Start();
+            _lastFrameAt = now;
+            _lastStepAt = resuming
+                ? now - TimeSpan.FromMilliseconds(CurrentStepMilliseconds() * _frozenProgress)
+                : now;
+            _animationTimer.Start();
             Focus();
         }
         else
         {
-            _timer.Stop();
+            _animationTimer.Stop();
         }
 
         Invalidate();
@@ -135,20 +648,72 @@ public sealed class GameForm : Form
             SetState(GameState.Playing);
     }
 
-    private int CurrentSpeed()
+    private int CurrentStepMilliseconds()
     {
         int start = _difficulty switch
         {
-            Difficulty.Easy => 175,
-            Difficulty.Hard => 95,
-            _ => 135
+            Difficulty.Easy => 150,
+            Difficulty.Hard => 82,
+            _ => 112
         };
 
-        return Math.Max(58, start - (_score / 5 * 6));
+        return Math.Max(48, start - (_score / 50 * 4));
     }
 
-    private void MoveSnake()
+    private float CurrentProgress()
     {
+        double elapsed = (DateTime.UtcNow - _lastStepAt).TotalMilliseconds;
+        return Math.Clamp((float)(elapsed / CurrentStepMilliseconds()), 0f, 1f);
+    }
+
+    private void UpdateGameFrame()
+    {
+        if (_state != GameState.Playing)
+            return;
+
+        DateTime now = DateTime.UtcNow;
+        TimeSpan frameTime = now - _lastFrameAt;
+        _lastFrameAt = now;
+
+        if (_mode == GameMode.Rush)
+        {
+            _rushTimeLeft -= frameTime;
+            if (_rushTimeLeft <= TimeSpan.Zero)
+            {
+                _rushTimeLeft = TimeSpan.Zero;
+                EndGame();
+                return;
+            }
+
+            int second = (int)Math.Ceiling(_rushTimeLeft.TotalSeconds);
+            if (second != _lastDisplayedSecond)
+            {
+                _lastDisplayedSecond = second;
+                Invalidate(_statsArea);
+            }
+        }
+
+        if (_goldenFood.HasValue && _goldenExpiresAt.HasValue && now >= _goldenExpiresAt.Value)
+        {
+            _goldenFood = null;
+            _goldenExpiresAt = null;
+        }
+
+        if (now - _lastStepAt >= TimeSpan.FromMilliseconds(CurrentStepMilliseconds()))
+        {
+            if (!MoveSnake(now))
+                return;
+
+            _lastStepAt = now;
+        }
+
+        // Only the playfield is repainted during animation; the dashboard is cached.
+        Invalidate(_field);
+    }
+
+    private bool MoveSnake(DateTime now)
+    {
+        _previousSnake = _snake.ToArray();
         _direction = _nextDirection;
 
         Point head = _snake[0];
@@ -160,86 +725,344 @@ public sealed class GameForm : Form
             _ => new Point(head.X + 1, head.Y)
         };
 
-        bool eating = next == _food;
-
-        if (next.X < 0 || next.X >= Columns || next.Y < 0 || next.Y >= Rows)
+        if (_mode == GameMode.Wrap)
+        {
+            next.X = (next.X + Columns) % Columns;
+            next.Y = (next.Y + Rows) % Rows;
+        }
+        else if (next.X < 0 || next.X >= Columns || next.Y < 0 || next.Y >= Rows)
         {
             EndGame();
-            return;
+            return false;
         }
 
-        int bodyPartsToCheck = eating ? _snake.Count : _snake.Count - 1;
-        for (int i = 0; i < bodyPartsToCheck; i++)
+        bool eatingRegular = next == _food;
+        bool eatingGolden = _goldenFood.HasValue && next == _goldenFood.Value;
+        bool eating = eatingRegular || eatingGolden;
+        int bodyCount = eating ? _snake.Count : _snake.Count - 1;
+
+        for (int i = 0; i < bodyCount; i++)
         {
             if (_snake[i] == next)
             {
                 EndGame();
-                return;
+                return false;
             }
         }
 
         _snake.Insert(0, next);
 
-        if (eating)
+        if (eatingRegular || eatingGolden)
         {
-            _score += 10;
-            _foodEaten++;
+            if (_lastFoodAt != default && (now - _lastFoodAt).TotalSeconds <= 2.8)
+                _combo = Math.Min(5, _combo + 1);
+            else
+                _combo = 1;
 
-            if (_score > _bestScore)
+            _lastFoodAt = now;
+
+            _score += eatingGolden ? 30 : 10 + (_combo - 1) * 2;
+            _newRecord = _score > _bestScore;
+
+            PlaySound(eatingGolden ? 2 : 0);
+
+            if (eatingGolden)
             {
-                _bestScore = _score;
-                SaveBestScore();
+                _goldenFood = null;
+                _goldenExpiresAt = null;
+            }
+            else
+            {
+                _foodEaten++;
+                PlaceFood();
+
+                if (_foodEaten % 5 == 0)
+                    PlaceGoldenFood(now);
             }
 
-            if (_snake.Count == Columns * Rows)
+            if (_snake.Count >= BoardCells)
             {
                 _won = true;
                 EndGame();
-                return;
+                return false;
             }
 
-            PlaceFood();
-            _timer.Interval = CurrentSpeed();
+            Invalidate(_statsArea);
+            Invalidate(_scoreArea);
         }
         else
         {
             _snake.RemoveAt(_snake.Count - 1);
         }
 
-        Invalidate();
-    }
-
-    private void EndGame()
-    {
-        _won = _snake.Count == Columns * Rows;
-        SetState(GameState.GameOver);
+        return true;
     }
 
     private void PlaceFood()
     {
-        do
+        _food = FindFreeCell();
+    }
+
+    private void PlaceGoldenFood(DateTime now)
+    {
+        _goldenFood = FindFreeCell();
+        _goldenExpiresAt = now.AddSeconds(7);
+    }
+
+    private Point FindFreeCell()
+    {
+        for (int i = 0; i < 1000; i++)
         {
-            _food = new Point(_random.Next(Columns), _random.Next(Rows));
+            Point candidate = new(_random.Next(Columns), _random.Next(Rows));
+            if (!_snake.Contains(candidate) && candidate != _food && candidate != _goldenFood)
+                return candidate;
         }
-        while (_snake.Contains(_food));
+
+        for (int y = 0; y < Rows; y++)
+        for (int x = 0; x < Columns; x++)
+        {
+            Point candidate = new(x, y);
+            if (!_snake.Contains(candidate) && candidate != _food && candidate != _goldenFood)
+                return candidate;
+        }
+
+        return Point.Empty;
+    }
+
+    private void EndGame()
+    {
+        _animationTimer.Stop();
+        _state = GameState.GameOver;
+        _newRecord = _score > _bestScore;
+
+        if (_newRecord)
+        {
+            _bestScore = _score;
+            SaveBestScore();
+        }
+
+        PlaySound(_won ? 2 : 1);
+        Invalidate();
     }
 
     private void ChangeDirection(Direction direction)
     {
-        if (_state == GameState.Ready)
+        if (_state == GameState.Ready || _state == GameState.GameOver)
             StartGame();
 
         if (_state != GameState.Playing)
             return;
 
         bool opposite =
-            (_direction == Direction.Up && direction == Direction.Down) ||
-            (_direction == Direction.Down && direction == Direction.Up) ||
-            (_direction == Direction.Left && direction == Direction.Right) ||
-            (_direction == Direction.Right && direction == Direction.Left);
+            (_nextDirection == Direction.Up && direction == Direction.Down) ||
+            (_nextDirection == Direction.Down && direction == Direction.Up) ||
+            (_nextDirection == Direction.Left && direction == Direction.Right) ||
+            (_nextDirection == Direction.Right && direction == Direction.Left);
 
         if (!opposite)
             _nextDirection = direction;
+    }
+
+    private void SetDifficulty(Difficulty difficulty)
+    {
+        if (_state == GameState.Playing)
+            return;
+
+        _difficulty = difficulty;
+        Invalidate(_rightPanel);
+    }
+
+    private void SetMode(GameMode mode)
+    {
+        if (_state == GameState.Playing)
+            return;
+
+        _mode = mode;
+        _rushTimeLeft = TimeSpan.FromSeconds(60);
+        _lastDisplayedSecond = 60;
+        Invalidate(_rightPanel);
+    }
+
+    private void PlaySound(int type)
+    {
+        if (!_soundEnabled)
+            return;
+
+        try
+        {
+            if (type == 0)
+                SystemSounds.Asterisk.Play();
+            else if (type == 1)
+                SystemSounds.Hand.Play();
+            else
+                SystemSounds.Exclamation.Play();
+        }
+        catch
+        {
+            // Sound is optional; gameplay never depends on it.
+        }
+    }
+
+    private void HandleKeyDown(object? sender, KeyEventArgs e)
+    {
+        switch (e.KeyCode)
+        {
+            case Keys.Up:
+            case Keys.W:
+                ChangeDirection(Direction.Up);
+                e.Handled = true;
+                break;
+            case Keys.Down:
+            case Keys.S:
+                ChangeDirection(Direction.Down);
+                e.Handled = true;
+                break;
+            case Keys.Left:
+            case Keys.A:
+                ChangeDirection(Direction.Left);
+                e.Handled = true;
+                break;
+            case Keys.Right:
+            case Keys.D:
+                ChangeDirection(Direction.Right);
+                e.Handled = true;
+                break;
+            case Keys.Space:
+                if (_state is GameState.Ready or GameState.GameOver)
+                    StartGame();
+                else
+                    TogglePause();
+                e.Handled = true;
+                break;
+            case Keys.Escape:
+                TogglePause();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void HandleMouseMove(object? sender, MouseEventArgs e)
+    {
+        _mousePoint = e.Location;
+
+        if (_dragging)
+        {
+            Location = new Point(Cursor.Position.X - _dragOffset.X,
+                Cursor.Position.Y - _dragOffset.Y);
+            return;
+        }
+
+        UpdateHover(e.Location);
+    }
+
+    private void UpdateHover(Point point)
+    {
+        int nextHover = GetHoverId(point);
+        if (nextHover == _hoverId)
+            return;
+
+        Rectangle oldRect = HoverRectangle(_hoverId);
+        Rectangle newRect = HoverRectangle(nextHover);
+        _hoverId = nextHover;
+        _mousePoint = point;
+
+        if (!oldRect.IsEmpty)
+            Invalidate(oldRect);
+        if (!newRect.IsEmpty)
+            Invalidate(newRect);
+    }
+
+    private int GetHoverId(Point point)
+    {
+        if (_closeButton.Contains(point)) return 2;
+        if (_minimizeButton.Contains(point)) return 1;
+        if (_mainButton.Contains(point)) return 3;
+        if (_soundButton.Contains(point)) return 4;
+        if (_restartButton.Contains(point)) return 5;
+        if (_overlayButton.Contains(point) && _state != GameState.Playing) return 6;
+        if (_classicButton.Contains(point)) return 7;
+        if (_wrapButton.Contains(point)) return 8;
+        if (_rushButton.Contains(point)) return 9;
+        if (_easyButton.Contains(point)) return 10;
+        if (_normalButton.Contains(point)) return 11;
+        if (_hardButton.Contains(point)) return 12;
+        return 0;
+    }
+
+    private Rectangle HoverRectangle(int id) => id switch
+    {
+        1 => _minimizeButton,
+        2 => _closeButton,
+        3 => _mainButton,
+        4 => _soundButton,
+        5 => _restartButton,
+        6 => _overlayButton,
+        7 => _classicButton,
+        8 => _wrapButton,
+        9 => _rushButton,
+        10 => _easyButton,
+        11 => _normalButton,
+        12 => _hardButton,
+        _ => Rectangle.Empty
+    };
+
+    private void HandleMouseDown(object? sender, MouseEventArgs e)
+    {
+        Focus();
+
+        if (e.Button == MouseButtons.Left && e.Y < 70 &&
+            !_closeButton.Contains(e.Location) && !_minimizeButton.Contains(e.Location))
+        {
+            _dragging = true;
+            _dragOffset = e.Location;
+        }
+    }
+
+    private void HandleMouseClick(object? sender, MouseEventArgs e)
+    {
+        Point point = e.Location;
+
+        if (_closeButton.Contains(point))
+        {
+            Close();
+            return;
+        }
+
+        if (_minimizeButton.Contains(point))
+        {
+            WindowState = FormWindowState.Minimized;
+            return;
+        }
+
+        if (_classicButton.Contains(point)) SetMode(GameMode.Classic);
+        else if (_wrapButton.Contains(point)) SetMode(GameMode.Wrap);
+        else if (_rushButton.Contains(point)) SetMode(GameMode.Rush);
+
+        if (_easyButton.Contains(point)) SetDifficulty(Difficulty.Easy);
+        else if (_normalButton.Contains(point)) SetDifficulty(Difficulty.Normal);
+        else if (_hardButton.Contains(point)) SetDifficulty(Difficulty.Hard);
+
+        if (_soundButton.Contains(point))
+        {
+            _soundEnabled = !_soundEnabled;
+            Invalidate(_soundButton);
+        }
+
+        if (_restartButton.Contains(point))
+        {
+            StartGame();
+            return;
+        }
+
+        if (_mainButton.Contains(point) || _overlayButton.Contains(point))
+        {
+            if (_state == GameState.Playing)
+                TogglePause();
+            else if (_state == GameState.Paused)
+                SetState(GameState.Playing);
+            else
+                StartGame();
+        }
     }
 
     private int LoadBestScore()
@@ -267,7 +1090,7 @@ public sealed class GameForm : Form
         }
         catch
         {
-            // The game can still be played when local score saving is unavailable.
+            // A failed save must not interrupt the game.
         }
     }
 
@@ -277,598 +1100,39 @@ public sealed class GameForm : Form
             "SnakeGame",
             "best-score.txt");
 
-    private void HandleKeyDown(object? sender, KeyEventArgs e)
-    {
-        switch (e.KeyCode)
-        {
-            case Keys.Up:
-            case Keys.W:
-                ChangeDirection(Direction.Up);
-                e.Handled = true;
-                break;
-
-            case Keys.Down:
-            case Keys.S:
-                ChangeDirection(Direction.Down);
-                e.Handled = true;
-                break;
-
-            case Keys.Left:
-            case Keys.A:
-                ChangeDirection(Direction.Left);
-                e.Handled = true;
-                break;
-
-            case Keys.Right:
-            case Keys.D:
-                ChangeDirection(Direction.Right);
-                e.Handled = true;
-                break;
-
-            case Keys.Space:
-                if (_state == GameState.Ready || _state == GameState.GameOver)
-                    StartGame();
-                else
-                    TogglePause();
-                e.Handled = true;
-                break;
-
-            case Keys.Escape:
-                if (_state == GameState.Playing)
-                    SetState(GameState.Paused);
-                else if (_state == GameState.Paused)
-                    SetState(GameState.Playing);
-                e.Handled = true;
-                break;
-        }
-    }
-
-    private void HandleMouseMove(object? sender, MouseEventArgs e)
-    {
-        _mousePosition = e.Location;
-
-        if (_dragging)
-            Location = new Point(Cursor.Position.X - _dragOffset.X, Cursor.Position.Y - _dragOffset.Y);
-
-        Cursor = _closeButton.Contains(e.Location) ||
-                 _minimizeButton.Contains(e.Location) ||
-                 _mainActionButton.Contains(e.Location) ||
-                 _restartButton.Contains(e.Location) ||
-                 _easyButton.Contains(e.Location) ||
-                 _normalButton.Contains(e.Location) ||
-                 _hardButton.Contains(e.Location) ||
-                 _overlayButton.Contains(e.Location)
-            ? Cursors.Hand
-            : Cursors.Default;
-
-        Invalidate();
-    }
-
-    private void HandleMouseDown(object? sender, MouseEventArgs e)
-    {
-        Focus();
-
-        if (e.Button == MouseButtons.Left && e.Y < 65 &&
-            !_closeButton.Contains(e.Location) && !_minimizeButton.Contains(e.Location))
-        {
-            _dragging = true;
-            _dragOffset = e.Location;
-        }
-    }
-
-    private void HandleMouseClick(object? sender, MouseEventArgs e)
-    {
-        Point point = e.Location;
-
-        if (_closeButton.Contains(point))
-        {
-            Close();
-            return;
-        }
-
-        if (_minimizeButton.Contains(point))
-        {
-            WindowState = FormWindowState.Minimized;
-            return;
-        }
-
-        if (_easyButton.Contains(point))
-            SetDifficulty(Difficulty.Easy);
-        else if (_normalButton.Contains(point))
-            SetDifficulty(Difficulty.Normal);
-        else if (_hardButton.Contains(point))
-            SetDifficulty(Difficulty.Hard);
-
-        if (_mainActionButton.Contains(point) || _overlayButton.Contains(point))
-        {
-            if (_state == GameState.Playing)
-                TogglePause();
-            else if (_state == GameState.Paused)
-                SetState(GameState.Playing);
-            else
-                StartGame();
-        }
-
-        if (_restartButton.Contains(point))
-            StartGame();
-    }
-
-    private void SetDifficulty(Difficulty difficulty)
-    {
-        _difficulty = difficulty;
-
-        if (_state == GameState.Playing)
-            _timer.Interval = CurrentSpeed();
-
-        Invalidate();
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        base.OnPaint(e);
-
-        Graphics g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-
-        using (var backgroundBrush = new LinearGradientBrush(
-                   ClientRectangle, Color.FromArgb(13, 19, 25), Background, 90f))
-            g.FillRectangle(backgroundBrush, ClientRectangle);
-
-        DrawBackgroundDetails(g);
-        DrawHeader(g);
-        DrawBoard(g);
-        DrawRightPanel(g);
-        DrawFooter(g);
-    }
-
-    private void DrawBackgroundDetails(Graphics g)
-    {
-        using var glow = new SolidBrush(Color.FromArgb(13, Green));
-        g.FillEllipse(glow, -180, 430, 420, 420);
-
-        using var linePen = new Pen(Color.FromArgb(15, 145, 230, 130), 1);
-        for (int x = 0; x < ClientSize.Width; x += 38)
-            g.DrawLine(linePen, x, 78, x, 112);
-    }
-
-    private void DrawHeader(Graphics g)
-    {
-        using var linePen = new Pen(Border, 1);
-        g.DrawLine(linePen, 0, 68, Width, 68);
-
-        FillRounded(g, new Rectangle(40, 18, 34, 34), 10, Green);
-        DrawText(g, "S", new Font("Segoe UI", 17, FontStyle.Bold), Background,
-            new Rectangle(40, 17, 34, 35), StringAlignment.Center, StringAlignment.Center);
-
-        DrawText(g, "SNAKE", new Font("Segoe UI", 15, FontStyle.Bold), White,
-            new Rectangle(86, 13, 100, 23));
-        DrawText(g, "ARCADE EDITION", new Font("Segoe UI", 8, FontStyle.Bold),
-            Muted, new Rectangle(87, 37, 130, 17));
-
-        FillRounded(g, new Rectangle(252, 23, 9, 9), 5,
-            _state == GameState.Playing ? Green : Muted);
-        DrawText(g, _state switch
-        {
-            GameState.Playing => "SESSION LIVE",
-            GameState.Paused => "PAUSED",
-            GameState.GameOver => "SESSION ENDED",
-            _ => "READY WHEN YOU ARE"
-        }, new Font("Segoe UI", 8.5f, FontStyle.Bold), Muted,
-            new Rectangle(270, 17, 180, 22));
-
-        DrawText(g, "OFFLINE GAME  /  NO ACCOUNT NEEDED",
-            new Font("Segoe UI", 8, FontStyle.Bold), Color.FromArgb(91, 111, 122),
-            new Rectangle(720, 20, 330, 24), StringAlignment.Far, StringAlignment.Center);
-
-        FillRounded(g, _minimizeButton, 8,
-            _minimizeButton.Contains(_mousePosition) ? PanelLight : Panel);
-        DrawText(g, "–", new Font("Segoe UI", 15), Muted, _minimizeButton,
-            StringAlignment.Center, StringAlignment.Center);
-
-        FillRounded(g, _closeButton, 8,
-            _closeButton.Contains(_mousePosition) ? Color.FromArgb(133, 55, 62) : Panel);
-        DrawText(g, "×", new Font("Segoe UI", 15), White, _closeButton,
-            StringAlignment.Center, StringAlignment.Center);
-    }
-
-    private void DrawBoard(Graphics g)
-    {
-        DrawPanel(g, _boardRect, Panel);
-        DrawText(g, "THE PLAYING FIELD", new Font("Segoe UI", 8, FontStyle.Bold),
-            Muted, new Rectangle(62, 142, 180, 18));
-
-        FillRounded(g, new Rectangle(680, 140, 105, 23), 11, PanelLight);
-        DrawText(g, _state switch
-        {
-            GameState.Playing => "●  PLAYING",
-            GameState.Paused => "Ⅱ  PAUSED",
-            GameState.GameOver => "■  FINISHED",
-            _ => "○  STANDBY"
-        }, new Font("Segoe UI", 7.5f, FontStyle.Bold),
-            _state == GameState.Playing ? Green : Muted,
-            new Rectangle(680, 140, 105, 23), StringAlignment.Center, StringAlignment.Center);
-
-        FillRounded(g, _fieldRect, 13, Color.FromArgb(10, 17, 22));
-
-        using (var borderPen = new Pen(Color.FromArgb(47, 72, 73), 1))
-            DrawRounded(g, _fieldRect, 13, borderPen);
-
-        using var gridPen = new Pen(Color.FromArgb(22, 101, 139, 118), 1);
-        for (int x = 1; x < Columns; x++)
-        {
-            int lineX = _fieldRect.Left + x * CellSize;
-            g.DrawLine(gridPen, lineX, _fieldRect.Top + 1, lineX, _fieldRect.Bottom - 1);
-        }
-
-        for (int y = 1; y < Rows; y++)
-        {
-            int lineY = _fieldRect.Top + y * CellSize;
-            g.DrawLine(gridPen, _fieldRect.Left + 1, lineY, _fieldRect.Right - 1, lineY);
-        }
-
-        DrawFood(g);
-        DrawSnake(g);
-
-        if (_state is GameState.Ready or GameState.Paused or GameState.GameOver)
-            DrawOverlay(g);
-        else
-            _overlayButton = Rectangle.Empty;
-    }
-
-    private void DrawSnake(Graphics g)
-    {
-        for (int i = _snake.Count - 1; i >= 0; i--)
-        {
-            Point segment = _snake[i];
-            Rectangle cell = CellRectangle(segment);
-
-            cell.Inflate(-3, -3);
-
-            if (i == 0)
-            {
-                using var shadow = new SolidBrush(Color.FromArgb(45, Green));
-                g.FillEllipse(shadow, cell.X - 4, cell.Y - 4, cell.Width + 8, cell.Height + 8);
-
-                using var headBrush = new LinearGradientBrush(
-                    cell, Color.FromArgb(206, 255, 142), GreenDark, 45f);
-                FillRounded(g, cell, 7, headBrush);
-
-                using var headPen = new Pen(Color.FromArgb(210, 210, 255, 174), 1);
-                DrawRounded(g, cell, 7, headPen);
-            }
-            else
-            {
-                int alpha = Math.Max(110, 230 - i * 3);
-                Color segmentColor = Color.FromArgb(alpha,
-                    Math.Max(45, 118 - i), Math.Max(100, 195 - i * 2), 83);
-
-                FillRounded(g, cell, 6, segmentColor);
-                using var shine = new Pen(Color.FromArgb(48, 220, 255, 190), 1);
-                DrawRounded(g, cell, 6, shine);
-            }
-        }
-
-        DrawSnakeEyes(g);
-    }
-
-    private void DrawSnakeEyes(Graphics g)
-    {
-        Point head = _snake[0];
-        Rectangle cell = CellRectangle(head);
-        float cx = cell.Left + CellSize / 2f;
-        float cy = cell.Top + CellSize / 2f;
-
-        PointF first;
-        PointF second;
-
-        switch (_direction)
-        {
-            case Direction.Up:
-                first = new PointF(cx - 5, cy - 5);
-                second = new PointF(cx + 5, cy - 5);
-                break;
-            case Direction.Down:
-                first = new PointF(cx - 5, cy + 5);
-                second = new PointF(cx + 5, cy + 5);
-                break;
-            case Direction.Left:
-                first = new PointF(cx - 5, cy - 5);
-                second = new PointF(cx - 5, cy + 5);
-                break;
-            default:
-                first = new PointF(cx + 5, cy - 5);
-                second = new PointF(cx + 5, cy + 5);
-                break;
-        }
-
-        using var eyeBrush = new SolidBrush(Color.FromArgb(12, 27, 24));
-        g.FillEllipse(eyeBrush, first.X - 1.7f, first.Y - 1.7f, 3.4f, 3.4f);
-        g.FillEllipse(eyeBrush, second.X - 1.7f, second.Y - 1.7f, 3.4f, 3.4f);
-    }
-
-    private void DrawFood(Graphics g)
-    {
-        Rectangle cell = CellRectangle(_food);
-        float cx = cell.Left + CellSize / 2f;
-        float cy = cell.Top + CellSize / 2f;
-
-        using var glow = new SolidBrush(Color.FromArgb(35, 255, 104, 104));
-        g.FillEllipse(glow, cx - 14, cy - 14, 28, 28);
-
-        using var foodBrush = new LinearGradientBrush(
-            new RectangleF(cx - 7, cy - 7, 14, 14),
-            Color.FromArgb(255, 151, 126), Color.FromArgb(229, 68, 78), 45f);
-        g.FillEllipse(foodBrush, cx - 7, cy - 7, 14, 14);
-
-        using var stemPen = new Pen(Color.FromArgb(166, 220, 145), 2);
-        g.DrawLine(stemPen, cx + 1, cy - 7, cx + 4, cy - 10);
-    }
-
-    private void DrawOverlay(Graphics g)
-    {
-        using var shade = new SolidBrush(Color.FromArgb(205, 7, 12, 16));
-        FillRounded(g, _fieldRect, 13, shade);
-
-        Rectangle card = new(250, 300, 390, 250);
-        DrawPanel(g, card, Color.FromArgb(235, 18, 27, 34));
-
-        string eyebrow = _state switch
-        {
-            GameState.Paused => "TAKE YOUR TIME",
-            GameState.GameOver => _won ? "INCREDIBLE RUN" : "NICE TRY",
-            _ => "A CLASSIC, REIMAGINED"
-        };
-
-        string title = _state switch
-        {
-            GameState.Paused => "GAME PAUSED",
-            GameState.GameOver => _won ? "BOARD CLEARED!" : "GAME OVER",
-            _ => "READY TO PLAY?"
-        };
-
-        string description = _state switch
-        {
-            GameState.Paused => "Your run is waiting right where you left it.",
-            GameState.GameOver => $"You collected {_score / 10} food items. Best score: {_bestScore}.",
-            _ => "Collect the glowing food. Don't run into yourself."
-        };
-
-        DrawText(g, eyebrow, new Font("Segoe UI", 8, FontStyle.Bold), Green,
-            new Rectangle(card.X + 20, card.Y + 28, card.Width - 40, 18),
-            StringAlignment.Center, StringAlignment.Center);
-
-        DrawText(g, title, new Font("Segoe UI", 22, FontStyle.Bold), White,
-            new Rectangle(card.X + 20, card.Y + 54, card.Width - 40, 42),
-            StringAlignment.Center, StringAlignment.Center);
-
-        DrawText(g, description, new Font("Segoe UI", 9), Muted,
-            new Rectangle(card.X + 25, card.Y + 103, card.Width - 50, 30),
-            StringAlignment.Center, StringAlignment.Center);
-
-        _overlayButton = new Rectangle(card.X + 75, card.Y + 158, card.Width - 150, 48);
-        DrawButton(g, _overlayButton,
-            _state == GameState.Paused ? "RESUME GAME" :
-            _state == GameState.GameOver ? "PLAY AGAIN" : "START PLAYING",
-            Green, Color.FromArgb(12, 22, 17));
-
-        DrawText(g, "PRESS SPACE TO CONTINUE", new Font("Segoe UI", 7.5f, FontStyle.Bold),
-            Color.FromArgb(108, 129, 138),
-            new Rectangle(card.X + 20, card.Y + 215, card.Width - 40, 18),
-            StringAlignment.Center, StringAlignment.Center);
-    }
-
-    private void DrawRightPanel(Graphics g)
-    {
-        DrawPanel(g, _rightRect, Panel);
-
-        Rectangle scoreCard = new(856, 145, 266, 126);
-        DrawPanel(g, scoreCard, PanelLight);
-
-        DrawText(g, "YOUR SCORE", new Font("Segoe UI", 8, FontStyle.Bold), Muted,
-            new Rectangle(875, 162, 150, 18));
-
-        DrawText(g, _score.ToString("0000"), new Font("Segoe UI", 31, FontStyle.Bold),
-            White, new Rectangle(872, 182, 190, 52));
-
-        FillRounded(g, new Rectangle(1060, 188, 42, 42), 13,
-            Color.FromArgb(28, 63, 47));
-        DrawText(g, "✦", new Font("Segoe UI Symbol", 19), Green,
-            new Rectangle(1060, 188, 42, 42), StringAlignment.Center, StringAlignment.Center);
-
-        DrawText(g, "10 POINTS PER FOOD", new Font("Segoe UI", 7.5f, FontStyle.Bold),
-            Color.FromArgb(112, 139, 129), new Rectangle(875, 239, 190, 17));
-
-        Rectangle bestCard = new(856, 284, 126, 96);
-        Rectangle speedCard = new(992, 284, 130, 96);
-        DrawPanel(g, bestCard, PanelLight);
-        DrawPanel(g, speedCard, PanelLight);
-
-        DrawText(g, "PERSONAL BEST", new Font("Segoe UI", 7, FontStyle.Bold), Muted,
-            new Rectangle(868, 298, 110, 17));
-        DrawText(g, _bestScore.ToString("0000"), new Font("Segoe UI", 20, FontStyle.Bold),
-            White, new Rectangle(867, 321, 110, 35));
-
-        DrawText(g, "GAME SPEED", new Font("Segoe UI", 7, FontStyle.Bold), Muted,
-            new Rectangle(1004, 298, 110, 17));
-        DrawText(g, $"{1000f / CurrentSpeed():0.0}", new Font("Segoe UI", 20, FontStyle.Bold),
-            White, new Rectangle(1003, 321, 110, 35));
-        DrawText(g, "TILES / SEC", new Font("Segoe UI", 6.5f, FontStyle.Bold),
-            Color.FromArgb(112, 139, 129), new Rectangle(1005, 355, 110, 15));
-
-        Rectangle difficultyCard = new(856, 394, 266, 132);
-        DrawPanel(g, difficultyCard, PanelLight);
-        DrawText(g, "DIFFICULTY", new Font("Segoe UI", 8, FontStyle.Bold), Muted,
-            new Rectangle(873, 408, 180, 18));
-        DrawText(g, "Choose your pace", new Font("Segoe UI", 8), Color.FromArgb(103, 122, 133),
-            new Rectangle(873, 429, 180, 18));
-
-        _easyButton = new Rectangle(873, 463, 74, 42);
-        _normalButton = new Rectangle(953, 463, 81, 42);
-        _hardButton = new Rectangle(1040, 463, 92, 42);
-
-        DrawDifficultyButton(g, _easyButton, "EASY", Difficulty.Easy);
-        DrawDifficultyButton(g, _normalButton, "NORMAL", Difficulty.Normal);
-        DrawDifficultyButton(g, _hardButton, "HARD", Difficulty.Hard);
-
-        Rectangle actionCard = new(856, 540, 266, 146);
-        DrawPanel(g, actionCard, PanelLight);
-        DrawText(g, "READY FOR ANOTHER RUN?", new Font("Segoe UI", 8, FontStyle.Bold),
-            Muted, new Rectangle(873, 553, 225, 18));
-
-        _mainActionButton = new Rectangle(873, 580, 232, 46);
-        string actionText = _state switch
-        {
-            GameState.Playing => "PAUSE GAME",
-            GameState.Paused => "RESUME GAME",
-            _ => "START GAME"
-        };
-        DrawButton(g, _mainActionButton, actionText, Green, Color.FromArgb(12, 22, 17));
-
-        _restartButton = new Rectangle(873, 636, 232, 34);
-        DrawButton(g, _restartButton, "↻   RESTART RUN", Panel,
-            _restartButton.Contains(_mousePosition) ? White : Muted, Border);
-    }
-
-    private void DrawDifficultyButton(Graphics g, Rectangle rect, string text, Difficulty difficulty)
-    {
-        bool selected = _difficulty == difficulty;
-        Color fill = selected ? Color.FromArgb(39, 68, 49) : Panel;
-        Color foreground = selected ? Green : Muted;
-        Color outline = selected ? Color.FromArgb(80, 143, 90) : Border;
-
-        FillRounded(g, rect, 9, fill);
-        using var pen = new Pen(outline, 1);
-        DrawRounded(g, rect, 9, pen);
-        DrawText(g, text, new Font("Segoe UI", 7.5f, FontStyle.Bold),
-            foreground, rect, StringAlignment.Center, StringAlignment.Center);
-    }
-
-    private void DrawFooter(Graphics g)
-    {
-        using var line = new Pen(Border, 1);
-        g.DrawLine(line, 40, 728, 1140, 728);
-
-        DrawText(g, "CONTROLS", new Font("Segoe UI", 7.5f, FontStyle.Bold),
-            Muted, new Rectangle(42, 741, 75, 18));
-
-        DrawKey(g, "W", 120, 739);
-        DrawKey(g, "A", 148, 739);
-        DrawKey(g, "S", 176, 739);
-        DrawKey(g, "D", 204, 739);
-        DrawText(g, "OR  ARROW KEYS", new Font("Segoe UI", 7.5f), Muted,
-            new Rectangle(242, 739, 120, 19));
-
-        DrawKey(g, "SPACE", 375, 739, 52);
-        DrawText(g, "PAUSE / RESUME", new Font("Segoe UI", 7.5f), Muted,
-            new Rectangle(433, 739, 120, 19));
-
-        DrawText(g, "MADE FOR YOUR OFFLINE ARCADE", new Font("Segoe UI", 7.5f, FontStyle.Bold),
-            Color.FromArgb(83, 105, 116), new Rectangle(830, 739, 310, 19),
-            StringAlignment.Far, StringAlignment.Center);
-    }
-
-    private static void DrawKey(Graphics g, string text, int x, int y, int width = 24)
-    {
-        Rectangle rect = new(x, y, width, 22);
-        FillRounded(g, rect, 5, PanelLight);
-        using var pen = new Pen(Border, 1);
-        DrawRounded(g, rect, 5, pen);
-        DrawText(g, text, new Font("Segoe UI", 7, FontStyle.Bold), White,
-            rect, StringAlignment.Center, StringAlignment.Center);
-    }
-
-    private static Rectangle CellRectangle(Point point) =>
-        new(_fieldRectLeft() + point.X * CellSize,
-            _fieldRectTop() + point.Y * CellSize, CellSize, CellSize);
-
-    private static int _fieldRectLeft() => 75;
-    private static int _fieldRectTop() => 166;
-
-    private static void DrawButton(Graphics g, Rectangle rect, string text,
-        Color fill, Color foreground, Color? outline = null)
-    {
-        FillRounded(g, rect, 10, fill);
-
-        if (outline.HasValue)
-        {
-            using var pen = new Pen(outline.Value, 1);
-            DrawRounded(g, rect, 10, pen);
-        }
-
-        using var font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-        DrawText(g, text, font, foreground, rect,
-            StringAlignment.Center, StringAlignment.Center);
-    }
-
-    private static void DrawPanel(Graphics g, Rectangle rect, Color fill)
-    {
-        FillRounded(g, rect, 15, fill);
-        using var pen = new Pen(Border, 1);
-        DrawRounded(g, rect, 15, pen);
-    }
-
-    private static void FillRounded(Graphics g, Rectangle rect, int radius, Color color)
-    {
-        using var brush = new SolidBrush(color);
-        FillRounded(g, rect, radius, brush);
-    }
-
-    private static void FillRounded(Graphics g, Rectangle rect, int radius, Brush brush)
-    {
-        using var path = RoundedPath(rect, radius);
-        g.FillPath(brush, path);
-    }
-
-    private static void DrawRounded(Graphics g, Rectangle rect, int radius, Pen pen)
-    {
-        using var path = RoundedPath(rect, radius);
-        g.DrawPath(pen, path);
-    }
-
-    private static GraphicsPath RoundedPath(Rectangle rect, int radius)
-    {
-        radius = Math.Max(1, Math.Min(radius, Math.Min(rect.Width, rect.Height) / 2));
-        int diameter = radius * 2;
-        var path = new GraphicsPath();
-
-        path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
-        path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
-        path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
-        path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
-        path.CloseFigure();
-
-        return path;
-    }
-
-    private static void DrawText(Graphics g, string text, Font font, Color color,
-        Rectangle rect, StringAlignment horizontal = StringAlignment.Near,
-        StringAlignment vertical = StringAlignment.Center)
-    {
-        using var brush = new SolidBrush(color);
-        using var format = new StringFormat
-        {
-            Alignment = horizontal,
-            LineAlignment = vertical,
-            Trimming = StringTrimming.EllipsisCharacter,
-            FormatFlags = StringFormatFlags.NoWrap
-        };
-
-        try
-        {
-            g.DrawString(text, font, brush, rect, format);
-        }
-        finally
-        {
-            font.Dispose();
-        }
-    }
-
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
-        _timer.Stop();
-        _timer.Dispose();
+        _animationTimer.Stop();
+        _animationTimer.Dispose();
+        _chrome?.Dispose();
+        _overlayPath.Dispose();
+
+        _smallFont.Dispose();
+        _labelFont.Dispose();
+        _scoreFont.Dispose();
+        _numberFont.Dispose();
+        _heroFont.Dispose();
+        _buttonFont.Dispose();
+        _iconFont.Dispose();
+
+        _whiteBrush.Dispose();
+        _mutedBrush.Dispose();
+        _greenBrush.Dispose();
+        _goldBrush.Dispose();
+        _snakeBrush.Dispose();
+        _headBrush.Dispose();
+        _eyeBrush.Dispose();
+        _foodBrush.Dispose();
+        _foodGlowBrush.Dispose();
+        _goldGlowBrush.Dispose();
+        _overlayBrush.Dispose();
+        _cardBrush.Dispose();
+        _goldPen.Dispose();
+
+        _leftFormat.Dispose();
+        _centerFormat.Dispose();
+        _rightFormat.Dispose();
+
         base.OnFormClosed(e);
     }
 }

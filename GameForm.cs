@@ -945,6 +945,7 @@ public sealed class GameForm : Form
         }
 
         UpdateHover(e.Location);
+        Cursor = _hoverId == 0 ? Cursors.Default : Cursors.Hand;
     }
 
     private void UpdateHover(Point point)

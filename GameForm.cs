@@ -206,15 +206,15 @@ public sealed class GameForm : Form
         }
 
         FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
-        StaticDrawLabel(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
+        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
             Background, StringAlignment.Center);
 
-        StaticDrawLabel(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
-        StaticDrawLabel(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
+        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
+        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
 
         FillRound(g, new Rectangle(864, 24, 7, 7), 4, Green);
-        StaticDrawLabel(g, "OFFLINE", new Rectangle(879, 17, 80, 20), 8, FontStyle.Bold, Muted);
-        StaticDrawLabel(g, "NO LOGIN  ·  NO ADS", new Rectangle(879, 37, 145, 15), 7, FontStyle.Regular,
+        StaticText(g, "OFFLINE", new Rectangle(879, 17, 80, 20), 8, FontStyle.Bold, Muted);
+        StaticText(g, "NO LOGIN  ·  NO ADS", new Rectangle(879, 37, 145, 15), 7, FontStyle.Regular,
             Color.FromArgb(90, 111, 115));
 
         DrawStaticPanel(g, _boardCard);
@@ -226,7 +226,7 @@ public sealed class GameForm : Form
         DrawStaticPanel(g, _difficultyArea, PanelLight);
         DrawStaticPanel(g, _actionArea, PanelLight);
 
-        StaticDrawLabel(g, "PLAYFIELD", new Rectangle(62, 116, 180, 22), 8, FontStyle.Bold, Muted);
+        StaticText(g, "PLAYFIELD", new Rectangle(62, 116, 180, 22), 8, FontStyle.Bold, Muted);
         FillRound(g, _field, 12, Color.FromArgb(8, 15, 18));
         StrokeRound(g, _field, 12, Color.FromArgb(48, 74, 66));
 
@@ -245,20 +245,20 @@ public sealed class GameForm : Form
             }
         }
 
-        StaticDrawLabel(g, "SCORE", new Rectangle(844, 139, 100, 16), 7, FontStyle.Bold, Muted);
-        StaticDrawLabel(g, "BEST", new Rectangle(1020, 139, 70, 16), 7, FontStyle.Bold, Muted);
+        StaticText(g, "SCORE", new Rectangle(844, 139, 100, 16), 7, FontStyle.Bold, Muted);
+        StaticText(g, "BEST", new Rectangle(1020, 139, 70, 16), 7, FontStyle.Bold, Muted);
         using (var divider = new Pen(Border, 1))
             g.DrawLine(divider, 1004, 144, 1004, 232);
 
-        StaticDrawLabel(g, "LEVEL", new Rectangle(842, 279, 100, 18), 7, FontStyle.Bold, Muted);
-        StaticDrawLabel(g, "COMBO", new Rectangle(988, 279, 100, 18), 7, FontStyle.Bold, Muted);
+        StaticText(g, "LEVEL", new Rectangle(842, 279, 100, 18), 7, FontStyle.Bold, Muted);
+        StaticText(g, "COMBO", new Rectangle(988, 279, 100, 18), 7, FontStyle.Bold, Muted);
 
-        StaticDrawLabel(g, "GAME MODE", new Rectangle(842, 371, 180, 17), 8, FontStyle.Bold, Muted);
-        StaticDrawLabel(g, "Pick your style", new Rectangle(842, 390, 180, 16), 7, FontStyle.Regular,
+        StaticText(g, "GAME MODE", new Rectangle(842, 371, 180, 17), 8, FontStyle.Bold, Muted);
+        StaticText(g, "Pick your style", new Rectangle(842, 390, 180, 16), 7, FontStyle.Regular,
             Color.FromArgb(105, 126, 128));
 
-        StaticDrawLabel(g, "DIFFICULTY", new Rectangle(842, 488, 180, 17), 8, FontStyle.Bold, Muted);
-        StaticDrawLabel(g, "Set the pace", new Rectangle(842, 507, 180, 16), 7, FontStyle.Regular,
+        StaticText(g, "DIFFICULTY", new Rectangle(842, 488, 180, 17), 8, FontStyle.Bold, Muted);
+        StaticText(g, "Set the pace", new Rectangle(842, 507, 180, 16), 7, FontStyle.Regular,
             Color.FromArgb(105, 126, 128));
 
         DrawStaticButton(g, _classicButton);
@@ -271,11 +271,11 @@ public sealed class GameForm : Form
         DrawStaticButton(g, _soundButton);
         DrawStaticButton(g, _restartButton);
 
-        StaticDrawLabel(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
+        StaticText(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
             Color.FromArgb(95, 118, 118));
-        StaticDrawLabel(g, "WASD  /  ARROWS", new Rectangle(201, 650, 160, 20), 7, FontStyle.Bold,
+        StaticText(g, "WASD  /  ARROWS", new Rectangle(201, 650, 160, 20), 7, FontStyle.Bold,
             Color.FromArgb(95, 118, 118));
-        StaticDrawLabel(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
+        StaticText(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
             Color.FromArgb(133, 115, 78));
     }
 

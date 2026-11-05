@@ -95,7 +95,6 @@ public sealed class GameForm : Form
     private bool _wrappedThisStep;
     private bool _scoreSaveFailed;
     private bool _isFullscreen;
-    private bool _showSkinPicker;
     private int _selectedSkin;
     private Rectangle _windowedBounds;
     private float _viewScale = 1f;
@@ -135,7 +134,6 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinPickerClose = new(686, 176, 34, 30);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
-    private readonly Rectangle _lobbyStartButton = new(78, 604, 260, 54);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
     private readonly Rectangle _soundButton = new(1020, 552, 38, 48);
     private readonly Rectangle _restartButton = new(1066, 552, 38, 48);
@@ -539,7 +537,6 @@ public sealed class GameForm : Form
             SetState(GameState.Paused);
 
         _view = view;
-        _showSkinPicker = false;
         Invalidate();
     }
 
@@ -751,175 +748,6 @@ public sealed class GameForm : Form
         _ => "Normal"
     };
 
-    private void DrawLobby(Graphics g)
-    {
-        using (var background = new LinearGradientBrush(
-                   new Rectangle(0, 0, DesignWidth, DesignHeight),
-                   Color.FromArgb(14, 25, 28), Background, 90f))
-            g.FillRectangle(background, 0, 0, DesignWidth, DesignHeight);
-
-        using (var glow = new SolidBrush(Color.FromArgb(24, 123, 210, 105)))
-            g.FillEllipse(glow, 50, 270, 570, 500);
-
-        using (var line = new Pen(Border, 1))
-        {
-            g.DrawLine(line, 0, 70, DesignWidth, 70);
-            g.DrawLine(line, 32, 724, 1128, 724);
-        }
-
-        FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
-        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
-            Background, StringAlignment.Center);
-        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
-        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
-        FillRound(g, new Rectangle(864, 24, 7, 7), 4, Green);
-        StaticText(g, "OFFLINE  ARCADE", new Rectangle(879, 17, 180, 20),
-            8, FontStyle.Bold, Muted);
-
-        DrawStaticPanel(g, _boardCard);
-        DrawStaticPanel(g, _rightPanel);
-        DrawStaticPanel(g, _scoreArea, PanelLight);
-        DrawStaticPanel(g, _modeArea, PanelLight);
-        DrawStaticPanel(g, _difficultyArea, PanelLight);
-        DrawStaticPanel(g, _actionArea, PanelLight);
-        using (var divider = new Pen(Border, 1))
-            g.DrawLine(divider, 968, 142, 968, 238);
-
-        DrawLabel(g, "ARCADE EDITION  /  CLASSIC REIMAGINED", _labelFont,
-            _greenBrush, new Rectangle(78, 142, 400, 22), _leftFormat);
-        DrawLabel(g, "SNAKE", _welcomeFont, _whiteBrush,
-            new Rectangle(74, 178, 330, 70), _leftFormat);
-        DrawLabel(g, "Play. Grow. Conquer.", _heroFont,
-            _mutedBrush, new Rectangle(78, 248, 330, 42), _leftFormat);
-        DrawLabel(g, "Choose your mode, set your pace, and chase a new personal best.",
-            _welcomeSmallFont, _mutedBrush, new Rectangle(80, 300, 330, 48), _leftFormat);
-
-        DrawLobbyArtwork(g);
-
-        DrawStaticPanel(g, new Rectangle(78, 478, 190, 88), PanelLight);
-        DrawStaticPanel(g, new Rectangle(282, 478, 190, 88), PanelLight);
-        DrawStaticPanel(g, new Rectangle(486, 478, 238, 88), PanelLight);
-
-        DrawLabel(g, "CUSTOM SNAKES", _labelFont, _mutedBrush,
-            new Rectangle(96, 493, 150, 18), _leftFormat);
-        DrawLabel(g, "20 SKINS", _numberFont, _greenBrush,
-            new Rectangle(96, 515, 150, 38), _leftFormat);
-
-        DrawLabel(g, "GAME MODES", _labelFont, _mutedBrush,
-            new Rectangle(300, 493, 150, 18), _leftFormat);
-        DrawLabel(g, "3 WAYS TO PLAY", _buttonFont, _whiteBrush,
-            new Rectangle(300, 520, 160, 28), _leftFormat);
-
-        DrawLabel(g, "SPECIAL EDITION", _labelFont, _mutedBrush,
-            new Rectangle(504, 493, 190, 18), _leftFormat);
-        DrawLabel(g, "LEGENDARY PHOENIX", _buttonFont, _goldBrush,
-            new Rectangle(504, 520, 205, 28), _leftFormat);
-
-        DrawActionButton(g, _lobbyStartButton, "START GAME   ›", true);
-        DrawLabel(g, "WASD / ARROWS  ·  SPACE TO PAUSE",
-            _labelFont, _mutedBrush, new Rectangle(360, 617, 340, 26), _leftFormat);
-
-        DrawScorePanel(g);
-
-        DrawLabel(g, "GAME MODE", _labelFont, _mutedBrush,
-            new Rectangle(842, 282, 180, 18), _leftFormat);
-        DrawLabel(g, "Choose your arena", _smallFont, _mutedBrush,
-            new Rectangle(842, 302, 180, 16), _leftFormat);
-        DrawChoice(g, _classicButton, "CLASSIC", _mode == GameMode.Classic);
-        DrawChoice(g, _wrapButton, "WRAP", _mode == GameMode.Wrap);
-        DrawChoice(g, _rushButton, "RUSH", _mode == GameMode.Rush);
-
-        DrawLabel(g, "DIFFICULTY", _labelFont, _mutedBrush,
-            new Rectangle(842, 402, 180, 18), _leftFormat);
-        DrawLabel(g, "Choose your pace", _smallFont, _mutedBrush,
-            new Rectangle(842, 422, 180, 16), _leftFormat);
-        DrawChoice(g, _easyButton, "EASY", _difficulty == Difficulty.Easy);
-        DrawChoice(g, _normalButton, "NORMAL", _difficulty == Difficulty.Normal);
-        DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
-
-        DrawLabel(g, "YOUR SESSION", _labelFont, _mutedBrush,
-            new Rectangle(842, 528, 180, 18), _leftFormat);
-        DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
-        DrawLabel(g, _soundEnabled ? "SOUND ON" : "SOUND OFF",
-            _smallFont, _mutedBrush, new Rectangle(842, 552, 150, 42), _leftFormat);
-        DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
-        DrawSecondaryButton(g, _resetBestButton, "RESET BEST SCORE", true);
-    }
-
-    private void DrawLobbyArtwork(Graphics g)
-    {
-        Rectangle art = new(430, 145, 320, 310);
-        FillRound(g, art, 18, Color.FromArgb(215, 10, 19, 23));
-        StrokeRound(g, art, 18, Color.FromArgb(55, 75, 78));
-
-        using (var gridPen = new Pen(Color.FromArgb(22, 140, 180, 150), 1))
-        {
-            for (int x = art.Left + 24; x < art.Right; x += 28)
-                g.DrawLine(gridPen, x, art.Top + 1, x, art.Bottom - 1);
-            for (int y = art.Top + 24; y < art.Bottom; y += 28)
-                g.DrawLine(gridPen, art.Left + 1, y, art.Right - 1, y);
-        }
-
-        using (var halo = new SolidBrush(Color.FromArgb(18, 165, 239, 104)))
-            g.FillEllipse(halo, 482, 190, 220, 220);
-
-        using var snakePath = new GraphicsPath();
-        snakePath.AddBezier(470, 370, 500, 315, 535, 390, 565, 335);
-        snakePath.AddBezier(565, 335, 595, 270, 640, 270, 658, 320);
-        snakePath.AddBezier(658, 320, 680, 372, 630, 405, 600, 365);
-
-        using (var glowPen = new Pen(Color.FromArgb(45, 165, 239, 104), 34)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-            g.DrawPath(glowPen, snakePath);
-
-        using (var outlinePen = new Pen(Color.FromArgb(55, 126, 72), 25)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-            g.DrawPath(outlinePen, snakePath);
-
-        using (var bodyBrush = new LinearGradientBrush(art,
-                   Color.FromArgb(75, 190, 86), Color.FromArgb(183, 247, 122), 35f))
-        using (var bodyPen = new Pen(bodyBrush, 17)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-            g.DrawPath(bodyPen, snakePath);
-
-        using (var headBrush = new SolidBrush(Color.FromArgb(183, 247, 122)))
-        using (var headOutline = new Pen(Color.FromArgb(43, 104, 57), 2))
-        {
-            g.FillEllipse(headBrush, 585, 348, 30, 30);
-            g.DrawEllipse(headOutline, 585, 348, 30, 30);
-        }
-
-        using (var eyeBrush = new SolidBrush(Color.FromArgb(12, 27, 20)))
-        {
-            g.FillEllipse(eyeBrush, 593, 356, 3.5f, 3.5f);
-            g.FillEllipse(eyeBrush, 603, 356, 3.5f, 3.5f);
-        }
-
-        if (_appleSprite is not null)
-            g.DrawImageUnscaled(_appleSprite, 680, 208);
-
-        using (var dot = new SolidBrush(Color.FromArgb(140, Green)))
-            g.FillEllipse(dot, 475, 205, 5, 5);
-        using (var dot = new SolidBrush(Color.FromArgb(120, Gold)))
-            g.FillEllipse(dot, 690, 390, 4, 4);
-
-        DrawLabel(g, "READY FOR THE NEXT RUN?", _labelFont, _greenBrush,
-            new Rectangle(452, 410, 275, 24), _centerFormat);
-    }
-
-    private void DrawScorePanel(Graphics g)
-    {
-        DrawLabel(g, "CURRENT SCORE", _labelFont, _mutedBrush,
-            new Rectangle(838, 139, 122, 18), _centerFormat);
-        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
-            new Rectangle(978, 139, 116, 18), _centerFormat);
-
-        DrawLabel(g, FormatScore(_score), _scoreFont, _whiteBrush,
-            new Rectangle(834, 166, 128, 52), _centerFormat);
-        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
-            new Rectangle(978, 166, 116, 52), _centerFormat);
-    }
-
     private void DrawDashboard(Graphics g)
     {
         DrawScorePanel(g);
@@ -971,9 +799,7 @@ public sealed class GameForm : Form
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.SetClip(_field);
 
-        if (_showSkinPicker)
-            DrawSkinPicker(g);
-        else if (_state == GameState.Ready)
+        if (_state == GameState.Ready)
             DrawWelcomeScreen(g);
         else if (_state is GameState.Paused or GameState.GameOver)
             DrawPauseOrGameOver(g);
@@ -1794,7 +1620,6 @@ public sealed class GameForm : Form
     private void StartGame()
     {
         _view = AppView.Play;
-        _showSkinPicker = false;
         _score = 0;
         _won = false;
         _newRecord = false;
@@ -2241,7 +2066,8 @@ public sealed class GameForm : Form
         if (_mainButton.Contains(point)) return 3;
         if (_soundButton.Contains(point)) return 4;
         if (_restartButton.Contains(point)) return 5;
-        if (_overlayButton.Contains(point) && (_state is GameState.Paused or GameState.GameOver)) return 6;
+        if (_overlayButton.Contains(point) &&
+            (_state is GameState.Ready or GameState.Paused or GameState.GameOver)) return 6;
         if (_classicButton.Contains(point)) return 7;
         if (_wrapButton.Contains(point)) return 8;
         if (_rushButton.Contains(point)) return 9;
@@ -2263,7 +2089,7 @@ public sealed class GameForm : Form
             3 => _mainButton,
             4 => _soundButton,
             5 => _restartButton,
-            6 => _state == GameState.Ready ? _lobbyStartButton : _overlayButton,
+            6 => _overlayButton,
             7 => _classicButton,
             8 => _wrapButton,
             9 => _rushButton,

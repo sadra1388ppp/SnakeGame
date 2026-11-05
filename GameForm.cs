@@ -4015,17 +4015,17 @@ private void DrawThemeSectionCard(Graphics g)
                     for (int i = 0; i < Themes.Length; i++)
                         if (ThemeTileRect(i).Contains(point)) return 200 + i;
                 }
+                return 0;
             }
-            else if (_themeMenuLevel == 1)
+
+            if (_themeMenuLevel == 1)
             {
                 if (_seasonBackButton.Contains(point)) return 30;
                 if (_seasonCategoryTile.Contains(point)) return 31;
-            }
-            else if (_themeCategoryTile.Contains(point))
-            {
-                return 29;
+                return 0;
             }
 
+            if (_themeCategoryTile.Contains(point)) return 29;
             if (_settingsSoundButton.Contains(point)) return 24;
             if (_settingsResetButton.Contains(point)) return 25;
             return 0;
@@ -4177,21 +4177,26 @@ private void DrawThemeSectionCard(Graphics g)
                 if (_seasonBackButton.Contains(point))
                 {
                     _themeMenuLevel = 1;
+                    _themeScrollOffset = 0;
                     Invalidate();
                     return;
                 }
 
                 if (ThemeGridViewport.Contains(point))
-                for (int i = 0; i < Themes.Length; i++)
                 {
-                    if (!ThemeTileRect(i).Contains(point))
-                        continue;
+                    for (int i = 0; i < Themes.Length; i++)
+                    {
+                        if (!ThemeTileRect(i).Contains(point))
+                            continue;
 
-                    SelectTheme(i);
-                    return;
+                        SelectTheme(i);
+                        return;
+                    }
                 }
+                return;
             }
-            else if (_themeMenuLevel == 1)
+
+            if (_themeMenuLevel == 1)
             {
                 if (_seasonBackButton.Contains(point))
                 {
@@ -4207,8 +4212,10 @@ private void DrawThemeSectionCard(Graphics g)
                     Invalidate();
                     return;
                 }
+                return;
             }
-            else if (_themeCategoryTile.Contains(point))
+
+            if (_themeCategoryTile.Contains(point))
             {
                 _themeMenuLevel = 1;
                 Invalidate();

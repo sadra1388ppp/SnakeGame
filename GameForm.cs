@@ -723,10 +723,12 @@ public sealed class GameForm : Form
 
     private Bitmap CreateAppleSprite(bool golden)
     {
-        const int size = 96;
+        const int designSize = 96;
+        const int size = 30;
         var bitmap = new Bitmap(size, size, PixelFormat.Format32bppPArgb);
 
         using Graphics g = Graphics.FromImage(bitmap);
+        g.ScaleTransform(size / (float)designSize, size / (float)designSize);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
         g.Clear(Color.Transparent);
@@ -809,8 +811,7 @@ public sealed class GameForm : Form
 
     private void DrawFood(Graphics g)
     {
-        float pulse = 1f + (float)Math.Sin(Environment.TickCount64 / 180.0) * 0.045f;
-        DrawApple(g, _food, pulse, false);
+        DrawApple(g, _food, false);
 
         if (_goldenFood is Point golden)
         {
@@ -820,20 +821,19 @@ public sealed class GameForm : Form
                 visible = (Environment.TickCount64 / 115) % 2 == 0;
 
             if (visible)
-                DrawApple(g, golden, pulse, true);
+                DrawApple(g, golden, true);
         }
     }
 
-    private void DrawApple(Graphics g, Point cell, float pulse, bool golden)
+    private void DrawApple(Graphics g, Point cell, bool golden)
     {
         Bitmap? sprite = golden ? _goldAppleSprite : _appleSprite;
         if (sprite is null)
             return;
 
-        float size = 29f * pulse;
-        float x = _field.Left + cell.X * CellSize + CellSize / 2f - size / 2f;
-        float y = _field.Top + cell.Y * CellSize + CellSize / 2f - size / 2f;
-        g.DrawImage(sprite, x, y, size, size);
+        int x = _field.Left + cell.X * CellSize + (CellSize - sprite.Width) / 2;
+        int y = _field.Top + cell.Y * CellSize + (CellSize - sprite.Height) / 2;
+        g.DrawImageUnscaled(sprite, x, y);
     }
 
     private void DrawSnake(Graphics g)

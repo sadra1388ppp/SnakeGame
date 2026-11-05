@@ -188,7 +188,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinButton = new(838, 606, 266, 34);
     private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
-    private readonly Rectangle _skinPickerClose = new(48, 84, 112, 36);
+    private readonly Rectangle _skinPickerClose = new(980, 95, 128, 36);
     private readonly Rectangle _retroStartButton = new(112, 478, 404, 62);
     private readonly Rectangle _retroSkinsButton = new(112, 558, 194, 48);
     private readonly Rectangle _retroSettingsButton = new(322, 558, 194, 48);

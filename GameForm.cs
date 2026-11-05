@@ -3975,6 +3975,7 @@ private void DrawThemeSectionCard(Graphics g)
                 ToggleFullscreen();
 
             e.Handled = true;
+            e.SuppressKeyPress = true;
             return;
         }
 

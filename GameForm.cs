@@ -695,7 +695,10 @@ public sealed class GameForm : Form
         g.FillRectangle(fill, rect);
         g.DrawRectangle(edge, rect);
         if (active)
-            g.FillRectangle(new SolidBrush(ActiveTheme.Accent), rect.X + 5, rect.Y + 5, 4, rect.Height - 10);
+        {
+            using var marker = new SolidBrush(ActiveTheme.Accent);
+            g.FillRectangle(marker, rect.X + 5, rect.Y + 5, 4, rect.Height - 10);
+        }
         using var brush = new SolidBrush(active || hover ? ActiveTheme.Highlight : ActiveTheme.Text);
         DrawLabel(g, label, _buttonFont, brush, rect, _centerFormat);
     }
@@ -3345,8 +3348,10 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(background, rect);
         g.DrawRectangle(edge, rect);
         if (rect.Width > 16 && rect.Height > 16)
-            g.DrawRectangle(new Pen(Color.FromArgb(45, ActiveTheme.Text), 1),
-                rect.X + 4, rect.Y + 4, rect.Width - 8, rect.Height - 8);
+        {
+            using var inner = new Pen(Color.FromArgb(45, ActiveTheme.Text), 1);
+            g.DrawRectangle(inner, rect.X + 4, rect.Y + 4, rect.Width - 8, rect.Height - 8);
+        }
     }
 
     private void DrawStaticButton(Graphics g, Rectangle rect, bool primary = false)
@@ -3368,14 +3373,14 @@ private void DrawThemeSectionCard(Graphics g)
             LineAlignment = StringAlignment.Center,
             FormatFlags = StringFormatFlags.NoWrap
         };
-        g.DrawString(value.ToUpperInvariant(), font, brush, rect, format);
+        g.DrawString(value, font, brush, rect, format);
     }
 
     private static void DrawLabel(Graphics g, string value, Font font, Brush brush,
         Rectangle rect, StringFormat format)
     {
         using var pixelFont = new Font("Consolas", Math.Max(6, font.Size), font.Style);
-        g.DrawString(value.ToUpperInvariant(), pixelFont, brush, rect, format);
+        g.DrawString(value, pixelFont, brush, rect, format);
     }
 
     private static RectangleF CellBounds(Point point, float diameter)

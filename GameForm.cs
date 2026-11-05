@@ -2320,15 +2320,15 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelOutline(g, _field, RetroGold, 3);
 
         // Score card: two equal columns with generous space around the numbers.
-        DrawPixelText(g, "SCORE", 890, 140, 2, RetroWhite);
-        DrawPixelText(g, "BEST", 1040, 140, 2, RetroGold);
-        DrawPixelText(g, FormatScore(_score), 890, 176, 3, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 1040, 176, 3, RetroGold);
+        DrawPixelText(g, "SCORE", 890, 154, 2, RetroWhite);
+        DrawPixelText(g, "BEST", 1040, 154, 2, RetroGold);
+        DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
 
         using var detailLine = new Pen(Color.FromArgb(145, RetroGold), 2);
         g.DrawLine(detailLine, 965, 138, 965, 226);
-        g.DrawLine(detailLine, 854, 163, 926, 163);
-        g.DrawLine(detailLine, 1004, 163, 1076, 163);
+        g.DrawLine(detailLine, 854, 177, 926, 177);
+        g.DrawLine(detailLine, 1004, 177, 1076, 177);
 
         // Section headings have short side rules, like a classic arcade cabinet.
         DrawPixelText(g, "MODE", 965, 270, 2, RetroWhite);

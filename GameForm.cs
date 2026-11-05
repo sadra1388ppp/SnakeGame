@@ -1359,6 +1359,11 @@ public sealed class GameForm : Form
 
         if (theme.IsNight)
         {
+            using (var moon = new SolidBrush(Color.FromArgb(210, theme.Accent)))
+                g.FillEllipse(moon, 1058, 80, 42, 42);
+            using (var shadow = new SolidBrush(theme.Background))
+                g.FillEllipse(shadow, 1075, 73, 42, 42);
+
             using var stars = new SolidBrush(theme.Highlight);
             for (int i = 0; i < 12; i++)
             {

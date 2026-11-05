@@ -136,11 +136,11 @@ public sealed class GameForm : Form
     private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(48, 84, 112, 36);
-    private readonly Rectangle _retroStartButton = new(250, 574, 660, 62);
-    private readonly Rectangle _retroSkinsButton = new(230, 646, 350, 52);
-    private readonly Rectangle _retroSettingsButton = new(600, 646, 400, 52);
-    private readonly Rectangle _retroDifficultyLeft = new(430, 456, 64, 86);
-    private readonly Rectangle _retroDifficultyRight = new(805, 456, 64, 86);
+    private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
+    private readonly Rectangle _retroSkinsButton = new(360, 575, 190, 48);
+    private readonly Rectangle _retroSettingsButton = new(610, 575, 190, 48);
+    private readonly Rectangle _retroDifficultyLeft = new(455, 382, 52, 48);
+    private readonly Rectangle _retroDifficultyRight = new(653, 382, 52, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -631,42 +631,59 @@ public sealed class GameForm : Form
 
     private void DrawHomePage(Graphics g)
     {
-        using (var trail = new SolidBrush(RetroGold))
-        {
-            // Angular snake trail behind the title.
-            g.FillRectangle(trail, 606, 62, 326, 24);
-            g.FillRectangle(trail, 908, 62, 24, 286);
-            g.FillRectangle(trail, 505, 324, 427, 24);
+        using var trail = new SolidBrush(RetroGold);
 
-            g.FillRectangle(trail, 226, 344, 24, 190);
-            g.FillRectangle(trail, 226, 510, 282, 24);
-        }
+        // Thin angular accents frame the title instead of crossing the text.
+        g.FillRectangle(trail, 792, 128, 112, 10);
+        g.FillRectangle(trail, 894, 128, 10, 108);
+        g.FillRectangle(trail, 760, 226, 144, 10);
+        g.FillRectangle(trail, 254, 275, 10, 96);
+        g.FillRectangle(trail, 254, 361, 150, 10);
 
-        DrawPixelText(g, "SNAKE", DesignWidth / 2, 124, 18, RetroWhite);
-        DrawPixelText(g, "GAME", DesignWidth / 2, 278, 18, RetroWhite);
+        DrawPixelText(g, "RETRO ARCADE", DesignWidth / 2, 76, 3,
+            Color.FromArgb(240, 214, 109));
 
-        // Tiny pixel snake and apple beside the difficulty selector.
-        DrawRetroMenuSnake(g, 332, 477);
-        DrawPixelApple(g, 395, 459, 6);
+        DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
+        DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
 
-        DrawPixelArrow(g, 456, 478, true, RetroWhite);
+        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
+            Color.FromArgb(228, 238, 220));
+
+        DrawRetroMenuSnake(g, 345, 385);
+        DrawPixelApple(g, 410, 378, 5);
+
+        DrawPixelArrow(g, 470, 393, true, RetroWhite);
         DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            654, 477, 9, RetroWhite);
-        DrawPixelArrow(g, 838, 478, false, RetroWhite);
+            DesignWidth / 2, 391, 5, RetroWhite);
+        DrawPixelArrow(g, 670, 393, false, RetroWhite);
 
-        bool startHover = _retroStartButton.Contains(_mousePoint);
-        DrawPixelText(g, "PRESS ENTER TO PLAY", DesignWidth / 2,
-            590, 6, startHover ? Color.FromArgb(255, 238, 180) : RetroWhite);
-
-        bool skinsHover = _retroSkinsButton.Contains(_mousePoint);
-        bool settingsHover = _retroSettingsButton.Contains(_mousePoint);
-        DrawPixelText(g, "S FOR SKINS", 420, 662, 4,
-            skinsHover ? Color.FromArgb(255, 224, 105) : RetroWhite);
-        DrawPixelText(g, "T FOR SETTINGS", 770, 662, 4,
-            settingsHover ? Color.FromArgb(255, 224, 105) : RetroWhite);
+        DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
+            3, _retroStartButton.Contains(_mousePoint), true);
+        DrawRetroButton(g, _retroSkinsButton, "SKINS", 3,
+            _retroSkinsButton.Contains(_mousePoint));
+        DrawRetroButton(g, _retroSettingsButton, "SETTINGS", 3,
+            _retroSettingsButton.Contains(_mousePoint));
 
         DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
-            DesignWidth / 2, 716, 4, RetroWhite);
+            DesignWidth / 2, 704, 2, RetroWhite);
+    }
+
+    private void DrawRetroButton(Graphics g, Rectangle rect, string label,
+        int pixelSize, bool hover, bool primary = false)
+    {
+        using var fill = new SolidBrush(hover
+            ? Color.FromArgb(20, 105, 5)
+            : primary ? Color.FromArgb(8, 62, 0) : RetroDark);
+        g.FillRectangle(fill, rect);
+
+        DrawPixelOutline(g, rect,
+            hover ? Color.FromArgb(255, 239, 177) : RetroGold,
+            primary ? 4 : 3);
+
+        int textHeight = pixelSize * 7;
+        int top = rect.Y + (rect.Height - textHeight) / 2;
+        DrawPixelText(g, label, rect.X + rect.Width / 2,
+            top, pixelSize, RetroWhite);
     }
 
     private void DrawRetroMenuSnake(Graphics g, int x, int y)
@@ -817,38 +834,34 @@ public sealed class GameForm : Form
 
     private void DrawSkinsPage(Graphics g)
     {
-        DrawPixelText(g, "BACK", 104, 91, 4,
+        DrawPixelText(g, "BACK", 104, 75, 3,
             _skinPickerClose.Contains(_mousePoint)
                 ? Color.FromArgb(255, 226, 125)
                 : RetroWhite);
-        DrawPixelText(g, "SKINS", DesignWidth / 2, 66, 15, RetroWhite);
-        DrawPixelText(g, "CHOOSE YOUR SNAKE", 390, 128, 4, RetroWhite);
+        DrawPixelText(g, "SKINS", DesignWidth / 2, 48, 8, RetroWhite);
+        DrawPixelText(g, "CHOOSE YOUR SNAKE", 390, 113, 3,
+            Color.FromArgb(228, 238, 220));
 
         DrawSkinPicker(g);
 
         SnakeSkin skin = Skins[_selectedSkin];
-        Rectangle previewArea = new(790, 165, 328, 320);
+        Rectangle previewArea = new(790, 145, 328, 320);
         DrawPixelPanel(g, previewArea, true);
         DrawRetroSnakePreview(g, previewArea, skin);
 
-        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 510, 5,
+        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 490, 4,
             skin.IsLegendary ? Color.FromArgb(255, 225, 90) : RetroWhite);
         DrawPixelText(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
-            954, 560, 2, RetroWhite);
+            954, 535, 2, RetroWhite);
 
-        if (skin.IsLegendary)
-        {
-            DrawPixelText(g, "SPECIAL AURA AND SPARKS",
-                954, 602, 2, Color.FromArgb(255, 224, 102));
-        }
-        else
-        {
-            DrawPixelText(g, "UNIQUE PIXEL DESIGN",
-                954, 602, 2, RetroWhite);
-        }
+        DrawPixelText(g, skin.IsLegendary
+                ? "SPECIAL AURA AND SPARKS"
+                : "UNIQUE PIXEL DESIGN",
+            954, 574, 2,
+            skin.IsLegendary ? Color.FromArgb(255, 224, 102) : RetroWhite);
 
         DrawPixelText(g, "CLICK A SKIN TO EQUIP",
-            954, 650, 2, RetroWhite);
+            954, 620, 2, RetroWhite);
     }
 
     private void DrawSkinPicker(Graphics g)
@@ -866,17 +879,17 @@ public sealed class GameForm : Form
             g.FillRectangle(fill, tile);
             DrawPixelOutline(g, tile,
                 selected ? Color.FromArgb(255, 220, 78) : RetroGold,
-                selected ? 4 : 3);
+                selected ? 3 : 2);
 
             DrawSkinSwatch(g, tile, skin);
-            DrawPixelText(g, SkinShortName(i), tile.X + 157,
-                tile.Y + 20, 2, skin.IsLegendary
+            DrawPixelText(g, SkinShortName(i), tile.X + 151,
+                tile.Y + 23, 2, skin.IsLegendary
                     ? Color.FromArgb(255, 224, 95)
                     : selected ? Color.FromArgb(200, 255, 135) : RetroWhite);
         }
 
         DrawPixelText(g, "ARROWS TO SELECT  -  ENTER TO RETURN",
-            390, 690, 3, RetroWhite);
+            390, 628, 2, RetroWhite);
     }
 
     private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
@@ -1711,7 +1724,7 @@ public sealed class GameForm : Form
     {
         int column = index % 3;
         int row = index / 3;
-        return new Rectangle(42 + column * 236, 165 + row * 66, 224, 58);
+        return new Rectangle(42 + column * 236, 145 + row * 66, 224, 58);
     }
 
     private void DrawSecondaryButton(Graphics g, Rectangle rect, string label, bool warning = false)

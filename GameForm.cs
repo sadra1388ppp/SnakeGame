@@ -138,8 +138,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
     private readonly Rectangle _retroSkinsButton = new(350, 575, 220, 48);
     private readonly Rectangle _retroSettingsButton = new(590, 575, 220, 48);
-    private readonly Rectangle _retroDifficultyLeft = new(455, 382, 52, 48);
-    private readonly Rectangle _retroDifficultyRight = new(653, 382, 52, 48);
+    private readonly Rectangle _retroDifficultySelector = new(430, 328, 300, 112);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -627,18 +626,19 @@ public sealed class GameForm : Form
         DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
         DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
 
-        DrawPixelText(g, "SELECT MODE", DesignWidth / 2, 340, 3,
+        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
             Color.FromArgb(228, 238, 220));
 
         DrawRetroMenuSnake(g, 345, 385);
         DrawPixelApple(g, 410, 378, 5);
 
-        Color leftArrowColor = _hoverId == 26 ? RetroGold : RetroWhite;
-        Color rightArrowColor = _hoverId == 27 ? RetroGold : RetroWhite;
-        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
-        DrawPixelText(g, ModeName(_mode).ToUpperInvariant(),
-            DesignWidth / 2, 394, 4, RetroWhite);
-        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
+        bool difficultyHover = _retroDifficultySelector.Contains(_mousePoint);
+        if (difficultyHover)
+            DrawPixelOutline(g, _retroDifficultySelector, RetroGold, 2);
+
+        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
+            DesignWidth / 2, 394, 4,
+            difficultyHover ? Color.FromArgb(255, 226, 132) : RetroWhite);
 
         DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
             3, _retroStartButton.Contains(_mousePoint), true);
@@ -2538,15 +2538,6 @@ public sealed class GameForm : Form
         Invalidate();
     }
 
-    private void CycleMode(int direction)
-    {
-        if (_state is GameState.Playing or GameState.Paused)
-            return;
-
-        int next = ((int)_mode + direction + 3) % 3;
-        SetMode((GameMode)next);
-        Invalidate();
-    }
 
     private void MoveSkinSelection(int amount)
     {
@@ -2623,12 +2614,12 @@ public sealed class GameForm : Form
                     break;
                 case Keys.Left:
                 case Keys.A:
-                    CycleMode(-1);
+                    CycleDifficulty(-1);
                     e.Handled = true;
                     break;
                 case Keys.Right:
                 case Keys.D:
-                    CycleMode(1);
+                    CycleDifficulty(1);
                     e.Handled = true;
                     break;
                 case Keys.F11:
@@ -2784,8 +2775,7 @@ public sealed class GameForm : Form
             if (_retroStartButton.Contains(point)) return 21;
             if (_retroSkinsButton.Contains(point)) return 22;
             if (_retroSettingsButton.Contains(point)) return 23;
-            if (_retroDifficultyLeft.Contains(point)) return 26;
-            if (_retroDifficultyRight.Contains(point)) return 27;
+            if (_retroDifficultySelector.Contains(point)) return 26;
             return 0;
         }
 
@@ -2852,8 +2842,7 @@ public sealed class GameForm : Form
             23 => _retroSettingsButton,
             24 => _settingsSoundButton,
             25 => _settingsResetButton,
-            26 => _retroDifficultyLeft,
-            27 => _retroDifficultyRight,
+            26 => _retroDifficultySelector,
             _ => Rectangle.Empty
         };
     }
@@ -2911,10 +2900,8 @@ public sealed class GameForm : Form
                 NavigateTo(AppView.Skins);
             else if (_retroSettingsButton.Contains(point))
                 NavigateTo(AppView.Settings);
-            else if (_retroDifficultyLeft.Contains(point))
-                CycleMode(-1);
-            else if (_retroDifficultyRight.Contains(point))
-                CycleMode(1);
+            else if (_retroDifficultySelector.Contains(point))
+                CycleDifficulty(1);
             return;
         }
 

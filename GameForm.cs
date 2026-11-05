@@ -184,12 +184,12 @@ public sealed class GameForm : Form
     private readonly Rectangle _boardCard = new(32, 100, 750, 600);
     private readonly Rectangle _field = new(62, 150, Columns * CellSize, Rows * CellSize);
     private readonly Rectangle _rightPanel = new(802, 100, 326, 600);
-    private readonly Rectangle _scoreArea = new(824, 124, 280, 132);
-    private readonly Rectangle _modeArea = new(824, 270, 280, 105);
-    private readonly Rectangle _difficultyArea = new(824, 390, 280, 105);
-    private readonly Rectangle _actionArea = new(824, 510, 280, 170);
-    private readonly Rectangle _skinButton = new(838, 606, 266, 34);
-    private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
+    private readonly Rectangle _scoreArea = new(818, 124, 294, 128);
+    private readonly Rectangle _modeArea = new(818, 266, 294, 106);
+    private readonly Rectangle _difficultyArea = new(818, 386, 294, 106);
+    private readonly Rectangle _actionArea = new(818, 506, 294, 174);
+    private readonly Rectangle _skinButton = new(832, 604, 274, 34);
+    private readonly Rectangle _resetBestButton = new(832, 644, 274, 28);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(980, 95, 128, 36);
     private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
@@ -200,16 +200,16 @@ public sealed class GameForm : Form
     private readonly Rectangle _retroDifficultyRight = new(661, 378, 44, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
-    private readonly Rectangle _mainButton = new(838, 552, 174, 48);
-    private readonly Rectangle _soundButton = new(1020, 552, 38, 48);
-    private readonly Rectangle _restartButton = new(1066, 552, 38, 48);
-    private readonly Rectangle _classicButton = new(838, 324, 82, 36);
-    private readonly Rectangle _wrapButton = new(926, 324, 82, 36);
-    private readonly Rectangle _rushButton = new(1014, 324, 82, 36);
-    private readonly Rectangle _easyButton = new(838, 444, 82, 36);
-    private readonly Rectangle _normalButton = new(926, 444, 82, 36);
-    private readonly Rectangle _hardButton = new(1014, 444, 82, 36);
-    private readonly Rectangle _modeTimerRect = new(1037, 282, 58, 20);
+    private readonly Rectangle _mainButton = new(832, 548, 166, 46);
+    private readonly Rectangle _soundButton = new(1006, 548, 46, 46);
+    private readonly Rectangle _restartButton = new(1060, 548, 46, 46);
+    private readonly Rectangle _classicButton = new(832, 320, 88, 36);
+    private readonly Rectangle _wrapButton = new(928, 320, 88, 36);
+    private readonly Rectangle _rushButton = new(1024, 320, 88, 36);
+    private readonly Rectangle _easyButton = new(832, 440, 88, 36);
+    private readonly Rectangle _normalButton = new(928, 440, 88, 36);
+    private readonly Rectangle _hardButton = new(1024, 440, 88, 36);
+    private readonly Rectangle _modeTimerRect = new(1040, 278, 58, 20);
     private readonly Rectangle _homeNavButton = new(398, 18, 76, 36);
     private readonly Rectangle _playNavButton = new(482, 18, 76, 36);
     private readonly Rectangle _skinsNavButton = new(566, 18, 82, 36);
@@ -2319,10 +2319,10 @@ private void DrawThemeSectionCard(Graphics g)
             g.DrawLine(grid, _field.Left, y, _field.Right, y);
         DrawPixelOutline(g, _field, RetroGold, 3);
 
-        DrawPixelText(g, "SCORE", 875, 125, 2, RetroWhite);
-        DrawPixelText(g, "BEST", 1040, 125, 2, RetroGold);
-        DrawPixelText(g, "MODE", 960, 265, 2, RetroWhite);
-        DrawPixelText(g, "DIFFICULTY", 960, 385, 2, RetroWhite);
+        DrawPixelText(g, "SCORE", 891, 128, 2, RetroWhite);
+        DrawPixelText(g, "BEST", 1039, 128, 2, RetroGold);
+        DrawPixelText(g, "MODE", 965, 261, 2, RetroWhite);
+        DrawPixelText(g, "DIFFICULTY", 965, 381, 2, RetroWhite);
     }
     private void DrawRetroPlayButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool selected = false)
@@ -2343,8 +2343,8 @@ private void DrawThemeSectionCard(Graphics g)
 
     private void DrawRetroPlayDashboard(Graphics g)
     {
-        DrawPixelText(g, FormatScore(_score), 875, 160, 4, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 1040, 160, 4, RetroGold);
+        DrawPixelText(g, FormatScore(_score), 891, 164, 4, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1039, 164, 4, RetroGold);
 
         DrawRetroButton(g, _classicButton, "CLASSIC", 1,
             _mode == GameMode.Classic, _mode == GameMode.Classic);

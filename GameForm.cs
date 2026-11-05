@@ -116,6 +116,7 @@ public sealed class GameForm : Form
     private static readonly Color Green = Color.FromArgb(165, 239, 104);
     private static readonly Color Gold = Color.FromArgb(255, 194, 83);
     private int _selectedTheme;
+    private bool _showSeasonThemes;
     private ArcadeTheme ActiveTheme => Themes[_selectedTheme];
     private Color RetroBackground => ActiveTheme.Background;
     private Color RetroGold => ActiveTheme.Accent;
@@ -214,6 +215,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
+    private readonly Rectangle _seasonCategoryTile = new(540, 252, 560, 220);
+    private readonly Rectangle _seasonBackButton = new(1000, 184, 104, 32);
     private readonly Rectangle _settingsSoundButton = new(330, 222, 145, 48);
     private readonly Rectangle _settingsResetButton = new(330, 378, 145, 48);
     private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
@@ -1336,13 +1339,13 @@ public sealed class GameForm : Form
         DrawUiPanel(g, themePanel, true, 18);
 
         using var heading = new SolidBrush(ActiveTheme.Text);
-        using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
         using var accent = new SolidBrush(ActiveTheme.Highlight);
 
         DrawLabel(g, "SOUND", _sectionFont, heading,
             new Rectangle(82, 198, 170, 24), _leftFormat);
         DrawLabel(g, "Game effects and arcade feedback",
-            _bodyFont, description, new Rectangle(82, 226, 230, 24), _leftFormat);
+            _bodyFont, new SolidBrush(Color.FromArgb(170, ActiveTheme.Text)),
+            new Rectangle(82, 226, 230, 24), _leftFormat);
         DrawUiButton(g, _settingsSoundButton,
             _soundEnabled ? "SOUND ON" : "SOUND OFF", false, _soundEnabled);
 
@@ -1363,13 +1366,19 @@ public sealed class GameForm : Form
         DrawLabel(g, "SPACE", _bodyFont, heading,
             new Rectangle(162, 583, 270, 24), _leftFormat);
 
-        DrawLabel(g, "SEASONAL WORLDS", _sectionFont, heading,
-            new Rectangle(536, 164, 300, 25), _leftFormat);
-        DrawLabel(g, "Four seasons, each with a day and night atmosphere.",
-            _bodyFont, description, new Rectangle(536, 190, 560, 24), _leftFormat);
+        DrawLabel(g, _showSeasonThemes ? "SEASON" : "THEMES",
+            _sectionFont, heading, new Rectangle(536, 184, 260, 28), _leftFormat);
 
-        for (int i = 0; i < Themes.Length; i++)
-            DrawThemeCard(g, i);
+        if (_showSeasonThemes)
+        {
+            DrawUiButton(g, _seasonBackButton, "← BACK");
+            for (int i = 0; i < Themes.Length; i++)
+                DrawThemeCard(g, i);
+        }
+        else
+        {
+            DrawSeasonCategoryCard(g);
+        }
     }
 
         private static Rectangle ThemeTileRect(int index)
@@ -1395,7 +1404,7 @@ public sealed class GameForm : Form
         StrokeRound(g, tile, 12, selected ? theme.Highlight :
             hover ? theme.Text : Color.FromArgb(115, theme.Grid));
 
-        Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 78);
+        Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 112);
         using (var artFill = new SolidBrush(theme.Background))
             FillRound(g, art, 7, artFill);
         GraphicsState state = g.Save();
@@ -1404,26 +1413,53 @@ public sealed class GameForm : Form
         DrawThemeThumbnail(g, art, theme);
         g.Restore(state);
 
-        using var titleBrush = new SolidBrush(theme.Text);
         using var accentBrush = new SolidBrush(theme.Accent);
-        using var infoBrush = new SolidBrush(Color.FromArgb(175, theme.Text));
-        DrawLabel(g, theme.Season, _sectionFont, titleBrush,
-            new Rectangle(tile.X + 8, tile.Y + 96, tile.Width - 16, 23), _centerFormat);
-        DrawLabel(g, theme.TimeOfDay, _microFont, accentBrush,
-            new Rectangle(tile.X + 8, tile.Y + 120, tile.Width - 16, 20), _centerFormat);
+        DrawLabel(g, theme.TimeOfDay, _sectionFont, accentBrush,
+            new Rectangle(tile.X + 8, tile.Y + 132, tile.Width - 16, 28), _centerFormat);
 
         if (selected)
         {
-            FillRound(g, new Rectangle(tile.X + 34, tile.Y + 151, tile.Width - 68, 20),
-                7, Color.FromArgb(80, theme.Highlight));
-            DrawLabel(g, "ACTIVE", _microFont, accentBrush,
-                new Rectangle(tile.X + 34, tile.Y + 151, tile.Width - 68, 20), _centerFormat);
+            using var activeDot = new SolidBrush(theme.Highlight);
+            g.FillEllipse(activeDot, tile.Right - 20, tile.Y + 12, 8, 8);
         }
-        else if (hover)
+    }
+
+private void DrawSeasonCategoryCard(Graphics g)
+    {
+        Rectangle tile = _seasonCategoryTile;
+        bool hover = tile.Contains(_mousePoint);
+
+        using (var shadow = new SolidBrush(Color.FromArgb(45, 0, 0, 0)))
+            FillRound(g, new Rectangle(tile.X + 2, tile.Y + 4, tile.Width, tile.Height),
+                14, shadow);
+        using (var fill = new LinearGradientBrush(tile,
+                   ActiveTheme.Dark, ActiveTheme.Background, 90f))
+            FillRound(g, tile, 14, fill);
+        StrokeRound(g, tile, 14,
+            hover ? ActiveTheme.Highlight : Color.FromArgb(125, ActiveTheme.Grid));
+
+        ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6]];
+        int gap = 8;
+        int width = (tile.Width - 24 - gap * 3) / 4;
+        for (int i = 0; i < previews.Length; i++)
         {
-            DrawLabel(g, "PREVIEW", _microFont, infoBrush,
-                new Rectangle(tile.X + 8, tile.Y + 151, tile.Width - 16, 20), _centerFormat);
+            Rectangle art = new(tile.X + 12 + i * (width + gap),
+                tile.Y + 12, width, 126);
+            using var artFill = new SolidBrush(previews[i].Background);
+            FillRound(g, art, 8, artFill);
+            GraphicsState state = g.Save();
+            using (GraphicsPath clip = RoundPath(art, 8))
+                g.SetClip(clip);
+            DrawThemeThumbnail(g, art, previews[i]);
+            g.Restore(state);
         }
+
+        using var title = new SolidBrush(ActiveTheme.Text);
+        using var arrow = new SolidBrush(ActiveTheme.Highlight);
+        DrawLabel(g, "SEASON", _pageTitleFont, title,
+            new Rectangle(tile.X + 18, tile.Y + 151, tile.Width - 90, 48), _leftFormat);
+        DrawLabel(g, "›", _displayFont, arrow,
+            new Rectangle(tile.Right - 76, tile.Y + 145, 54, 58), _centerFormat);
     }
 
         private void DrawThemeThumbnail(Graphics g, Rectangle area, ArcadeTheme theme)
@@ -3822,8 +3858,15 @@ public sealed class GameForm : Form
 
         if (_view == AppView.Settings)
         {
-            for (int i = 0; i < Themes.Length; i++)
-                if (ThemeTileRect(i).Contains(point)) return 200 + i;
+            if (_showSeasonThemes)
+            {
+                if (_seasonBackButton.Contains(point)) return 30;
+                for (int i = 0; i < Themes.Length; i++)
+                    if (ThemeTileRect(i).Contains(point)) return 200 + i;
+            }
+            else if (_seasonCategoryTile.Contains(point))
+                return 29;
+
             if (_settingsSoundButton.Contains(point)) return 24;
             if (_settingsResetButton.Contains(point)) return 25;
             return 0;
@@ -3882,6 +3925,8 @@ public sealed class GameForm : Form
             26 => _retroDifficultyLeft,
             27 => _retroDifficultyRight,
             28 => _retroDifficultyText,
+            29 => _seasonCategoryTile,
+            30 => _seasonBackButton,
             _ => Rectangle.Empty
         };
     }
@@ -3967,12 +4012,28 @@ public sealed class GameForm : Form
 
         if (_view == AppView.Settings)
         {
-            for (int i = 0; i < Themes.Length; i++)
+            if (_showSeasonThemes)
             {
-                if (!ThemeTileRect(i).Contains(point))
-                    continue;
+                if (_seasonBackButton.Contains(point))
+                {
+                    _showSeasonThemes = false;
+                    Invalidate();
+                    return;
+                }
 
-                SelectTheme(i);
+                for (int i = 0; i < Themes.Length; i++)
+                {
+                    if (!ThemeTileRect(i).Contains(point))
+                        continue;
+
+                    SelectTheme(i);
+                    return;
+                }
+            }
+            else if (_seasonCategoryTile.Contains(point))
+            {
+                _showSeasonThemes = true;
+                Invalidate();
                 return;
             }
 

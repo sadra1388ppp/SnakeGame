@@ -1191,45 +1191,226 @@ public sealed class GameForm : Form
 
     private void DrawSettingsPage(Graphics g)
     {
-        DrawPixelText(g, "SETTINGS", DesignWidth / 2, 82, 6, RetroWhite);
-        DrawPixelText(g, "GAME OPTIONS", 380, 172, 3, RetroGold);
+        DrawPixelText(g, "SETTINGS", DesignWidth / 2, 76, 6, RetroWhite);
 
-        Rectangle soundPanel = new(105, 210, 570, 130);
-        Rectangle scorePanel = new(105, 365, 570, 130);
-        Rectangle controlsPanel = new(105, 520, 570, 130);
-        Rectangle profilePanel = new(735, 160, 390, 490);
+        Rectangle soundPanel = new(70, 178, 425, 128);
+        Rectangle scorePanel = new(70, 326, 425, 145);
+        Rectangle controlsPanel = new(70, 491, 425, 158);
+        Rectangle themePanel = new(520, 145, 610, 510);
 
         DrawPixelPanel(g, soundPanel, true);
         DrawPixelPanel(g, scorePanel, true);
         DrawPixelPanel(g, controlsPanel, true);
-        DrawPixelPanel(g, profilePanel, true);
+        DrawPixelPanel(g, themePanel, true);
 
-        DrawPixelText(g, "SOUND", 250, 236, 3, RetroWhite);
-        DrawPixelText(g, "GAME EFFECTS", 250, 274, 2, RetroGold);
+        DrawPixelText(g, "SOUND", 190, 214, 3, RetroWhite);
+        DrawPixelText(g, "GAME EFFECTS", 190, 258, 2, RetroGold);
         DrawRetroButton(g, _settingsSoundButton,
             _soundEnabled ? "SOUND ON" : "SOUND OFF", 2,
             _settingsSoundButton.Contains(_mousePoint));
 
-        DrawPixelText(g, "PERSONAL BEST", 270, 390, 3, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 270, 431, 4, RetroGold);
+        DrawPixelText(g, "PERSONAL BEST", 190, 355, 3, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 190, 407, 4, RetroGold);
         DrawRetroButton(g, _settingsResetButton, "RESET SCORE", 2,
             _settingsResetButton.Contains(_mousePoint));
 
-        DrawPixelText(g, "KEYBOARD", 260, 546, 3, RetroWhite);
-        DrawPixelText(g, "MOVE: WASD / ARROWS", 380, 590, 2, RetroWhite);
-        DrawPixelText(g, "PAUSE: SPACE", 380, 620, 2, RetroGold);
+        DrawPixelText(g, "KEYBOARD", 190, 525, 3, RetroWhite);
+        DrawPixelText(g, "MOVE: WASD / ARROWS", 270, 570, 2, RetroWhite);
+        DrawPixelText(g, "PAUSE: SPACE", 260, 612, 2, RetroGold);
 
-        DrawPixelText(g, "GAME PROFILE", 930, 194, 3, RetroGold);
-        DrawPixelText(g, "SKIN", 810, 260, 2, RetroWhite);
-        DrawPixelText(g, SkinShortName(_selectedSkin), 930, 290, 3,
-            Skins[_selectedSkin].IsLegendary ? Color.FromArgb(255, 224, 95) : RetroWhite);
-        DrawPixelText(g, "MODE", 810, 355, 2, RetroWhite);
-        DrawPixelText(g, ModeName(_mode).ToUpperInvariant(), 930, 385, 3, RetroWhite);
-        DrawPixelText(g, "DIFFICULTY", 840, 450, 2, RetroWhite);
-        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            930, 480, 3, RetroWhite);
-        DrawRetroMenuSnake(g, 845, 565);
-        DrawPixelApple(g, 910, 555, 3);
+        DrawPixelText(g, "SEASONAL THEMES", 825, 174, 3, RetroWhite);
+        DrawPixelText(g, "FOUR SEASONS  /  DAY & NIGHT",
+            825, 207, 2, RetroGold);
+
+        for (int i = 0; i < Themes.Length; i++)
+            DrawThemeCard(g, i);
+    }
+
+    private static Rectangle ThemeTileRect(int index)
+    {
+        int column = index % 4;
+        int row = index / 4;
+        return new Rectangle(540 + column * 144, 238 + row * 190, 136, 180);
+    }
+
+    private void DrawThemeCard(Graphics g, int index)
+    {
+        ArcadeTheme theme = Themes[index];
+        Rectangle tile = ThemeTileRect(index);
+        bool selected = index == _selectedTheme;
+        bool hover = tile.Contains(_mousePoint);
+
+        using var fill = new SolidBrush(theme.Dark);
+        g.FillRectangle(fill, tile);
+        DrawPixelOutline(g, tile,
+            selected ? theme.Highlight : hover ? theme.Text : theme.Accent,
+            selected ? 4 : 2);
+
+        Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 78);
+        using (var artFill = new SolidBrush(theme.Background))
+            g.FillRectangle(artFill, art);
+        DrawThemeThumbnail(g, art, theme);
+
+        DrawPixelText(g, theme.Season, tile.X + tile.Width / 2,
+            tile.Y + 101, 2, theme.Text);
+        DrawPixelText(g, theme.TimeOfDay, tile.X + tile.Width / 2,
+            tile.Y + 128, 2, theme.Accent);
+
+        if (selected)
+            DrawPixelText(g, "SELECTED", tile.X + tile.Width / 2,
+                tile.Y + 154, 1, theme.Highlight);
+    }
+
+    private void DrawThemeThumbnail(Graphics g, Rectangle area, ArcadeTheme theme)
+    {
+        using var ground = new SolidBrush(theme.Dark);
+        g.FillRectangle(ground, area.X, area.Bottom - 18, area.Width, 18);
+
+        int sunX = area.Right - 27;
+        int sunY = area.Y + 23;
+        using var skyAccent = new SolidBrush(theme.Accent);
+
+        if (theme.IsNight)
+        {
+            g.FillEllipse(skyAccent, sunX - 8, sunY - 8, 18, 18);
+            using var cutout = new SolidBrush(theme.Background);
+            g.FillEllipse(cutout, sunX - 1, sunY - 12, 18, 18);
+
+            using var stars = new SolidBrush(theme.Highlight);
+            Point[] starPoints =
+            [
+                new(area.X + 15, area.Y + 16),
+                new(area.X + 48, area.Y + 30),
+                new(area.X + 79, area.Y + 13)
+            ];
+            foreach (Point star in starPoints)
+                g.FillRectangle(stars, star.X, star.Y, 3, 3);
+        }
+        else
+        {
+            g.FillEllipse(skyAccent, sunX - 9, sunY - 9, 18, 18);
+            using var rays = new Pen(theme.Accent, 2);
+            g.DrawLine(rays, sunX, sunY - 15, sunX, sunY - 12);
+            g.DrawLine(rays, sunX, sunY + 12, sunX, sunY + 15);
+            g.DrawLine(rays, sunX - 15, sunY, sunX - 12, sunY);
+            g.DrawLine(rays, sunX + 12, sunY, sunX + 15, sunY);
+        }
+
+        Point[] hills =
+        [
+            new(area.X, area.Bottom - 18),
+            new(area.X + 31, area.Y + 48),
+            new(area.X + 67, area.Bottom - 18),
+            new(area.X + 91, area.Y + 53),
+            new(area.Right, area.Bottom - 18)
+        ];
+        using var landscape = new SolidBrush(theme.Grid);
+        g.FillPolygon(landscape, hills);
+
+        using var detail = new SolidBrush(theme.Effect);
+        switch (theme.SeasonType)
+        {
+            case ThemeSeason.Spring:
+                DrawPixelFlower(g, area.X + 25, area.Bottom - 27, detail);
+                DrawPixelFlower(g, area.X + 83, area.Bottom - 34, detail);
+                break;
+            case ThemeSeason.Summer:
+                g.FillRectangle(detail, area.X + 11, area.Bottom - 25, 25, 3);
+                g.FillRectangle(detail, area.X + 42, area.Bottom - 30, 24, 3);
+                g.FillRectangle(detail, area.X + 69, area.Bottom - 24, 25, 3);
+                break;
+            case ThemeSeason.Autumn:
+                DrawPixelLeaf(g, area.X + 25, area.Bottom - 31, detail, 8);
+                DrawPixelLeaf(g, area.X + 82, area.Bottom - 27, detail, 7);
+                break;
+            case ThemeSeason.Winter:
+                DrawPixelSnowflake(g, area.X + 27, area.Bottom - 30, detail, 5);
+                DrawPixelSnowflake(g, area.X + 83, area.Bottom - 31, detail, 5);
+                break;
+        }
+    }
+
+    private void DrawPixelFlower(Graphics g, int x, int y, Brush brush)
+    {
+        g.FillRectangle(brush, x - 3, y - 1, 7, 3);
+        g.FillRectangle(brush, x - 1, y - 3, 3, 7);
+        using var center = new SolidBrush(ActiveTheme.Accent);
+        g.FillRectangle(center, x, y, 2, 2);
+    }
+
+    private static void DrawPixelLeaf(Graphics g, int x, int y, Brush brush, int size)
+    {
+        g.FillRectangle(brush, x - size / 2, y - 2, size, 5);
+        g.FillRectangle(brush, x - 2, y - size / 2, 5, size);
+        using var stem = new Pen(Color.FromArgb(170, 45, 31, 15), 1);
+        g.DrawLine(stem, x - size / 2, y + 3, x + size / 2, y - 3);
+    }
+
+    private static void DrawPixelSnowflake(Graphics g, int x, int y, Brush brush, int size)
+    {
+        using var pen = new Pen(brush, 2);
+        g.DrawLine(pen, x - size, y, x + size, y);
+        g.DrawLine(pen, x, y - size, x, y + size);
+        g.DrawLine(pen, x - size + 1, y - size + 1, x + size - 1, y + size - 1);
+        g.DrawLine(pen, x - size + 1, y + size - 1, x + size - 1, y - size + 1);
+    }
+
+    private void DrawThemeAtmosphere(Graphics g)
+    {
+        ArcadeTheme theme = ActiveTheme;
+        long tick = Environment.TickCount64;
+        int drift = (int)(tick / 120) % 84;
+
+        if (theme.IsNight)
+        {
+            using var stars = new SolidBrush(theme.Highlight);
+            for (int i = 0; i < 12; i++)
+            {
+                int x = 24 + (i * 97) % (DesignWidth - 48);
+                int y = 82 + (i * 53) % 610;
+                int twinkle = (i + (int)(tick / 300)) % 3 == 0 ? 3 : 2;
+                g.FillRectangle(stars, x, y, twinkle, twinkle);
+            }
+        }
+        else
+        {
+            using var sun = new SolidBrush(Color.FromArgb(95, theme.Accent));
+            g.FillEllipse(sun, 1056, 78, 54, 54);
+            using var rays = new Pen(Color.FromArgb(115, theme.Accent), 2);
+            for (int i = 0; i < 8; i++)
+            {
+                double angle = i * Math.PI / 4;
+                float x1 = 1083 + (float)Math.Cos(angle) * 30;
+                float y1 = 105 + (float)Math.Sin(angle) * 30;
+                float x2 = 1083 + (float)Math.Cos(angle) * 38;
+                float y2 = 105 + (float)Math.Sin(angle) * 38;
+                g.DrawLine(rays, x1, y1, x2, y2);
+            }
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            int x = i % 2 == 0 ? 18 + (i * 7) % 25 : DesignWidth - 42 - (i * 5) % 20;
+            int y = 105 + (i * 91 + drift) % 590;
+            using var effect = new SolidBrush(Color.FromArgb(175, theme.Effect));
+
+            switch (theme.SeasonType)
+            {
+                case ThemeSeason.Spring:
+                    DrawPixelFlower(g, x, y, effect);
+                    break;
+                case ThemeSeason.Summer:
+                    g.FillRectangle(effect, x, y, 3, 3);
+                    g.FillRectangle(effect, x - 4, y + 5, 11, 2);
+                    break;
+                case ThemeSeason.Autumn:
+                    DrawPixelLeaf(g, x, y, effect, 8);
+                    break;
+                case ThemeSeason.Winter:
+                    DrawPixelSnowflake(g, x, y, effect, 5);
+                    break;
+            }
+        }
     }
 
     private void DrawRetroNavigation(Graphics g)
@@ -1962,6 +2143,49 @@ public sealed class GameForm : Form
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SnakeGame",
             "selected-skin.txt");
+
+    private static string ThemePath() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnakeGame",
+            "selected-theme.txt");
+
+    private static int LoadSelectedTheme()
+    {
+        try
+        {
+            return File.Exists(ThemePath()) &&
+                   int.TryParse(File.ReadAllText(ThemePath()).Trim(),
+                       NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                ? Math.Clamp(index, 0, Themes.Length - 1)
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private void SelectTheme(int index)
+    {
+        index = Math.Clamp(index, 0, Themes.Length - 1);
+        if (_selectedTheme == index)
+            return;
+
+        _selectedTheme = index;
+        try
+        {
+            string path = ThemePath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, index.ToString(CultureInfo.InvariantCulture));
+        }
+        catch
+        {
+            // Keep the selected theme active for this session.
+        }
+
+        Invalidate();
+    }
 
     private static string FormatScore(int value) =>
         Math.Max(0, value).ToString("D5", CultureInfo.InvariantCulture);

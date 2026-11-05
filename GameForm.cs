@@ -1343,8 +1343,9 @@ public sealed class GameForm : Form
 
         DrawLabel(g, "SOUND", _sectionFont, heading,
             new Rectangle(82, 198, 170, 24), _leftFormat);
+        using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
         DrawLabel(g, "Game effects and arcade feedback",
-            _bodyFont, new SolidBrush(Color.FromArgb(170, ActiveTheme.Text)),
+            _bodyFont, description,
             new Rectangle(82, 226, 230, 24), _leftFormat);
         DrawUiButton(g, _settingsSoundButton,
             _soundEnabled ? "SOUND ON" : "SOUND OFF", false, _soundEnabled);
@@ -1414,7 +1415,7 @@ public sealed class GameForm : Form
         g.Restore(state);
 
         using var accentBrush = new SolidBrush(theme.Accent);
-        DrawLabel(g, theme.TimeOfDay, _sectionFont, accentBrush,
+        DrawLabel(g, theme.Season + "  ·  " + theme.TimeOfDay, _microFont, accentBrush,
             new Rectangle(tile.X + 8, tile.Y + 132, tile.Width - 16, 28), _centerFormat);
 
         if (selected)
@@ -3742,7 +3743,18 @@ private void DrawSeasonCategoryCard(Graphics g)
             if (e.KeyCode == Keys.F11 || (e.KeyCode == Keys.Enter && e.Alt))
                 ToggleFullscreen();
             else if (e.KeyCode == Keys.Escape)
-                NavigateTo(AppView.Home);
+            {
+                if (_view == AppView.Settings && _showSeasonThemes)
+                {
+                    _showSeasonThemes = false;
+                    Invalidate();
+                }
+                else
+                {
+                    NavigateTo(AppView.Home);
+                }
+                e.Handled = true;
+            }
             return;
         }
 

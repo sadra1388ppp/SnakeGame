@@ -115,8 +115,10 @@ public sealed class GameForm : Form
     private static readonly Color Muted = Color.FromArgb(123, 143, 146);
     private static readonly Color Green = Color.FromArgb(165, 239, 104);
     private static readonly Color Gold = Color.FromArgb(255, 194, 83);
+    private static readonly Rectangle ThemeGridViewport = new(40, 150, 1080, 540);
     private int _selectedTheme;
     private int _themeMenuLevel;
+    private int _themeScrollOffset;
     private ArcadeTheme ActiveTheme => Themes[_selectedTheme];
     private Color RetroBackground => ActiveTheme.Background;
     private Color RetroGold => ActiveTheme.Accent;
@@ -416,10 +418,28 @@ public sealed class GameForm : Form
             m.Result = (IntPtr)hit;
     }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
+    protected override void OnMouseWheel(MouseEventArgs e)
     {
-        // The static interface is rendered once into _chrome.
+        if (_view == AppView.Settings && _themeMenuLevel == 2)
+        {
+            int rows = (Themes.Length + 3) / 4;
+            int maxScroll = Math.Max(0,
+                158 + (rows - 1) * 264 + 232 - ThemeGridViewport.Bottom);
+            int nextOffset = Math.Clamp(
+                _themeScrollOffset - Math.Sign(e.Delta) * 60, 0, maxScroll);
+
+            if (nextOffset != _themeScrollOffset)
+            {
+                _themeScrollOffset = nextOffset;
+                UpdateHover(ClientToDesign(e.Location));
+                Invalidate();
+            }
+        }
+
+        base.OnMouseWheel(e);
     }
+
+    protected override void OnPaintBackground(PaintEventArgs e)
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -1382,15 +1402,27 @@ public sealed class GameForm : Form
         DrawPixelText(g, "CHOOSE YOUR WORLD",
             DesignWidth / 2, 132, 2, RetroGold);
 
+        GraphicsState state = g.Save();
+        g.SetClip(ThemeGridViewport);
         for (int i = 0; i < Themes.Length; i++)
             DrawThemeCard(g, i);
+        g.Restore(state);
+
+        int rows = (Themes.Length + 3) / 4;
+        int maxScroll = Math.Max(0, 158 + (rows - 1) * 264 + 232 - ThemeGridViewport.Bottom);
+        if (maxScroll > 0)
+        {
+            DrawPixelText(g, "SCROLL TO VIEW MORE",
+                DesignWidth / 2, 704, 1, RetroGold);
+        }
     }
 
-        private static Rectangle ThemeTileRect(int index)
+        private Rectangle ThemeTileRect(int index)
     {
         int column = index % 4;
         int row = index / 4;
-        return new Rectangle(60 + column * 260, 158 + row * 264, 240, 232);
+        return new Rectangle(60 + column * 260,
+            158 + row * 264 - _themeScrollOffset, 240, 232);
     }
 
 
@@ -3978,8 +4010,11 @@ private void DrawThemeSectionCard(Graphics g)
             if (_themeMenuLevel == 2)
             {
                 if (_seasonBackButton.Contains(point)) return 30;
-                for (int i = 0; i < Themes.Length; i++)
-                    if (ThemeTileRect(i).Contains(point)) return 200 + i;
+                if (ThemeGridViewport.Contains(point))
+                {
+                    for (int i = 0; i < Themes.Length; i++)
+                        if (ThemeTileRect(i).Contains(point)) return 200 + i;
+                }
             }
             else if (_themeMenuLevel == 1)
             {
@@ -4146,6 +4181,7 @@ private void DrawThemeSectionCard(Graphics g)
                     return;
                 }
 
+                if (ThemeGridViewport.Contains(point))
                 for (int i = 0; i < Themes.Length; i++)
                 {
                     if (!ThemeTileRect(i).Contains(point))
@@ -4167,6 +4203,7 @@ private void DrawThemeSectionCard(Graphics g)
                 if (_seasonCategoryTile.Contains(point))
                 {
                     _themeMenuLevel = 2;
+                    _themeScrollOffset = 0;
                     Invalidate();
                     return;
                 }

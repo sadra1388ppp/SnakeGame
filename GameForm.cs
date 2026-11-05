@@ -1321,67 +1321,141 @@ public sealed class GameForm : Form
         switch (skin.Pattern)
         {
             case SkinPattern.Stripes:
-            case SkinPattern.Tiger:
-            case SkinPattern.Zebra:
                 g.FillRectangle(pattern, x + size / 3, y + pad, mark, size - pad * 2);
                 g.FillRectangle(pattern, x + size * 2 / 3, y + pad, mark, size - pad * 2);
                 break;
+
+            case SkinPattern.Tiger:
+                g.FillRectangle(pattern, x + pad, y + pad, mark, size / 3);
+                g.FillRectangle(pattern, x + size / 2, y + size / 3, mark, size / 3);
+                g.FillRectangle(pattern, x + size / 3, y + size * 2 / 3, mark, pad);
+                g.FillRectangle(accent, x + size * 2 / 3, y + pad, mark, size / 4);
+                break;
+
+            case SkinPattern.Zebra:
+                g.FillRectangle(pattern, x + size / 3, y + pad, mark, size - pad * 2);
+                g.FillRectangle(accent, x + size / 2, y + pad, mark, size - pad * 2);
+                g.FillRectangle(pattern, x + size * 2 / 3, y + pad, mark, size - pad * 2);
+                break;
+
             case SkinPattern.Dots:
-            case SkinPattern.Coral:
                 g.FillRectangle(pattern, x + pad * 2, y + pad * 2, mark, mark);
                 g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
-                if (skin.Pattern == SkinPattern.Coral)
-                    g.FillRectangle(pattern, x + size - pad - mark, y + pad * 2, mark, size / 2);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size - pad - mark, mark, mark);
                 break;
+
+            case SkinPattern.Coral:
+                g.FillRectangle(pattern, x + size / 2, y + size / 3, mark, size / 2);
+                g.FillRectangle(pattern, x + size / 3, y + size / 3, mark, mark);
+                g.FillRectangle(accent, x + size / 2, y + pad, mark, mark);
+                g.FillRectangle(pattern, x + size * 2 / 3, y + size / 2, mark, mark);
+                break;
+
             case SkinPattern.Waves:
+                g.FillRectangle(pattern, x + pad, y + size / 3, size / 3, mark);
+                g.FillRectangle(pattern, x + size / 3, y + size / 2, size / 3, mark);
+                g.FillRectangle(pattern, x + size * 2 / 3, y + size * 2 / 3, mark, mark);
+                g.FillRectangle(accent, x + pad, y + size * 2 / 3, mark, mark);
+                break;
+
             case SkinPattern.Candy:
-                g.FillRectangle(pattern, x + pad, y + size / 2, size / 3, mark);
-                g.FillRectangle(accent, x + size / 2, y + size / 3, size / 3, mark);
+                for (int i = 0; i < 3; i++)
+                {
+                    int step = pad + i * mark;
+                    g.FillRectangle(pattern, x + step, y + step, mark, mark);
+                    g.FillRectangle(accent, x + size - step - mark, y + step, mark, mark);
+                }
                 break;
+
             case SkinPattern.Lightning:
-                g.FillRectangle(pattern, x + size / 2, y + pad, mark, mark * 2);
-                g.FillRectangle(pattern, x + size / 3, y + size / 2, mark, mark);
-                g.FillRectangle(pattern, x + size / 2, y + size / 2, mark, mark * 2);
+                g.FillRectangle(pattern, x + size / 2, y + pad, mark, mark);
+                g.FillRectangle(pattern, x + size / 3, y + size / 3, mark, mark);
+                g.FillRectangle(pattern, x + size / 2, y + size / 2, mark, mark);
+                g.FillRectangle(accent, x + size / 3, y + size * 2 / 3, mark, mark);
                 break;
+
             case SkinPattern.Scales:
+                g.FillRectangle(pattern, x + pad, y + size / 3, mark, mark);
+                g.FillRectangle(pattern, x + size / 2, y + size / 3, mark, mark);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size / 3, mark, mark);
+                g.FillRectangle(accent, x + size / 3, y + size * 2 / 3, mark, mark);
+                g.FillRectangle(accent, x + size * 2 / 3, y + size * 2 / 3, mark, mark);
+                break;
+
             case SkinPattern.Honeycomb:
+                g.FillRectangle(pattern, x + size / 3, y + pad, mark, mark);
+                g.FillRectangle(pattern, x + pad, y + size / 2, mark, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size / 3, y + size - pad - mark, mark, mark);
+                break;
+
             case SkinPattern.Prism:
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, mark);
                 g.FillRectangle(pattern, x + size / 3, y + size / 3, mark, mark);
                 g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
-                g.FillRectangle(pattern, x + size * 2 / 3 - mark, y + size * 2 / 3 - mark, mark, mark);
+                g.FillRectangle(pattern, x + size * 2 / 3, y + size / 3, mark, mark);
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + size - pad - mark, mark, mark);
                 break;
+
             case SkinPattern.Flames:
-                g.FillRectangle(pattern, x + size / 2, y, mark, mark * 2);
-                g.FillRectangle(pattern, x + size / 3, y + pad, mark, mark * 2);
+                g.FillRectangle(pattern, x + size / 2, y + pad, mark, mark);
+                g.FillRectangle(pattern, x + size / 3, y + size / 3, mark, mark * 2);
                 g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size * 2 / 3, y + size / 2, mark, mark);
                 break;
+
             case SkinPattern.Frost:
-            case SkinPattern.Stars:
-            case SkinPattern.Galaxy:
                 g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size - pad * 2);
                 g.FillRectangle(pattern, x + pad, y + size / 2 - mark / 2, size - pad * 2, mark);
+                g.FillRectangle(accent, x + pad, y + pad, mark, mark);
+                g.FillRectangle(accent, x + size - pad - mark, y + size - pad - mark, mark, mark);
                 break;
+
+            case SkinPattern.Stars:
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size - pad * 2);
+                g.FillRectangle(pattern, x + pad, y + size / 2 - mark / 2, size - pad * 2, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                break;
+
+            case SkinPattern.Galaxy:
+                g.FillRectangle(pattern, x + pad * 2, y + pad * 2, mark, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size / 3, mark, mark);
+                g.FillRectangle(accent, x + size / 3, y + size - pad - mark, mark, mark);
+                break;
+
             case SkinPattern.Circuit:
                 g.FillRectangle(pattern, x + pad, y + size / 3, size / 2, mark);
                 g.FillRectangle(pattern, x + size / 2, y + size / 3, mark, size / 2);
-                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size / 2, y + size * 2 / 3, size / 3, mark);
+                g.FillRectangle(accent, x + size - pad - mark, y + size * 2 / 3, mark, mark);
                 break;
+
             case SkinPattern.Camo:
                 g.FillRectangle(pattern, x + pad, y + size / 3, size / 3, mark);
-                g.FillRectangle(accent, x + size / 2, y + size / 2, size / 3, mark);
+                g.FillRectangle(accent, x + size / 2, y + pad, mark, size / 3);
+                g.FillRectangle(pattern, x + size / 2, y + size / 2, size / 3, mark);
                 break;
+
             case SkinPattern.Neon:
                 g.FillRectangle(pattern, x + pad, y + size / 3, size - pad * 2, mark);
                 g.FillRectangle(accent, x + pad, y + size * 2 / 3, size - pad * 2, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
                 break;
+
             case SkinPattern.Royal:
                 g.FillRectangle(pattern, x + pad, y + size / 2, mark, size / 3);
                 g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size / 2);
                 g.FillRectangle(pattern, x + size - pad - mark, y + size / 2, mark, size / 3);
+                g.FillRectangle(accent, x + size / 2 - mark / 2, y + pad, mark, mark);
                 break;
+
             case SkinPattern.Legendary:
                 g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size - pad * 2);
-                g.FillRectangle(accent, x + pad, y + size / 2 - mark / 2, size - pad * 2, mark);
+                g.FillRectangle(accent, x + pad, y + size / 2, size - pad * 2, mark);
+                g.FillRectangle(pattern, x + pad, y + size / 3, mark, mark);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size / 3, mark, mark);
                 break;
         }
 

@@ -2304,6 +2304,12 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _boardCard, true);
         DrawPixelPanel(g, _rightPanel, true);
 
+        // Keep each dashboard section inside its own pixel-style box.
+        DrawPixelPanel(g, _scoreArea);
+        DrawPixelPanel(g, _modeArea);
+        DrawPixelPanel(g, _difficultyArea);
+        DrawPixelPanel(g, _actionArea);
+
         using var boardFill = new SolidBrush(RetroDark);
         g.FillRectangle(boardFill, _field);
         using var grid = new Pen(Color.FromArgb(70, 185, 143, 17), 1);
@@ -2370,8 +2376,6 @@ private void DrawThemeSectionCard(Graphics g)
         DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
             _resetBestButton.Contains(_mousePoint));
 
-        DrawPixelText(g, _state.ToString().ToUpperInvariant(),
-            960, 690, 2, RetroGold);
     }
     private static string DifficultyName(Difficulty difficulty) => difficulty switch
     {

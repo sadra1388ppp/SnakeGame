@@ -553,7 +553,7 @@ public sealed class GameForm : Form
             _greenBrush, new Rectangle(78, 142, 400, 22), _leftFormat);
         DrawLabel(g, "SNAKE", _welcomeFont, _whiteBrush,
             new Rectangle(74, 178, 330, 70), _leftFormat);
-        DrawLabel(g, "One more run. One higher score.", _heroFont,
+        DrawLabel(g, "Play. Grow. Conquer.", _heroFont,
             _mutedBrush, new Rectangle(78, 248, 330, 42), _leftFormat);
         DrawLabel(g, "Choose your mode, set your pace, and chase a new personal best.",
             _welcomeSmallFont, _mutedBrush, new Rectangle(80, 300, 330, 48), _leftFormat);
@@ -1981,10 +1981,10 @@ public sealed class GameForm : Form
         if (_fullscreenButton.Contains(point)) return 13;
         if (_skinButton.Contains(point)) return 14;
         if (_resetBestButton.Contains(point)) return 15;
-        if (_mainButton.Contains(point)) return 3;
+        if (_state != GameState.Ready && _mainButton.Contains(point)) return 3;
         if (_soundButton.Contains(point)) return 4;
-        if (_restartButton.Contains(point)) return 5;
-        if (_overlayButton.Contains(point) && _state != GameState.Playing) return 6;
+        if (_state != GameState.Ready && _restartButton.Contains(point)) return 5;
+        if (_overlayButton.Contains(point) && _state is GameState.Paused or GameState.GameOver) return 6;
         if (_classicButton.Contains(point)) return 7;
         if (_wrapButton.Contains(point)) return 8;
         if (_rushButton.Contains(point)) return 9;
@@ -2111,14 +2111,15 @@ public sealed class GameForm : Form
             InvalidateDesign(_soundButton);
         }
 
-        if (_restartButton.Contains(point))
+        if (_state != GameState.Ready && _restartButton.Contains(point))
         {
             StartGame();
             return;
         }
 
         if ((_state == GameState.Ready && _lobbyStartButton.Contains(point)) ||
-            _mainButton.Contains(point) || _overlayButton.Contains(point))
+            (_state != GameState.Ready &&
+             (_mainButton.Contains(point) || _overlayButton.Contains(point))))
         {
             if (_state == GameState.Playing)
                 TogglePause();

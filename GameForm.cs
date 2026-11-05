@@ -440,6 +440,10 @@ public sealed class GameForm : Form
     }
 
     protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        if (_chrome is null)
+            base.OnPaintBackground(e);
+    }
 
     protected override void OnPaint(PaintEventArgs e)
     {

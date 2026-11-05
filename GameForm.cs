@@ -154,7 +154,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
     private readonly Rectangle _settingsSoundButton = new(110, 285, 300, 48);
-    private readonly Rectangle _settingsResetButton = new(110, 365, 300, 48);
+    private readonly Rectangle _settingsResetButton = new(110, 442, 300, 44);
     private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
     private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
     private readonly Rectangle _closeButton = new(1110, 19, 34, 30);
@@ -590,6 +590,12 @@ public sealed class GameForm : Form
     {
         DrawStaticPanel(g, _boardCard);
         DrawStaticPanel(g, _rightPanel);
+        DrawStaticPanel(g, _scoreArea, PanelLight);
+        DrawStaticPanel(g, _modeArea, PanelLight);
+        DrawStaticPanel(g, _difficultyArea, PanelLight);
+        DrawStaticPanel(g, _actionArea, PanelLight);
+        using (var scoreDivider = new Pen(Border, 1))
+            g.DrawLine(scoreDivider, 968, 142, 968, 238);
 
         DrawLabel(g, "YOUR ARCADE HUB", _labelFont, _greenBrush,
             new Rectangle(78, 142, 350, 22), _leftFormat);
@@ -603,11 +609,11 @@ public sealed class GameForm : Form
         DrawLobbyArtwork(g);
 
         DrawHomeOptionCard(g, _homePlayCard, "PLAY GAME",
-            "Choose a mode and start a run", "▶", 21);
+            "Pick a mode and start a run", "▶", 21);
         DrawHomeOptionCard(g, _homeSkinsCard, "SKINS",
-            "Browse and equip your snakes", "◈", 22);
+            "Browse and equip skins", "◈", 22);
         DrawHomeOptionCard(g, _homeSettingsCard, "SETTINGS",
-            "Sound, controls and game data", "⚙", 23);
+            "Sound, controls and scores", "⚙", 23);
 
         DrawScorePanel(g);
 
@@ -682,8 +688,6 @@ public sealed class GameForm : Form
             new Rectangle(830, 350, 250, 22), _leftFormat);
         DrawLabel(g, "Your selection is saved automatically.",
             _smallFont, _mutedBrush, new Rectangle(830, 390, 260, 42), _leftFormat);
-        DrawSecondaryButton(g, new Rectangle(830, 470, 260, 42),
-            "BACK TO HOME");
     }
 
     private void DrawSettingsPage(Graphics g)

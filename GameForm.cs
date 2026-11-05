@@ -336,9 +336,11 @@ public sealed class GameForm : Form
         g.DrawImageUnscaled(_chrome, 0, 0);
         g.Transform = _viewMatrix;
 
-        if (_state == GameState.Ready && !_showSkinPicker)
+        if (_state == GameState.Ready)
         {
             DrawLobby(g);
+            if (_showSkinPicker)
+                DrawSkinPicker(g);
             DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
             DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
             DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
@@ -571,25 +573,26 @@ public sealed class GameForm : Form
         DrawLabel(g, "GAME SETUP", _labelFont, _mutedBrush,
             new Rectangle(842, 124, 180, 20), _leftFormat);
         DrawLabel(g, "GAME MODE", _labelFont, _mutedBrush,
-            new Rectangle(842, 164, 180, 18), _leftFormat);
+            new Rectangle(842, 282, 180, 18), _leftFormat);
         DrawChoice(g, _classicButton, "CLASSIC", _mode == GameMode.Classic);
         DrawChoice(g, _wrapButton, "WRAP", _mode == GameMode.Wrap);
         DrawChoice(g, _rushButton, "RUSH", _mode == GameMode.Rush);
 
         DrawLabel(g, "DIFFICULTY", _labelFont, _mutedBrush,
-            new Rectangle(842, 235, 180, 18), _leftFormat);
+            new Rectangle(842, 402, 180, 18), _leftFormat);
         DrawChoice(g, _easyButton, "EASY", _difficulty == Difficulty.Easy);
         DrawChoice(g, _normalButton, "NORMAL", _difficulty == Difficulty.Normal);
         DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
 
         DrawLabel(g, "PERSONALIZE", _labelFont, _mutedBrush,
-            new Rectangle(842, 300, 180, 18), _leftFormat);
+            new Rectangle(842, 528, 180, 18), _leftFormat);
+        DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
+        DrawLabel(g, "SOUND", _smallFont, _mutedBrush,
+            new Rectangle(842, 552, 150, 42), _leftFormat);
         DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
         DrawSecondaryButton(g, _resetBestButton, "RESET BEST SCORE", true);
-        DrawSecondaryButton(g, new Rectangle(838, 552, 266, 42),
-            _soundEnabled ? "SOUND  ·  ON" : "SOUND  ·  OFF");
         DrawLabel(g, "READY WHEN YOU ARE", _labelFont, _greenBrush,
-            new Rectangle(842, 620, 260, 24), _leftFormat);
+            new Rectangle(842, 680, 260, 18), _leftFormat);
     }
 
     private void DrawDashboard(Graphics g)

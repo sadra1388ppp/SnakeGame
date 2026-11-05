@@ -627,16 +627,16 @@ public sealed class GameForm : Form
             new Rectangle(842, 412, 250, 24), _leftFormat);
 
         DrawLabel(g, "EQUIPPED SNAKE", _smallFont, _mutedBrush,
-            new Rectangle(842, 468, 170, 18), _leftFormat);
+            new Rectangle(842, 528, 170, 18), _leftFormat);
         DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont,
             Skins[_selectedSkin].IsLegendary ? _goldBrush : _greenBrush,
-            new Rectangle(842, 490, 250, 24), _leftFormat);
+            new Rectangle(842, 550, 250, 24), _leftFormat);
 
         DrawLabel(g, _soundEnabled ? "SOUND ENABLED" : "SOUND MUTED",
             _labelFont, _soundEnabled ? _greenBrush : _mutedBrush,
-            new Rectangle(842, 570, 240, 20), _leftFormat);
+            new Rectangle(842, 592, 240, 20), _leftFormat);
         DrawLabel(g, "Your progress is saved on this PC.",
-            _smallFont, _mutedBrush, new Rectangle(842, 598, 250, 22), _leftFormat);
+            _smallFont, _mutedBrush, new Rectangle(842, 618, 250, 22), _leftFormat);
     }
 
     private void DrawHomeOptionCard(Graphics g, Rectangle rect, string title,

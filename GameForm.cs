@@ -353,7 +353,9 @@ public sealed class GameForm : Form
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
         _ambientTimer.Tick += (_, _) =>
         {
-            if (_view != AppView.Play || _state != GameState.Playing)
+            if (_view == AppView.Play && _state == GameState.Playing)
+                InvalidateDesign(_field);
+            else
                 Invalidate();
         };
         _ambientTimer.Start();
@@ -1355,61 +1357,396 @@ public sealed class GameForm : Form
     {
         ArcadeTheme theme = ActiveTheme;
         long tick = Environment.TickCount64;
-        int drift = (int)(tick / 120) % 84;
 
         if (theme.IsNight)
         {
-            using (var moon = new SolidBrush(Color.FromArgb(210, theme.Accent)))
+            using (var moon = new SolidBrush(Color.FromArgb(220, theme.Accent)))
                 g.FillEllipse(moon, 1058, 80, 42, 42);
             using (var shadow = new SolidBrush(theme.Background))
                 g.FillEllipse(shadow, 1075, 73, 42, 42);
 
             using var stars = new SolidBrush(theme.Highlight);
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < 28; i++)
             {
-                int x = 24 + (i * 97) % (DesignWidth - 48);
-                int y = 82 + (i * 53) % 610;
-                int twinkle = (i + (int)(tick / 300)) % 3 == 0 ? 3 : 2;
+                int x = 25 + (i * 83) % (DesignWidth - 50);
+                int y = 82 + (i * 47) % 585;
+                int twinkle = (i + (int)(tick / 280)) % 4 == 0 ? 4 : 2;
                 g.FillRectangle(stars, x, y, twinkle, twinkle);
             }
         }
         else
         {
-            using var sun = new SolidBrush(Color.FromArgb(95, theme.Accent));
-            g.FillEllipse(sun, 1056, 78, 54, 54);
-            using var rays = new Pen(Color.FromArgb(115, theme.Accent), 2);
-            for (int i = 0; i < 8; i++)
+            using var sunGlow = new SolidBrush(Color.FromArgb(40, theme.Accent));
+            using var sun = new SolidBrush(Color.FromArgb(220, theme.Accent));
+            g.FillEllipse(sunGlow, 1034, 56, 100, 100);
+            g.FillEllipse(sun, 1058, 80, 52, 52);
+
+            using var rays = new Pen(Color.FromArgb(135, theme.Accent), 3);
+            for (int i = 0; i < 12; i++)
             {
-                double angle = i * Math.PI / 4;
-                float x1 = 1083 + (float)Math.Cos(angle) * 30;
-                float y1 = 105 + (float)Math.Sin(angle) * 30;
-                float x2 = 1083 + (float)Math.Cos(angle) * 38;
-                float y2 = 105 + (float)Math.Sin(angle) * 38;
+                double angle = i * Math.PI / 6;
+                float x1 = 1084 + (float)Math.Cos(angle) * 31;
+                float y1 = 106 + (float)Math.Sin(angle) * 31;
+                float x2 = 1084 + (float)Math.Cos(angle) * 41;
+                float y2 = 106 + (float)Math.Sin(angle) * 41;
                 g.DrawLine(rays, x1, y1, x2, y2);
             }
         }
 
-        for (int i = 0; i < 8; i++)
+        switch (theme.SeasonType)
         {
-            int x = i % 2 == 0 ? 18 + (i * 7) % 25 : DesignWidth - 42 - (i * 5) % 20;
-            int y = 105 + (i * 91 + drift) % 590;
-            using var effect = new SolidBrush(Color.FromArgb(175, theme.Effect));
+            case ThemeSeason.Spring:
+                DrawBlossomTree(g, 22, 716, 0.88f, theme);
+                DrawBlossomTree(g, 1138, 716, 0.78f, theme);
+                DrawFlowerMeadow(g, tick, theme);
+                DrawFallingPetals(g, tick, theme, 22);
+                break;
 
-            switch (theme.SeasonType)
+            case ThemeSeason.Summer:
+                DrawPalmTree(g, 22, 716, 0.88f, theme);
+                DrawPalmTree(g, 1138, 716, 0.78f, theme);
+                DrawWarmHaze(g, tick, theme);
+                DrawSummerGlints(g, tick, theme, 20);
+                break;
+
+            case ThemeSeason.Autumn:
+                DrawBareTree(g, 22, 716, 0.92f, theme);
+                DrawBareTree(g, 1138, 716, 0.84f, theme);
+                DrawAutumnGround(g, theme);
+                DrawFallingLeaves(g, tick, theme, 30);
+                DrawRain(g, tick, theme, 76);
+                break;
+
+            case ThemeSeason.Winter:
+                DrawPineTree(g, 22, 716, 0.92f, theme);
+                DrawPineTree(g, 1138, 716, 0.84f, theme);
+                DrawSnowGround(g, theme);
+                DrawSnowfall(g, tick, theme, 64);
+                break;
+        }
+    }
+
+    private void DrawSeasonalPlayfieldEffects(Graphics g)
+    {
+        GraphicsState state = g.Save();
+        g.SetClip(_field);
+
+        long tick = Environment.TickCount64;
+        ArcadeTheme theme = ActiveTheme;
+
+        switch (theme.SeasonType)
+        {
+            case ThemeSeason.Spring:
+                DrawFallingPetals(g, tick, theme, 12, _field);
+                break;
+            case ThemeSeason.Summer:
+                DrawWarmHaze(g, tick, theme, _field);
+                DrawSummerGlints(g, tick, theme, 12, _field);
+                break;
+            case ThemeSeason.Autumn:
+                DrawFallingLeaves(g, tick, theme, 18, _field);
+                DrawRain(g, tick, theme, 52, _field);
+                break;
+            case ThemeSeason.Winter:
+                DrawSnowfall(g, tick, theme, 48, _field);
+                break;
+        }
+
+        g.Restore(state);
+    }
+
+    private static void DrawBlossomTree(Graphics g, int x, int groundY,
+        float scale, ArcadeTheme theme)
+    {
+        using var trunk = new Pen(Color.FromArgb(225, 91, 61, 48), 10 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        using var branch = new Pen(Color.FromArgb(225, 112, 76, 59), 5 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+
+        int top = groundY - (int)(128 * scale);
+        g.DrawLine(trunk, x, groundY, x + (int)(5 * scale), top);
+        g.DrawLine(branch, x, groundY - 55 * scale, x - 34 * scale, groundY - 91 * scale);
+        g.DrawLine(branch, x + 1 * scale, groundY - 76 * scale, x + 37 * scale, groundY - 111 * scale);
+        g.DrawLine(branch, x - 17 * scale, groundY - 75 * scale, x - 28 * scale, groundY - 119 * scale);
+        g.DrawLine(branch, x + 20 * scale, groundY - 94 * scale, x + 20 * scale, groundY - 132 * scale);
+
+        using var blossomPink = new SolidBrush(Color.FromArgb(230, theme.Effect));
+        using var blossomLight = new SolidBrush(Color.FromArgb(225, theme.Highlight));
+        PointF[] clusters =
+        [
+            new(x - 31 * scale, groundY - 113 * scale),
+            new(x - 6 * scale, groundY - 139 * scale),
+            new(x + 24 * scale, groundY - 145 * scale),
+            new(x + 42 * scale, groundY - 111 * scale),
+            new(x - 2 * scale, groundY - 105 * scale)
+        ];
+
+        for (int i = 0; i < clusters.Length; i++)
+        {
+            PointF p = clusters[i];
+            Brush petals = i % 2 == 0 ? blossomPink : blossomLight;
+            float radius = 19 * scale;
+            g.FillEllipse(petals, p.X - radius, p.Y - radius, radius * 2, radius * 2);
+            DrawPixelFlower(g, (int)p.X, (int)p.Y, blossomLight, theme.Accent);
+        }
+    }
+
+    private static void DrawPalmTree(Graphics g, int x, int groundY,
+        float scale, ArcadeTheme theme)
+    {
+        using var trunk = new Pen(Color.FromArgb(235, 135, 83, 44), 11 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        g.DrawBezier(trunk, x, groundY, x - 12 * scale, groundY - 42 * scale,
+            x + 13 * scale, groundY - 91 * scale, x + 2 * scale, groundY - 130 * scale);
+
+        PointF crown = new(x + 2 * scale, groundY - 130 * scale);
+        using var leaves = new Pen(Color.FromArgb(245, 56, 154, 91), 7 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        using var leafLight = new Pen(Color.FromArgb(235, theme.Highlight), 3 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+
+        PointF[][] fronds =
+        [
+            [crown, new(x - 27 * scale, crown.Y - 30 * scale), new(x - 57 * scale, crown.Y - 18 * scale)],
+            [crown, new(x - 32 * scale, crown.Y - 5 * scale), new(x - 63 * scale, crown.Y + 10 * scale)],
+            [crown, new(x + 27 * scale, crown.Y - 31 * scale), new(x + 58 * scale, crown.Y - 18 * scale)],
+            [crown, new(x + 32 * scale, crown.Y - 6 * scale), new(x + 64 * scale, crown.Y + 10 * scale)],
+            [crown, new(x - 10 * scale, crown.Y - 39 * scale), new(x - 20 * scale, crown.Y - 69 * scale)],
+            [crown, new(x + 12 * scale, crown.Y - 39 * scale), new(x + 25 * scale, crown.Y - 68 * scale)]
+        ];
+
+        foreach (PointF[] frond in fronds)
+        {
+            g.DrawCurve(leaves, frond);
+            g.DrawCurve(leafLight, frond);
+        }
+
+        using var coconuts = new SolidBrush(Color.FromArgb(255, 111, 71, 36));
+        g.FillEllipse(coconuts, crown.X - 6 * scale, crown.Y - 2 * scale, 8 * scale, 8 * scale);
+        g.FillEllipse(coconuts, crown.X + 2 * scale, crown.Y - 1 * scale, 8 * scale, 8 * scale);
+    }
+
+    private static void DrawBareTree(Graphics g, int x, int groundY,
+        float scale, ArcadeTheme theme)
+    {
+        using var trunk = new Pen(Color.FromArgb(245, 83, 50, 32), 12 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        using var branches = new Pen(Color.FromArgb(240, 105, 65, 40), 5 * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+
+        float crownY = groundY - 150 * scale;
+        g.DrawLine(trunk, x, groundY, x - 3 * scale, crownY);
+        g.DrawLine(branches, x - 1 * scale, groundY - 45 * scale, x - 43 * scale, groundY - 95 * scale);
+        g.DrawLine(branches, x - 22 * scale, groundY - 72 * scale, x - 48 * scale, groundY - 75 * scale);
+        g.DrawLine(branches, x - 31 * scale, groundY - 82 * scale, x - 35 * scale, groundY - 113 * scale);
+        g.DrawLine(branches, x - 3 * scale, groundY - 80 * scale, x + 40 * scale, groundY - 121 * scale);
+        g.DrawLine(branches, x + 18 * scale, groundY - 103 * scale, x + 48 * scale, groundY - 108 * scale);
+        g.DrawLine(branches, x + 29 * scale, groundY - 111 * scale, x + 30 * scale, groundY - 139 * scale);
+        g.DrawLine(branches, x - 3 * scale, groundY - 121 * scale, x - 8 * scale, groundY - 162 * scale);
+        g.DrawLine(branches, x - 8 * scale, groundY - 146 * scale, x - 27 * scale, groundY - 161 * scale);
+
+        using var leafPile = new SolidBrush(Color.FromArgb(220, theme.Effect));
+        g.FillEllipse(leafPile, x - 33 * scale, groundY - 7 * scale, 31 * scale, 8 * scale);
+        g.FillEllipse(leafPile, x + 5 * scale, groundY - 5 * scale, 29 * scale, 7 * scale);
+    }
+
+    private static void DrawPineTree(Graphics g, int x, int groundY,
+        float scale, ArcadeTheme theme)
+    {
+        using var trunk = new SolidBrush(Color.FromArgb(235, 89, 65, 54));
+        g.FillRectangle(trunk, x - 5 * scale, groundY - 46 * scale, 10 * scale, 48 * scale);
+
+        using var pine = new SolidBrush(Color.FromArgb(245, 22, 79, 91));
+        using var snow = new SolidBrush(Color.FromArgb(245, theme.Highlight));
+        for (int tier = 0; tier < 3; tier++)
+        {
+            float y = groundY - (125 - tier * 34) * scale;
+            float width = (54 - tier * 7) * scale;
+            PointF[] points =
+            [
+                new(x, y - 44 * scale),
+                new(x - width, y + 20 * scale),
+                new(x + width, y + 20 * scale)
+            ];
+            g.FillPolygon(pine, points);
+            using var snowLine = new Pen(Color.FromArgb(235, theme.Highlight), 4 * scale);
+            g.DrawLine(snowLine, x - width * 0.55f, y + 8 * scale,
+                x, y - 37 * scale);
+            g.DrawLine(snowLine, x, y - 37 * scale,
+                x + width * 0.55f, y + 8 * scale);
+        }
+
+        g.FillEllipse(snow, x - 8 * scale, groundY - 9 * scale, 16 * scale, 8 * scale);
+    }
+
+    private static void DrawFlowerMeadow(Graphics g, long tick, ArcadeTheme theme)
+    {
+        using var stem = new Pen(Color.FromArgb(190, 80, 150, 73), 2);
+        using var petals = new SolidBrush(Color.FromArgb(220, theme.Effect));
+        int phase = (int)(tick / 450) % 13;
+
+        for (int i = 0; i < 26; i++)
+        {
+            int x = (i * 47 + phase * 3) % DesignWidth;
+            int y = 711 + (i % 3) * 9;
+            int height = 8 + i % 5;
+            g.DrawLine(stem, x, y + 8, x + (i % 2 == 0 ? 1 : -1), y - height);
+            DrawPixelFlower(g, x, y - height, petals, theme.Accent);
+        }
+    }
+
+    private static void DrawWarmHaze(Graphics g, long tick, ArcadeTheme theme,
+        Rectangle? area = null)
+    {
+        Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
+        using var haze = new Pen(Color.FromArgb(45, theme.Highlight), 2);
+        float phase = tick / 340f;
+
+        for (int i = 0; i < 4; i++)
+        {
+            float y = bounds.Top + bounds.Height * (0.38f + i * 0.13f);
+            float x = bounds.Left + (float)(Math.Sin(phase + i) * 22);
+            g.DrawBezier(haze, x, y, x + bounds.Width * 0.25f, y - 5,
+                x + bounds.Width * 0.60f, y + 5, bounds.Right, y);
+        }
+    }
+
+    private static void DrawSummerGlints(Graphics g, long tick, ArcadeTheme theme,
+        int count, Rectangle? area = null)
+    {
+        Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
+        using var glint = new SolidBrush(Color.FromArgb(145, theme.Effect));
+
+        for (int i = 0; i < count; i++)
+        {
+            int x = bounds.Left + (i * 83 + (int)(tick / 22)) % Math.Max(1, bounds.Width);
+            int y = bounds.Top + (i * 59 + (int)(tick / 38)) % Math.Max(1, bounds.Height);
+            int size = i % 3 == 0 ? 4 : 2;
+            g.FillRectangle(glint, x, y, size, size);
+            if (i % 4 == 0)
+                g.FillRectangle(glint, x - 3, y + 1, size + 6, 1);
+        }
+    }
+
+    private static void DrawFallingPetals(Graphics g, long tick, ArcadeTheme theme,
+        int count, Rectangle? area = null)
+    {
+        Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
+        for (int i = 0; i < count; i++)
+        {
+            float y = bounds.Top + (i * 67 + tick / 34) % Math.Max(1, bounds.Height);
+            float drift = MathF.Sin(tick / 370f + i * 1.7f) * 22;
+            float x = bounds.Left + (i * 89 + drift + tick / 65f) % Math.Max(1, bounds.Width);
+            DrawFallingLeaf(g, x, y, theme.Effect, 5 + i % 4, tick / 45f + i);
+        }
+    }
+
+    private static void DrawFallingLeaves(Graphics g, long tick, ArcadeTheme theme,
+        int count, Rectangle? area = null)
+    {
+        Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
+        for (int i = 0; i < count; i++)
+        {
+            float y = bounds.Top + (i * 71 + tick / 24) % Math.Max(1, bounds.Height);
+            float sway = MathF.Sin(tick / 290f + i * 1.4f) * 25;
+            float x = bounds.Left + (i * 97 + sway + tick / 95f) % Math.Max(1, bounds.Width);
+            Color color = i % 3 == 0 ? theme.Accent : theme.Effect;
+            DrawFallingLeaf(g, x, y, color, 6 + i % 5, tick / 60f + i);
+        }
+    }
+
+    private static void DrawFallingLeaf(Graphics g, float x, float y,
+        Color color, float size, float angle)
+    {
+        GraphicsState state = g.Save();
+        g.TranslateTransform(x, y);
+        g.RotateTransform(angle * 24f);
+
+        using var leaf = new SolidBrush(color);
+        using var stem = new Pen(Color.FromArgb(180, 95, 58, 32), 1);
+        PointF[] points =
+        [
+            new(-size, 0), new(-size * 0.35f, -size * 0.72f),
+            new(size * 0.52f, -size * 0.60f), new(size, 0),
+            new(size * 0.45f, size * 0.62f), new(-size * 0.35f, size * 0.65f)
+        ];
+        g.FillPolygon(leaf, points);
+        g.DrawLine(stem, -size * 0.8f, 0, size * 0.85f, 0);
+        g.Restore(state);
+    }
+
+    private static void DrawRain(Graphics g, long tick, ArcadeTheme theme,
+        int count, Rectangle? area = null)
+    {
+        Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
+        using var rain = new Pen(Color.FromArgb(95, theme.Highlight), 1.3f);
+        using var rainBright = new Pen(Color.FromArgb(145, theme.Text), 1.6f);
+
+        for (int i = 0; i < count; i++)
+        {
+            int x = bounds.Left + (i * 67 + (int)(tick / 18)) % Math.Max(1, bounds.Width);
+            int y = bounds.Top + (i * 43 + (int)(tick / 5)) % Math.Max(1, bounds.Height);
+            Pen pen = i % 5 == 0 ? rainBright : rain;
+            g.DrawLine(pen, x, y, x - 5, y + 13);
+        }
+    }
+
+    private static void DrawAutumnGround(Graphics g, ArcadeTheme theme)
+    {
+        Point[] ground =
+        [
+            new(0, 748), new(0, 735), new(180, 742), new(340, 734),
+            new(520, 746), new(720, 737), new(920, 745), new(1160, 735),
+            new(1160, 760), new(0, 760)
+        ];
+        using var soil = new SolidBrush(Color.FromArgb(220, 75, 43, 25));
+        using var leaves = new SolidBrush(Color.FromArgb(245, theme.Effect));
+        g.FillPolygon(soil, ground);
+
+        for (int i = 0; i < 44; i++)
+        {
+            int x = (i * 31) % DesignWidth;
+            int y = 739 + i % 3 * 5;
+            DrawFallingLeaf(g, x, y, i % 3 == 0 ? theme.Accent : theme.Effect,
+                4 + i % 4, i * 0.7f);
+        }
+    }
+
+    private static void DrawSnowGround(Graphics g, ArcadeTheme theme)
+    {
+        Point[] ground =
+        [
+            new(0, 742), new(0, 727), new(105, 721), new(220, 739),
+            new(360, 723), new(510, 739), new(680, 724), new(840, 740),
+            new(1000, 721), new(1160, 735), new(1160, 760), new(0, 760)
+        ];
+        using var snow = new SolidBrush(Color.FromArgb(245, theme.Highlight));
+        using var shadow = new SolidBrush(Color.FromArgb(220, theme.Grid));
+        g.FillPolygon(shadow, ground);
+        g.FillEllipse(snow, 80, 726, 210, 30);
+        g.FillEllipse(snow, 360, 729, 240, 28);
+        g.FillEllipse(snow, 770, 727, 230, 29);
+        g.FillEllipse(snow, 1010, 727, 130, 28);
+    }
+
+    private static void DrawSnowfall(Graphics g, long tick, ArcadeTheme theme,
+        int count, Rectangle? area = null)
+    {
+        Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
+        using var snow = new SolidBrush(Color.FromArgb(190, theme.Highlight));
+        using var flake = new Pen(Color.FromArgb(155, theme.Text), 1.2f);
+
+        for (int i = 0; i < count; i++)
+        {
+            int x = bounds.Left + (i * 73 + (int)(tick / 27)) % Math.Max(1, bounds.Width);
+            int y = bounds.Top + (i * 53 + (int)(tick / 9)) % Math.Max(1, bounds.Height);
+            int size = i % 5 == 0 ? 5 : i % 2 == 0 ? 3 : 2;
+            g.FillEllipse(snow, x, y, size, size);
+
+            if (i % 6 == 0)
             {
-                case ThemeSeason.Spring:
-                    DrawPixelFlower(g, x, y, effect, theme.Accent);
-                    break;
-                case ThemeSeason.Summer:
-                    g.FillRectangle(effect, x, y, 3, 3);
-                    g.FillRectangle(effect, x - 4, y + 5, 11, 2);
-                    break;
-                case ThemeSeason.Autumn:
-                    DrawPixelLeaf(g, x, y, effect, 8);
-                    break;
-                case ThemeSeason.Winter:
-                    DrawPixelSnowflake(g, x, y, effect, 5);
-                    break;
+                g.DrawLine(flake, x - size, y + size / 2, x + size * 2, y + size / 2);
+                g.DrawLine(flake, x + size / 2, y - size, x + size / 2, y + size * 2);
             }
         }
     }
@@ -1459,6 +1796,7 @@ public sealed class GameForm : Form
         for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
             g.DrawLine(grid, _field.Left, y, _field.Right, y);
         DrawPixelOutline(g, _field, RetroGold, 3);
+        DrawSeasonalPlayfieldEffects(g);
 
         DrawPixelText(g, "SCORE", 881, 125, 2, RetroWhite);
         DrawPixelText(g, "BEST", 1046, 125, 2, RetroGold);

@@ -136,8 +136,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(48, 84, 112, 36);
     private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
-    private readonly Rectangle _retroSkinsButton = new(360, 575, 190, 48);
-    private readonly Rectangle _retroSettingsButton = new(610, 575, 190, 48);
+    private readonly Rectangle _retroSkinsButton = new(350, 575, 220, 48);
+    private readonly Rectangle _retroSettingsButton = new(590, 575, 220, 48);
     private readonly Rectangle _retroDifficultyLeft = new(455, 382, 52, 48);
     private readonly Rectangle _retroDifficultyRight = new(653, 382, 52, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
@@ -627,16 +627,18 @@ public sealed class GameForm : Form
         DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
         DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
 
-        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
+        DrawPixelText(g, "SELECT MODE", DesignWidth / 2, 340, 3,
             Color.FromArgb(228, 238, 220));
 
         DrawRetroMenuSnake(g, 345, 385);
         DrawPixelApple(g, 410, 378, 5);
 
-        DrawPixelArrow(g, 470, 393, true, RetroWhite);
-        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            DesignWidth / 2, 391, 5, RetroWhite);
-        DrawPixelArrow(g, 670, 393, false, RetroWhite);
+        Color leftArrowColor = _hoverId == 26 ? RetroGold : RetroWhite;
+        Color rightArrowColor = _hoverId == 27 ? RetroGold : RetroWhite;
+        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
+        DrawPixelText(g, ModeName(_mode).ToUpperInvariant(),
+            DesignWidth / 2, 394, 4, RetroWhite);
+        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
 
         DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
             3, _retroStartButton.Contains(_mousePoint), true);
@@ -906,19 +908,28 @@ public sealed class GameForm : Form
 
     private void DrawRetroSnakePreview(Graphics g, Rectangle area, SnakeSkin skin)
     {
-        int size = 26;
+        const int cellSize = 26;
+        int size = cellSize;
+        int firstColumn = area.X + 18 + cellSize / 2;
+        int secondColumn = firstColumn + cellSize;
+        int thirdColumn = secondColumn + cellSize;
+        int upperRow = area.Y + 10 + cellSize * 6 + cellSize / 2;
+        int middleRow = upperRow + cellSize;
+        int lowerRow = middleRow + cellSize;
+
+        // Every segment is centered inside a preview-grid cell.
         Point[] centers =
         [
-            new(area.X + 85, area.Y + 222),
-            new(area.X + 59, area.Y + 222),
-            new(area.X + 33, area.Y + 222),
-            new(area.X + 33, area.Y + 196),
-            new(area.X + 33, area.Y + 170),
-            new(area.X + 59, area.Y + 170),
-            new(area.X + 85, area.Y + 170),
-            new(area.X + 111, area.Y + 170),
-            new(area.X + 137, area.Y + 170),
-            new(area.X + 163, area.Y + 170)
+            new(thirdColumn, lowerRow),
+            new(secondColumn, lowerRow),
+            new(firstColumn, lowerRow),
+            new(firstColumn, middleRow),
+            new(firstColumn, upperRow),
+            new(secondColumn, upperRow),
+            new(thirdColumn, upperRow),
+            new(thirdColumn + cellSize, upperRow),
+            new(thirdColumn + cellSize * 2, upperRow),
+            new(thirdColumn + cellSize * 3, upperRow)
         ];
 
         using (var grid = new Pen(Color.FromArgb(35, 190, 210, 130), 1))
@@ -1199,8 +1210,8 @@ public sealed class GameForm : Form
             g.DrawLine(grid, _field.Left, y, _field.Right, y);
         DrawPixelOutline(g, _field, RetroGold, 3);
 
-        DrawPixelText(g, "SCORE", 875, 125, 2, RetroWhite);
-        DrawPixelText(g, "BEST", 1040, 125, 2, RetroGold);
+        DrawPixelText(g, "SCORE", 881, 125, 2, RetroWhite);
+        DrawPixelText(g, "BEST", 1046, 125, 2, RetroGold);
         DrawPixelText(g, "MODE", 960, 265, 2, RetroWhite);
         DrawPixelText(g, "DIFFICULTY", 960, 385, 2, RetroWhite);
         DrawPixelText(g, "ACTIONS", 960, 516, 2, RetroGold);
@@ -1208,8 +1219,8 @@ public sealed class GameForm : Form
 
     private void DrawRetroPlayDashboard(Graphics g)
     {
-        DrawPixelText(g, FormatScore(_score), 875, 160, 4, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 1040, 160, 4, RetroGold);
+        DrawPixelText(g, FormatScore(_score), 881, 160, 4, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1046, 160, 4, RetroGold);
 
         DrawRetroButton(g, _classicButton, "CLASSIC", 1,
             _mode == GameMode.Classic, _mode == GameMode.Classic);
@@ -2527,6 +2538,16 @@ public sealed class GameForm : Form
         Invalidate();
     }
 
+    private void CycleMode(int direction)
+    {
+        if (_state is GameState.Playing or GameState.Paused)
+            return;
+
+        int next = ((int)_mode + direction + 3) % 3;
+        SetMode((GameMode)next);
+        Invalidate();
+    }
+
     private void MoveSkinSelection(int amount)
     {
         int next = Math.Clamp(_selectedSkin + amount, 0, Skins.Length - 1);
@@ -2602,12 +2623,12 @@ public sealed class GameForm : Form
                     break;
                 case Keys.Left:
                 case Keys.A:
-                    CycleDifficulty(-1);
+                    CycleMode(-1);
                     e.Handled = true;
                     break;
                 case Keys.Right:
                 case Keys.D:
-                    CycleDifficulty(1);
+                    CycleMode(1);
                     e.Handled = true;
                     break;
                 case Keys.F11:
@@ -2891,9 +2912,9 @@ public sealed class GameForm : Form
             else if (_retroSettingsButton.Contains(point))
                 NavigateTo(AppView.Settings);
             else if (_retroDifficultyLeft.Contains(point))
-                CycleDifficulty(-1);
+                CycleMode(-1);
             else if (_retroDifficultyRight.Contains(point))
-                CycleDifficulty(1);
+                CycleMode(1);
             return;
         }
 

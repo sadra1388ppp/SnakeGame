@@ -2335,7 +2335,8 @@ private void DrawThemeSectionCard(Graphics g)
             for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
                 g.DrawLine(grid, _field.Left, y, _field.Right, y);
         }
-        DrawSeasonalPlayfieldEffects(g);
+        // Keep the playfield clear in every season. Seasonal particles such as
+        // leaves, rain, snow, and petals must never cross the playable board.
         g.Restore(state);
         StrokeRound(g, _field, 9, Color.FromArgb(175, ActiveTheme.Highlight));
 

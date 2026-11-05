@@ -2380,9 +2380,12 @@ private void DrawThemeSectionCard(Graphics g)
         {
             GameState.Playing => "PAUSE",
             GameState.Paused => "RESUME",
+            GameState.GameOver => "ENDED",
             _ => "PLAY"
         };
-        DrawRetroButton(g, _mainButton, action, 2, true, true);
+        DrawRetroButton(g, _mainButton, action, 2,
+            _state != GameState.GameOver && _mainButton.Contains(_mousePoint),
+            _state != GameState.GameOver);
         DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
             _soundButton.Contains(_mousePoint));
         DrawRetroButton(g, _restartButton, "RESET", 1,
@@ -2498,20 +2501,51 @@ private void DrawThemeSectionCard(Graphics g)
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
 
-        using var shade = new SolidBrush(Color.FromArgb(225, 3, 25, 0));
+        bool paused = _state == GameState.Paused;
+        bool gameOver = !paused;
+        Color accent = paused
+            ? RetroGold
+            : _won ? Color.FromArgb(255, 89, 210, 190)
+            : Color.FromArgb(255, 238, 91, 91);
+        Color text = paused ? RetroWhite : Color.FromArgb(255, 242, 244, 248);
+
+        // Game Over uses a neutral midnight overlay instead of tinting the field green.
+        Color shadeColor = paused
+            ? Color.FromArgb(225, 3, 25, 0)
+            : Color.FromArgb(238, 8, 13, 23);
+        using var shade = new SolidBrush(shadeColor);
         g.FillRectangle(shade, _field);
 
         Rectangle panel = new(138, 220, 538, 334);
-        DrawPixelPanel(g, panel, true);
+        if (paused)
+        {
+            DrawPixelPanel(g, panel, true);
+        }
+        else
+        {
+            using var panelFill = new SolidBrush(Color.FromArgb(250, 17, 24, 37));
+            using var outerEdge = new Pen(accent, 4);
+            using var innerEdge = new Pen(Color.FromArgb(115, 190, 205, 220), 1);
+            g.FillRectangle(panelFill, panel);
+            g.DrawRectangle(outerEdge, panel);
+            g.DrawRectangle(innerEdge, panel.X + 8, panel.Y + 8,
+                panel.Width - 16, panel.Height - 16);
+            using var corner = new SolidBrush(accent);
+            g.FillRectangle(corner, panel.X - 2, panel.Y + 18, 5, 24);
+            g.FillRectangle(corner, panel.Right - 3, panel.Bottom - 42, 5, 24);
+        }
 
-        using (var accent = new SolidBrush(RetroGold))
-            g.FillRectangle(accent, panel.X + 24, panel.Y + 23,
+        using (var accentBar = new SolidBrush(accent))
+        {
+            g.FillRectangle(accentBar, panel.X + 24, panel.Y + 23,
                 panel.Width - 48, 3);
+            g.FillRectangle(accentBar, panel.X + 24, panel.Bottom - 20,
+                panel.Width - 48, 2);
+        }
 
-        bool paused = _state == GameState.Paused;
         string title = paused ? "PAUSED" : _won ? "PERFECT RUN" : "GAME OVER";
         DrawPixelText(g, title, panel.X + panel.Width / 2, 263, 4,
-            paused ? RetroWhite : Color.FromArgb(255, 230, 139));
+            paused ? RetroWhite : accent);
 
         if (paused)
         {
@@ -2525,24 +2559,44 @@ private void DrawThemeSectionCard(Graphics g)
         else
         {
             DrawPixelText(g, "FINAL SCORE",
-                panel.X + panel.Width / 2, 326, 2, RetroWhite);
+                panel.X + panel.Width / 2, 326, 2, Color.FromArgb(190, 204, 216));
             DrawPixelText(g, FormatScore(_score),
                 panel.X + panel.Width / 2, 351, 5,
-                _newRecord ? Color.FromArgb(255, 225, 104) : RetroWhite);
+                _newRecord ? Color.FromArgb(255, 211, 112) : text);
 
             string result = _scoreSaveFailed
                 ? "SCORE SAVE FAILED"
                 : _newRecord ? "NEW PERSONAL BEST" : "BEST  " + FormatScore(_bestScore);
             DrawPixelText(g, result, panel.X + panel.Width / 2, 411, 2,
-                _scoreSaveFailed || _newRecord ? RetroGold : Color.FromArgb(190, 255, 142));
+                _scoreSaveFailed ? Color.FromArgb(255, 130, 130)
+                : _newRecord ? Color.FromArgb(255, 211, 112)
+                : Color.FromArgb(190, 204, 216));
         }
 
-        DrawRetroButton(g, _overlayButton,
-            paused ? "RESUME" : "PLAY AGAIN", 2,
-            _overlayButton.Contains(_mousePoint), true);
-
-        DrawPixelText(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
-            panel.X + panel.Width / 2, 529, 1, RetroWhite);
+        if (paused)
+        {
+            DrawRetroButton(g, _overlayButton, "RESUME", 2,
+                _overlayButton.Contains(_mousePoint), true);
+            DrawPixelText(g, "PRESS SPACE TO RESUME",
+                panel.X + panel.Width / 2, 529, 1, RetroWhite);
+        }
+        else
+        {
+            bool hover = _overlayButton.Contains(_mousePoint);
+            using var buttonFill = new SolidBrush(hover
+                ? Color.FromArgb(255, 177, 54, 62)
+                : Color.FromArgb(255, 112, 35, 46));
+            g.FillRectangle(buttonFill, _overlayButton);
+            DrawPixelOutline(g, _overlayButton,
+                hover ? Color.FromArgb(255, 255, 218, 166) : accent, 3);
+            DrawPixelText(g, "PLAY AGAIN",
+                _overlayButton.X + _overlayButton.Width / 2,
+                _overlayButton.Y + (_overlayButton.Height - 14) / 2,
+                2, Color.FromArgb(255, 255, 247, 232));
+            DrawPixelText(g, "CLICK PLAY AGAIN TO CONTINUE",
+                panel.X + panel.Width / 2, 529, 1,
+                Color.FromArgb(175, 204, 216));
+        }
     }
     private Bitmap CreateAppleSprite(bool golden)
     {
@@ -3741,9 +3795,6 @@ private void DrawThemeSectionCard(Graphics g)
         if (_state == GameState.Ready)
             return;
 
-        if (_state == GameState.GameOver)
-            StartGame();
-
         if (_state != GameState.Playing)
             return;
 
@@ -3916,6 +3967,17 @@ private void DrawThemeSectionCard(Graphics g)
             return;
         }
 
+        // Once a run ends, keyboard input must never restart it.
+        // Only the on-screen PLAY AGAIN button can start the next run.
+        if (_state == GameState.GameOver)
+        {
+            if (e.KeyCode == Keys.F11 || (e.KeyCode == Keys.Enter && e.Alt))
+                ToggleFullscreen();
+
+            e.Handled = true;
+            return;
+        }
+
         switch (e.KeyCode)
         {
             case Keys.Up:
@@ -3939,7 +4001,7 @@ private void DrawThemeSectionCard(Graphics g)
                 e.Handled = true;
                 break;
             case Keys.Space:
-                if (_state is GameState.Ready or GameState.GameOver)
+                if (_state == GameState.Ready)
                     StartGame();
                 else
                     TogglePause();
@@ -4250,6 +4312,15 @@ private void DrawThemeSectionCard(Graphics g)
             }
             else if (_settingsResetButton.Contains(point))
                 ResetBestScore();
+            return;
+        }
+
+        // On the Game Over screen, only the dedicated PLAY AGAIN button
+        // is allowed to begin another run.
+        if (_state == GameState.GameOver)
+        {
+            if (_overlayButton.Contains(point))
+                StartGame();
             return;
         }
 

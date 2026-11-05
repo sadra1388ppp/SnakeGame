@@ -2299,6 +2299,23 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
     }
 
+    private void DrawRetroPlayButton(Graphics g, Rectangle rect, string label,
+        int pixelSize, bool hover, bool selected = false)
+    {
+        using var fill = new SolidBrush(selected
+            ? Color.FromArgb(24, 105, 8)
+            : hover ? Color.FromArgb(18, 91, 5) : RetroDark);
+        g.FillRectangle(fill, rect);
+        DrawPixelOutline(g, rect,
+            hover || selected ? Color.FromArgb(255, 224, 105) : RetroGold,
+            selected ? 3 : 2);
+
+        int textHeight = pixelSize * 7;
+        int top = rect.Y + (rect.Height - textHeight) / 2;
+        DrawPixelText(g, label, rect.X + rect.Width / 2, top,
+            pixelSize, RetroWhite);
+    }
+
     private void DrawRetroPlayChrome(Graphics g)
     {
         DrawRetroGamePanel(g, _boardCard, true);
@@ -2337,18 +2354,18 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, FormatScore(_score), 900, 157, 4, RetroWhite);
         DrawPixelText(g, FormatScore(_bestScore), 1050, 157, 4, RetroGold);
 
-        DrawRetroButton(g, _classicButton, "CLASSIC", 1,
+        DrawRetroPlayButton(g, _classicButton, "CLASSIC", 1,
             _classicButton.Contains(_mousePoint), _mode == GameMode.Classic);
-        DrawRetroButton(g, _wrapButton, "WRAP", 1,
+        DrawRetroPlayButton(g, _wrapButton, "WRAP", 1,
             _wrapButton.Contains(_mousePoint), _mode == GameMode.Wrap);
-        DrawRetroButton(g, _rushButton, "RUSH", 1,
+        DrawRetroPlayButton(g, _rushButton, "RUSH", 1,
             _rushButton.Contains(_mousePoint), _mode == GameMode.Rush);
 
-        DrawRetroButton(g, _easyButton, "EASY", 1,
+        DrawRetroPlayButton(g, _easyButton, "EASY", 1,
             _easyButton.Contains(_mousePoint), _difficulty == Difficulty.Easy);
-        DrawRetroButton(g, _normalButton, "NORMAL", 1,
+        DrawRetroPlayButton(g, _normalButton, "NORMAL", 1,
             _normalButton.Contains(_mousePoint), _difficulty == Difficulty.Normal);
-        DrawRetroButton(g, _hardButton, "HARD", 1,
+        DrawRetroPlayButton(g, _hardButton, "HARD", 1,
             _hardButton.Contains(_mousePoint), _difficulty == Difficulty.Hard);
 
         string action = _state switch
@@ -2357,15 +2374,15 @@ private void DrawThemeSectionCard(Graphics g)
             GameState.Paused => "RESUME",
             _ => "START"
         };
-        DrawRetroButton(g, _mainButton, action, 2,
+        DrawRetroPlayButton(g, _mainButton, action, 2,
             _mainButton.Contains(_mousePoint), true);
-        DrawRetroButton(g, _soundButton, _soundEnabled ? "S" : "X", 1,
+        DrawRetroPlayButton(g, _soundButton, _soundEnabled ? "S" : "X", 1,
             _soundButton.Contains(_mousePoint));
-        DrawRetroButton(g, _restartButton, "R", 1,
+        DrawRetroPlayButton(g, _restartButton, "R", 1,
             _restartButton.Contains(_mousePoint));
-        DrawRetroButton(g, _skinButton, "CHANGE SKIN", 1,
+        DrawRetroPlayButton(g, _skinButton, "CHANGE SKIN", 1,
             _skinButton.Contains(_mousePoint));
-        DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
+        DrawRetroPlayButton(g, _resetBestButton, "RESET BEST", 1,
             _resetBestButton.Contains(_mousePoint));
     }
 

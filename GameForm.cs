@@ -44,15 +44,15 @@ public sealed class GameForm : Form
             Color.FromArgb(171, 235, 185), Color.FromArgb(42, 83, 78),
             Color.FromArgb(214, 163, 220)),
         new("SUMMER", "DAY", ThemeSeason.Summer, false,
-            Color.FromArgb(25, 100, 117), Color.FromArgb(8, 51, 66),
-            Color.FromArgb(255, 204, 75), Color.FromArgb(255, 247, 215),
-            Color.FromArgb(133, 226, 207), Color.FromArgb(49, 130, 145),
-            Color.FromArgb(255, 226, 116)),
+            Color.FromArgb(174, 91, 39), Color.FromArgb(91, 42, 19),
+            Color.FromArgb(255, 207, 83), Color.FromArgb(255, 246, 218),
+            Color.FromArgb(255, 170, 91), Color.FromArgb(194, 111, 53),
+            Color.FromArgb(255, 220, 116)),
         new("SUMMER", "NIGHT", ThemeSeason.Summer, true,
-            Color.FromArgb(19, 38, 68), Color.FromArgb(8, 22, 45),
-            Color.FromArgb(95, 210, 226), Color.FromArgb(230, 245, 255),
-            Color.FromArgb(137, 195, 255), Color.FromArgb(48, 76, 116),
-            Color.FromArgb(170, 219, 255)),
+            Color.FromArgb(38, 38, 67), Color.FromArgb(14, 19, 39),
+            Color.FromArgb(255, 178, 92), Color.FromArgb(255, 239, 218),
+            Color.FromArgb(255, 143, 113), Color.FromArgb(73, 61, 94),
+            Color.FromArgb(255, 210, 132)),
         new("AUTUMN", "DAY", ThemeSeason.Autumn, false,
             Color.FromArgb(111, 62, 29), Color.FromArgb(54, 27, 15),
             Color.FromArgb(246, 174, 68), Color.FromArgb(255, 239, 210),
@@ -1718,9 +1718,9 @@ public sealed class GameForm : Form
     {
         Point[] ground =
         [
-            new(0, 748), new(0, 735), new(180, 742), new(340, 734),
-            new(520, 746), new(720, 737), new(920, 745), new(1160, 735),
-            new(1160, 760), new(0, 760)
+            new(0, 760), new(0, 720), new(180, 728), new(340, 716),
+            new(520, 733), new(720, 719), new(920, 729), new(1160, 717),
+            new(1160, 760)
         ];
         using var soil = new SolidBrush(Color.FromArgb(220, 75, 43, 25));
         g.FillPolygon(soil, ground);
@@ -1728,7 +1728,7 @@ public sealed class GameForm : Form
         for (int i = 0; i < 44; i++)
         {
             int x = (i * 31) % DesignWidth;
-            int y = 739 + i % 3 * 5;
+            int y = 720 + i % 4 * 9;
             DrawFallingLeaf(g, x, y, i % 3 == 0 ? theme.Accent : theme.Effect,
                 4 + i % 4, i * 0.7f);
         }
@@ -1738,9 +1738,9 @@ public sealed class GameForm : Form
     {
         Point[] ground =
         [
-            new(0, 742), new(0, 727), new(105, 721), new(220, 739),
-            new(360, 723), new(510, 739), new(680, 724), new(840, 740),
-            new(1000, 721), new(1160, 735), new(1160, 760), new(0, 760)
+            new(0, 760), new(0, 708), new(105, 718), new(220, 730),
+            new(360, 710), new(510, 728), new(680, 710), new(840, 730),
+            new(1000, 708), new(1160, 720), new(1160, 760)
         ];
         using var snow = new SolidBrush(Color.FromArgb(245, theme.Highlight));
         using var shadow = new SolidBrush(Color.FromArgb(220, theme.Grid));

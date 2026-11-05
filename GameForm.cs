@@ -151,8 +151,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
-    private readonly Rectangle _settingsSoundButton = new(110, 285, 300, 48);
-    private readonly Rectangle _settingsResetButton = new(110, 442, 300, 44);
+    private readonly Rectangle _settingsSoundButton = new(430, 270, 200, 48);
+    private readonly Rectangle _settingsResetButton = new(430, 420, 200, 48);
     private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
     private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
     private readonly Rectangle _closeButton = new(1110, 19, 34, 30);

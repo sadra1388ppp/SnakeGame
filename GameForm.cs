@@ -772,24 +772,42 @@ public sealed class GameForm : Form
 
     private void DrawUiHeader(Graphics g)
     {
-        DrawUiPanel(g, new Rectangle(24, 12, 1112, 56), false);
+        Rectangle header = new(24, 12, 1112, 56);
+        DrawPixelPanel(g, header, true);
 
+        using var seam = new Pen(Color.FromArgb(125, ActiveTheme.Highlight), 1);
+        g.DrawLine(seam, 34, 61, 1126, 61);
+
+        // Pixel logo and compact cabinet branding.
         using var logo = new SolidBrush(ActiveTheme.Accent);
-        g.FillRectangle(logo, 40, 23, 34, 34);
-        DrawPixelText(g, "S", 57, 29, 3, ActiveTheme.Dark);
+        g.FillRectangle(logo, 40, 21, 36, 36);
+        DrawPixelOutline(g, new Rectangle(40, 21, 36, 36), ActiveTheme.Highlight, 2);
+        DrawPixelText(g, "S", 58, 27, 3, ActiveTheme.Dark);
+        DrawPixelText(g, "SNAKE", 132, 24, 2, ActiveTheme.Text);
+        DrawPixelText(g, "ARCADE EDITION", 132, 45, 1, ActiveTheme.Highlight);
 
-        using var title = new SolidBrush(ActiveTheme.Text);
-        DrawLabel(g, "SNAKE", _sectionFont, title, new Rectangle(84, 20, 95, 19), _leftFormat);
-        DrawLabel(g, "ARCADE EDITION", _microFont, title, new Rectangle(84, 38, 110, 17), _leftFormat);
+        // Navigation keeps the original click areas but now uses the same pixel language as the game.
+        DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
+        DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
+        DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
 
-        DrawUiNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
-        DrawUiNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
-        DrawUiNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
-        DrawUiNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
+        Rectangle statusBox = new(790, 20, 178, 40);
+        DrawPixelPanel(g, statusBox, false);
+        using var led = new SolidBrush(ActiveTheme.Highlight);
+        g.FillRectangle(led, 802, 33, 8, 8);
 
-        using var status = new SolidBrush(ActiveTheme.Highlight);
-        g.FillRectangle(status, 832, 36, 7, 7);
-        DrawLabel(g, "READY TO PLAY", _microFont, title, new Rectangle(846, 25, 115, 25), _leftFormat);
+        string status = _view switch
+        {
+            AppView.Home => "MAIN MENU",
+            AppView.Skins => "SKIN SELECT",
+            AppView.Settings => "SETTINGS",
+            _ when _state == GameState.GameOver => "GAME OVER",
+            _ when _state == GameState.Paused => "PAUSED",
+            _ when _state == GameState.Playing => "PLAYING",
+            _ => "READY"
+        };
+        DrawPixelText(g, status, 887, 34, 1, ActiveTheme.Text);
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -2503,16 +2521,14 @@ private void DrawThemeSectionCard(Graphics g)
         g.PixelOffsetMode = PixelOffsetMode.None;
 
         bool paused = _state == GameState.Paused;
-        Color accent = paused
-            ? RetroGold
-            : _won ? Color.FromArgb(255, 89, 210, 190)
-            : Color.FromArgb(255, 238, 91, 91);
-        Color text = paused ? RetroWhite : Color.FromArgb(255, 242, 244, 248);
+        Color accent = ActiveTheme.Accent;
+        Color accentLight = ActiveTheme.Highlight;
+        Color text = RetroWhite;
 
-        // Game Over uses a neutral midnight overlay instead of tinting the field green.
+        // Keep the ending screen tied to the selected seasonal theme.
         Color shadeColor = paused
-            ? Color.FromArgb(225, 3, 25, 0)
-            : Color.FromArgb(238, 8, 13, 23);
+            ? Color.FromArgb(225, ActiveTheme.Dark)
+            : Color.FromArgb(238, ActiveTheme.Dark);
         using var shade = new SolidBrush(shadeColor);
         g.FillRectangle(shade, _field);
 
@@ -2545,7 +2561,7 @@ private void DrawThemeSectionCard(Graphics g)
 
         string title = paused ? "PAUSED" : _won ? "PERFECT RUN" : "GAME OVER";
         DrawPixelText(g, title, panel.X + panel.Width / 2, 263, 4,
-            paused ? RetroWhite : accent);
+            paused ? RetroWhite : accentLight);
 
         if (paused)
         {
@@ -2562,15 +2578,15 @@ private void DrawThemeSectionCard(Graphics g)
                 panel.X + panel.Width / 2, 326, 2, Color.FromArgb(190, 204, 216));
             DrawPixelText(g, FormatScore(_score),
                 panel.X + panel.Width / 2, 351, 5,
-                _newRecord ? Color.FromArgb(255, 211, 112) : text);
+                _newRecord ? accentLight : text);
 
             string result = _scoreSaveFailed
                 ? "SCORE SAVE FAILED"
                 : _newRecord ? "NEW PERSONAL BEST" : "BEST  " + FormatScore(_bestScore);
             DrawPixelText(g, result, panel.X + panel.Width / 2, 411, 2,
-                _scoreSaveFailed ? Color.FromArgb(255, 130, 130)
-                : _newRecord ? Color.FromArgb(255, 211, 112)
-                : Color.FromArgb(190, 204, 216));
+                _scoreSaveFailed ? accentLight
+                : _newRecord ? accentLight
+                : Color.FromArgb(190, ActiveTheme.Text));
         }
 
         if (paused)
@@ -2584,18 +2600,15 @@ private void DrawThemeSectionCard(Graphics g)
         {
             bool hover = _overlayButton.Contains(_mousePoint);
             using var buttonFill = new SolidBrush(hover
-                ? Color.FromArgb(255, 177, 54, 62)
-                : Color.FromArgb(255, 112, 35, 46));
+                ? ActiveTheme.Background
+                : ActiveTheme.Grid);
             g.FillRectangle(buttonFill, _overlayButton);
             DrawPixelOutline(g, _overlayButton,
-                hover ? Color.FromArgb(255, 255, 218, 166) : accent, 3);
+                hover ? accentLight : accent, 3);
             DrawPixelText(g, "PLAY AGAIN",
                 _overlayButton.X + _overlayButton.Width / 2,
                 _overlayButton.Y + (_overlayButton.Height - 14) / 2,
-                2, Color.FromArgb(255, 255, 247, 232));
-            DrawPixelText(g, "CLICK PLAY AGAIN TO CONTINUE",
-                panel.X + panel.Width / 2, 529, 1,
-                Color.FromArgb(175, 204, 216));
+                2, RetroWhite);
         }
     }
     private Bitmap CreateAppleSprite(bool golden)
@@ -3350,53 +3363,41 @@ private void DrawThemeSectionCard(Graphics g)
 
     private void DrawWindowButton(Graphics g, Rectangle rect, int type, bool hover)
     {
-        bool close = type == 3;
-        Color fillColor = close
-            ? hover ? Color.FromArgb(220, 190, 55, 64) : Color.FromArgb(34, 232, 105, 112)
-            : hover ? Color.FromArgb(65, ActiveTheme.Highlight) : Color.FromArgb(38, ActiveTheme.Text);
-        using (var fill = new SolidBrush(fillColor))
-            FillRound(g, rect, 9, fill);
+        using var fill = new SolidBrush(hover ? ActiveTheme.Grid : ActiveTheme.Dark);
+        g.FillRectangle(fill, rect);
+        DrawPixelOutline(g, rect,
+            hover ? ActiveTheme.Highlight : ActiveTheme.Accent, 2);
 
-        Color edgeColor = close && hover
-            ? Color.FromArgb(235, 255, 195, 198)
-            : hover ? Color.FromArgb(180, ActiveTheme.Highlight) : Color.FromArgb(55, ActiveTheme.Text);
-        StrokeRound(g, rect, 9, edgeColor);
-
-        Color iconColor = close && hover
-            ? Color.FromArgb(255, 255, 245, 245)
-            : ActiveTheme.Text;
-        using var iconPen = new Pen(iconColor, 2f)
-        {
-            StartCap = LineCap.Round,
-            EndCap = LineCap.Round,
-            LineJoin = LineJoin.Round
-        };
-
+        using var icon = new SolidBrush(hover ? ActiveTheme.Highlight : ActiveTheme.Text);
         int cx = rect.X + rect.Width / 2;
         int cy = rect.Y + rect.Height / 2;
 
         if (type == 1)
         {
-            g.DrawLine(iconPen, cx - 6, cy + 4, cx + 6, cy + 4);
+            g.FillRectangle(icon, cx - 7, cy + 3, 14, 3);
         }
         else if (type == 2)
         {
             if (_isFullscreen)
             {
-                g.DrawRectangle(iconPen, cx - 5, cy - 2, 11, 10);
-                g.DrawLine(iconPen, cx - 5, cy - 2, cx - 2, cy - 2);
-                g.DrawLine(iconPen, cx - 5, cy - 2, cx - 5, cy + 1);
-                g.DrawRectangle(iconPen, cx - 7, cy - 5, 11, 10);
+                g.FillRectangle(icon, cx - 6, cy - 5, 12, 3);
+                g.FillRectangle(icon, cx - 6, cy - 5, 3, 12);
+                g.FillRectangle(icon, cx + 3, cy - 5, 3, 12);
+                g.FillRectangle(icon, cx - 6, cy + 4, 12, 3);
             }
             else
             {
-                g.DrawRectangle(iconPen, cx - 6, cy - 5, 12, 11);
+                using var edge = new Pen(hover ? ActiveTheme.Highlight : ActiveTheme.Text, 3);
+                g.DrawRectangle(edge, cx - 6, cy - 6, 12, 12);
             }
         }
         else
         {
-            g.DrawLine(iconPen, cx - 5, cy - 5, cx + 5, cy + 5);
-            g.DrawLine(iconPen, cx + 5, cy - 5, cx - 5, cy + 5);
+            for (int i = 0; i < 4; i++)
+            {
+                g.FillRectangle(icon, cx - 6 + i * 3, cy - 6 + i * 3, 4, 4);
+                g.FillRectangle(icon, cx + 2 - i * 3, cy - 6 + i * 3, 4, 4);
+            }
         }
     }
 

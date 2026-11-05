@@ -64,6 +64,10 @@ public sealed class GameForm : Form
     private static readonly Color Muted = Color.FromArgb(123, 143, 146);
     private static readonly Color Green = Color.FromArgb(165, 239, 104);
     private static readonly Color Gold = Color.FromArgb(255, 194, 83);
+    private static readonly Color RetroBackground = Color.FromArgb(14, 79, 0);
+    private static readonly Color RetroGold = Color.FromArgb(185, 143, 17);
+    private static readonly Color RetroWhite = Color.White;
+    private static readonly Color RetroDark = Color.FromArgb(7, 54, 0);
 
     private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 16 };
     private readonly Random _random = new();
@@ -131,7 +135,12 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinButton = new(838, 606, 266, 34);
     private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
-    private readonly Rectangle _skinPickerClose = new(686, 176, 34, 30);
+    private readonly Rectangle _skinPickerClose = new(48, 84, 112, 36);
+    private readonly Rectangle _retroStartButton = new(250, 574, 660, 62);
+    private readonly Rectangle _retroSkinsButton = new(285, 650, 250, 48);
+    private readonly Rectangle _retroSettingsButton = new(625, 650, 260, 48);
+    private readonly Rectangle _retroDifficultyLeft = new(430, 456, 64, 86);
+    private readonly Rectangle _retroDifficultyRight = new(805, 456, 64, 86);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -183,6 +192,7 @@ public sealed class GameForm : Form
     private SolidBrush _headShadowBrush = new(Color.FromArgb(45, 138, 233, 104));
     private readonly SolidBrush _eyeWhiteBrush = new(Color.FromArgb(246, 255, 249, 230));
     private readonly SolidBrush _eyeBrush = new(Color.FromArgb(10, 25, 20));
+    private static readonly SolidBrush RetroWhiteBrush = new(RetroWhite);
     private readonly SolidBrush _foodBrush = new(Color.FromArgb(255, 103, 105));
     private readonly SolidBrush _foodGlowBrush = new(Color.FromArgb(38, 255, 103, 105));
     private readonly SolidBrush _goldGlowBrush = new(Color.FromArgb(42, 255, 194, 83));
@@ -350,6 +360,8 @@ public sealed class GameForm : Form
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.Half;
 
+        bool retroView = _view is AppView.Home or AppView.Skins;
+
         if (_view == AppView.Play)
         {
             g.DrawImageUnscaled(_chrome, 0, 0);
@@ -364,26 +376,34 @@ public sealed class GameForm : Form
         else
         {
             g.Transform = _viewMatrix;
-            DrawPageBackground(g);
 
-            switch (_view)
+            if (retroView)
             {
-                case AppView.Home:
+                g.SmoothingMode = SmoothingMode.None;
+                g.PixelOffsetMode = PixelOffsetMode.None;
+                g.Clear(RetroBackground);
+
+                if (_view == AppView.Home)
                     DrawHomePage(g);
-                    break;
-                case AppView.Skins:
+                else
                     DrawSkinsPage(g);
-                    break;
-                case AppView.Settings:
-                    DrawSettingsPage(g);
-                    break;
+
+                DrawRetroWindowControls(g);
+            }
+            else
+            {
+                DrawPageBackground(g);
+                DrawSettingsPage(g);
             }
         }
 
-        DrawAppHeader(g);
-        DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
-        DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
-        DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
+        if (!retroView)
+        {
+            DrawAppHeader(g);
+            DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
+            DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
+            DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
+        }
     }
 
     private void UpdateViewTransform()
@@ -612,101 +632,173 @@ public sealed class GameForm : Form
 
     private void DrawHomePage(Graphics g)
     {
-        DrawStaticPanel(g, _boardCard);
-        DrawStaticPanel(g, _rightPanel);
-        DrawStaticPanel(g, _scoreArea, PanelLight);
+        using (var trail = new SolidBrush(RetroGold))
+        {
+            // Angular snake trail behind the title.
+            g.FillRectangle(trail, 606, 62, 326, 24);
+            g.FillRectangle(trail, 908, 62, 24, 286);
+            g.FillRectangle(trail, 505, 324, 427, 24);
 
-        using (var divider = new Pen(Border, 1))
-            g.DrawLine(divider, 968, 142, 968, 238);
+            g.FillRectangle(trail, 226, 344, 24, 190);
+            g.FillRectangle(trail, 226, 510, 282, 24);
+        }
 
-        Rectangle hero = new(56, 116, 702, 328);
-        using (var heroBrush = new LinearGradientBrush(hero,
-                   Color.FromArgb(27, 43, 43), Color.FromArgb(13, 21, 26), 18f))
-            FillRound(g, hero, 18, heroBrush);
-        StrokeRound(g, hero, 18, Color.FromArgb(58, 83, 77));
+        DrawPixelText(g, "SNAKE", DesignWidth / 2, 124, 18, RetroWhite);
+        DrawPixelText(g, "GAME", DesignWidth / 2, 278, 18, RetroWhite);
 
-        using (var glow = new SolidBrush(Color.FromArgb(22, 165, 239, 104)))
-            g.FillEllipse(glow, 260, 135, 250, 250);
+        // Tiny pixel snake and apple beside the difficulty selector.
+        DrawRetroMenuSnake(g, 332, 477);
+        DrawPixelApple(g, 395, 459, 6);
 
-        DrawLabel(g, "YOUR PERSONAL ARCADE", _labelFont, _greenBrush,
-            new Rectangle(82, 148, 300, 20), _leftFormat);
-        DrawLabel(g, "READY FOR", _heroFont, _mutedBrush,
-            new Rectangle(80, 190, 300, 38), _leftFormat);
-        DrawLabel(g, "A NEW RECORD?", _welcomeFont, _whiteBrush,
-            new Rectangle(78, 226, 330, 52), _leftFormat);
-        DrawLabel(g, "Choose your challenge, equip a new look, and make every run count.",
-            _welcomeSmallFont, _mutedBrush,
-            new Rectangle(84, 292, 300, 52), _leftFormat);
+        DrawPixelArrow(g, 456, 478, true, RetroWhite);
+        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
+            654, 477, 9, RetroWhite);
+        DrawPixelArrow(g, 838, 478, false, RetroWhite);
 
-        FillRound(g, new Rectangle(84, 365, 178, 34), 9,
-            Color.FromArgb(44, 75, 49));
-        StrokeRound(g, new Rectangle(84, 365, 178, 34), 9,
-            Color.FromArgb(95, Green));
-        DrawLabel(g, "21 UNIQUE SKINS", _labelFont, _greenBrush,
-            new Rectangle(91, 365, 164, 34), _centerFormat);
+        bool startHover = _retroStartButton.Contains(_mousePoint);
+        DrawPixelText(g, "PRESS ENTER TO PLAY", DesignWidth / 2,
+            590, 6, startHover ? Color.FromArgb(255, 238, 180) : RetroWhite);
 
-        DrawLobbyArtwork(g);
+        bool skinsHover = _retroSkinsButton.Contains(_mousePoint);
+        bool settingsHover = _retroSettingsButton.Contains(_mousePoint);
+        DrawPixelText(g, "S FOR SKINS", 420, 662, 5,
+            skinsHover ? Color.FromArgb(255, 224, 105) : RetroWhite);
+        DrawPixelText(g, "T FOR SETTINGS", 770, 662, 5,
+            settingsHover ? Color.FromArgb(255, 224, 105) : RetroWhite);
 
-        DrawHomeOptionCard(g, _homePlayCard, "PLAY GAME",
-            "Start a new challenge", "▶", 21);
-        DrawHomeOptionCard(g, _homeSkinsCard, "SKINS",
-            "Choose your look", "◈", 22);
-        DrawHomeOptionCard(g, _homeSettingsCard, "SETTINGS",
-            "Tune your arcade", "⚙", 23);
+        DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
+            DesignWidth / 2, 716, 4, RetroWhite);
+    }
 
-        DrawStaticPanel(g, new Rectangle(78, 609, 202, 59), PanelLight);
-        DrawStaticPanel(g, new Rectangle(292, 609, 202, 59), PanelLight);
-        DrawStaticPanel(g, new Rectangle(506, 609, 218, 59), PanelLight);
+    private void DrawRetroMenuSnake(Graphics g, int x, int y)
+    {
+        using var body = new SolidBrush(Color.FromArgb(67, 196, 36));
+        using var head = new SolidBrush(Color.FromArgb(122, 231, 48));
+        using var dark = new SolidBrush(RetroDark);
+        using var eye = new SolidBrush(Color.FromArgb(255, 45, 25));
 
-        DrawLabel(g, "PERSONAL BEST", _smallFont, _mutedBrush,
-            new Rectangle(94, 615, 170, 17), _leftFormat);
-        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
-            new Rectangle(94, 630, 170, 32), _leftFormat);
+        g.FillRectangle(body, x, y + 6, 10, 10);
+        g.FillRectangle(body, x + 10, y, 10, 10);
+        g.FillRectangle(body, x + 20, y + 6, 10, 10);
+        g.FillRectangle(head, x + 30, y + 6, 12, 12);
+        g.FillRectangle(dark, x + 36, y + 8, 3, 3);
+        g.FillRectangle(eye, x + 42, y + 11, 5, 3);
+    }
 
-        DrawLabel(g, "GAME MODES", _smallFont, _mutedBrush,
-            new Rectangle(308, 615, 170, 17), _leftFormat);
-        DrawLabel(g, "03", _numberFont, _whiteBrush,
-            new Rectangle(308, 630, 170, 32), _leftFormat);
+    private void DrawPixelApple(Graphics g, int x, int y, int pixel)
+    {
+        using var leaf = new SolidBrush(Color.FromArgb(71, 213, 49));
+        using var fruit = new SolidBrush(Color.FromArgb(255, 185, 31));
+        using var light = new SolidBrush(Color.FromArgb(255, 222, 74));
+        using var shade = new SolidBrush(Color.FromArgb(222, 112, 13));
+        using var stem = new SolidBrush(Color.FromArgb(54, 111, 16));
 
-        DrawLabel(g, "SKIN COLLECTION", _smallFont, _mutedBrush,
-            new Rectangle(522, 615, 186, 17), _leftFormat);
-        DrawLabel(g, "21 DESIGNS", _buttonFont, _goldBrush,
-            new Rectangle(522, 636, 186, 22), _leftFormat);
+        g.FillRectangle(stem, x + pixel * 3, y + pixel, pixel, pixel * 2);
+        g.FillRectangle(leaf, x + pixel * 3, y, pixel * 2, pixel);
+        g.FillRectangle(leaf, x + pixel * 5, y + pixel, pixel, pixel);
 
-        DrawScorePanel(g);
+        g.FillRectangle(fruit, x + pixel * 2, y + pixel * 2, pixel * 5, pixel * 4);
+        g.FillRectangle(fruit, x + pixel, y + pixel * 3, pixel * 7, pixel * 2);
+        g.FillRectangle(light, x + pixel * 2, y + pixel * 2, pixel * 2, pixel);
+        g.FillRectangle(light, x + pixel, y + pixel * 3, pixel, pixel);
+        g.FillRectangle(shade, x + pixel * 5, y + pixel * 5, pixel * 2, pixel);
+        g.FillRectangle(shade, x + pixel * 6, y + pixel * 4, pixel, pixel);
+    }
 
-        DrawLabel(g, "RUN PROFILE", _labelFont, _greenBrush,
-            new Rectangle(842, 278, 240, 20), _leftFormat);
-        DrawLabel(g, "GAME MODE", _smallFont, _mutedBrush,
-            new Rectangle(842, 312, 120, 17), _leftFormat);
-        DrawLabel(g, ModeName(_mode).ToUpperInvariant(), _buttonFont, _whiteBrush,
-            new Rectangle(842, 332, 250, 22), _leftFormat);
+    private static void DrawPixelText(Graphics g, string text, int centerX,
+        int top, int pixelSize, Color color)
+    {
+        int widthUnits = text.Sum(c => c == ' ' ? 4 : 6) - 1;
+        int x = centerX - widthUnits * pixelSize / 2;
+        using var brush = new SolidBrush(color);
 
-        using (var divider = new Pen(Border, 1))
-            g.DrawLine(divider, 842, 364, 1090, 364);
+        foreach (char raw in text)
+        {
+            char c = char.ToUpperInvariant(raw);
+            if (c == ' ')
+            {
+                x += pixelSize * 4;
+                continue;
+            }
 
-        DrawLabel(g, "DIFFICULTY", _smallFont, _mutedBrush,
-            new Rectangle(842, 380, 120, 17), _leftFormat);
-        DrawLabel(g, DifficultyName(_difficulty).ToUpperInvariant(), _buttonFont, _whiteBrush,
-            new Rectangle(842, 400, 250, 22), _leftFormat);
+            string[] glyph = PixelGlyph(c);
+            for (int row = 0; row < glyph.Length; row++)
+            for (int column = 0; column < glyph[row].Length; column++)
+            {
+                if (glyph[row][column] == '1')
+                    g.FillRectangle(brush, x + column * pixelSize,
+                        top + row * pixelSize, pixelSize, pixelSize);
+            }
 
-        using (var divider = new Pen(Border, 1))
-            g.DrawLine(divider, 842, 434, 1090, 434);
+            x += pixelSize * 6;
+        }
+    }
 
-        DrawLabel(g, "EQUIPPED SKIN", _smallFont, _mutedBrush,
-            new Rectangle(842, 451, 180, 17), _leftFormat);
-        DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont,
-            Skins[_selectedSkin].IsLegendary ? _goldBrush : _greenBrush,
-            new Rectangle(842, 472, 250, 24), _leftFormat);
+    private static string[] PixelGlyph(char c) => c switch
+    {
+        'A' => ["01110","10001","10001","11111","10001","10001","10001"],
+        'B' => ["11110","10001","10001","11110","10001","10001","11110"],
+        'C' => ["01111","10000","10000","10000","10000","10000","01111"],
+        'D' => ["11110","10001","10001","10001","10001","10001","11110"],
+        'E' => ["11111","10000","10000","11110","10000","10000","11111"],
+        'F' => ["11111","10000","10000","11110","10000","10000","10000"],
+        'G' => ["01111","10000","10000","10111","10001","10001","01111"],
+        'H' => ["10001","10001","10001","11111","10001","10001","10001"],
+        'I' => ["11111","00100","00100","00100","00100","00100","11111"],
+        'J' => ["00111","00010","00010","00010","10010","10010","01100"],
+        'K' => ["10001","10010","10100","11000","10100","10010","10001"],
+        'L' => ["10000","10000","10000","10000","10000","10000","11111"],
+        'M' => ["10001","11011","10101","10101","10001","10001","10001"],
+        'N' => ["10001","11001","10101","10011","10001","10001","10001"],
+        'O' => ["01110","10001","10001","10001","10001","10001","01110"],
+        'P' => ["11110","10001","10001","11110","10000","10000","10000"],
+        'Q' => ["01110","10001","10001","10001","10101","10010","01101"],
+        'R' => ["11110","10001","10001","11110","10100","10010","10001"],
+        'S' => ["01111","10000","10000","01110","00001","00001","11110"],
+        'T' => ["11111","00100","00100","00100","00100","00100","00100"],
+        'U' => ["10001","10001","10001","10001","10001","10001","01110"],
+        'V' => ["10001","10001","10001","10001","10001","01010","00100"],
+        'W' => ["10001","10001","10001","10101","10101","10101","01010"],
+        'X' => ["10001","10001","01010","00100","01010","10001","10001"],
+        'Y' => ["10001","10001","01010","00100","00100","00100","00100"],
+        'Z' => ["11111","00001","00010","00100","01000","10000","11111"],
+        '0' => ["01110","10001","10011","10101","11001","10001","01110"],
+        '1' => ["00100","01100","00100","00100","00100","00100","01110"],
+        '2' => ["01110","10001","00001","00010","00100","01000","11111"],
+        '3' => ["11110","00001","00001","01110","00001","00001","11110"],
+        '4' => ["00010","00110","01010","10010","11111","00010","00010"],
+        '5' => ["11111","10000","10000","11110","00001","00001","11110"],
+        '6' => ["01110","10000","10000","11110","10001","10001","01110"],
+        '7' => ["11111","00001","00010","00100","01000","01000","01000"],
+        '8' => ["01110","10001","10001","01110","10001","10001","01110"],
+        '9' => ["01110","10001","10001","01111","00001","00001","01110"],
+        '-' => ["00000","00000","00000","11111","00000","00000","00000"],
+        ':' => ["00000","00100","00100","00000","00100","00100","00000"],
+        '.' => ["00000","00000","00000","00000","00000","00110","00110"],
+        '\'' => ["00100","00100","00010","00000","00000","00000","00000"],
+        _ => ["00000","00000","00000","00000","00000","00000","00000"]
+    };
 
-        FillRound(g, new Rectangle(842, 525, 248, 44), 9, PanelLight);
-        DrawLabel(g, _soundEnabled ? "SOUND ENABLED" : "SOUND MUTED",
-            _labelFont, _soundEnabled ? _greenBrush : _mutedBrush,
-            new Rectangle(856, 525, 220, 44), _leftFormat);
-        DrawLabel(g, "Your progress is saved on this PC.",
-            _smallFont, _mutedBrush, new Rectangle(842, 594, 250, 22), _leftFormat);
-        DrawLabel(g, "OFFLINE  ·  NO ACCOUNT REQUIRED",
-            _smallFont, _mutedBrush, new Rectangle(842, 622, 250, 20), _leftFormat);
+    private static void DrawPixelArrow(Graphics g, int x, int y,
+        bool left, Color color)
+    {
+        using var brush = new SolidBrush(color);
+        for (int row = 0; row < 5; row++)
+        {
+            int offset = left ? 4 - row : row;
+            int px = x + offset * 4;
+            g.FillRectangle(brush, px, y + row * 4, 4, 4);
+        }
+
+        int shaftX = left ? x + 12 : x;
+        g.FillRectangle(brush, shaftX, y + 8, 12, 4);
+    }
+
+    private void DrawRetroWindowControls(Graphics g)
+    {
+        DrawPixelText(g, "-", 1047, 22, 3, RetroGold);
+        DrawPixelOutline(g, new Rectangle(1065, 20, 16, 16), RetroGold, 2);
+        DrawPixelText(g, "X", 1119, 20, 2, RetroGold);
     }
 
     private void DrawHomeOptionCard(Graphics g, Rectangle rect,
@@ -732,40 +824,251 @@ public sealed class GameForm : Form
 
     private void DrawSkinsPage(Graphics g)
     {
-        DrawStaticPanel(g, _boardCard);
-        DrawStaticPanel(g, _rightPanel);
-
-        DrawLabel(g, "SNAKE COLLECTION", _labelFont, _greenBrush,
-            new Rectangle(82, 112, 360, 24), _leftFormat);
-        DrawLabel(g, "Pick a design. The preview shows your equipped snake in-game.",
-            _smallFont, _mutedBrush, new Rectangle(82, 137, 650, 20), _leftFormat);
+        DrawPixelText(g, "BACK", 104, 91, 4,
+            _skinPickerClose.Contains(_mousePoint)
+                ? Color.FromArgb(255, 226, 125)
+                : RetroWhite);
+        DrawPixelText(g, "SKINS", DesignWidth / 2, 66, 15, RetroWhite);
+        DrawPixelText(g, "CHOOSE YOUR SNAKE", DesignWidth / 2, 128, 5, RetroWhite);
 
         DrawSkinPicker(g);
 
         SnakeSkin skin = Skins[_selectedSkin];
-        DrawLabel(g, "EQUIPPED SKIN", _labelFont, _greenBrush,
-            new Rectangle(830, 132, 250, 20), _leftFormat);
-        DrawLabel(g, skin.Name, _heroFont,
-            skin.IsLegendary ? _goldBrush : _whiteBrush,
-            new Rectangle(830, 165, 270, 52), _leftFormat);
+        Rectangle previewArea = new(790, 165, 328, 320);
+        DrawPixelPanel(g, previewArea, true);
+        DrawRetroSnakePreview(g, previewArea, skin);
 
-        DrawSnakePreview(g, new Rectangle(824, 236, 282, 236), skin);
+        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 510, 7,
+            skin.IsLegendary ? Color.FromArgb(255, 225, 90) : RetroWhite);
+        DrawPixelText(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
+            954, 560, 3, RetroWhite);
 
-        DrawLabel(g, "SIGNATURE DESIGN", _labelFont, _mutedBrush,
-            new Rectangle(830, 500, 250, 18), _leftFormat);
-        DrawLabel(g, SkinPatternName(skin.Pattern), _buttonFont,
-            skin.IsLegendary ? _goldBrush : _greenBrush,
-            new Rectangle(830, 521, 260, 24), _leftFormat);
-        DrawLabel(g, skin.IsLegendary
-                ? "Special aura, orbiting sparks and radiant details."
-                : "Custom colours, a unique body pattern and matching head.",
-            _smallFont, _mutedBrush, new Rectangle(830, 553, 260, 48), _leftFormat);
+        if (skin.IsLegendary)
+        {
+            DrawPixelText(g, "SPECIAL AURA AND SPARKS",
+                954, 602, 3, Color.FromArgb(255, 224, 102));
+        }
+        else
+        {
+            DrawPixelText(g, "UNIQUE PIXEL DESIGN",
+                954, 602, 3, RetroWhite);
+        }
 
-        FillRound(g, new Rectangle(830, 625, 260, 38), 9,
-            skin.IsLegendary ? Color.FromArgb(55, 75, 46) : Color.FromArgb(36, 62, 47));
-        DrawLabel(g, skin.IsLegendary ? "LEGENDARY EQUIPPED" : "EQUIPPED  ·  SAVED AUTOMATICALLY",
-            _smallFont, skin.IsLegendary ? _goldBrush : _greenBrush,
-            new Rectangle(838, 625, 244, 38), _centerFormat);
+        DrawPixelText(g, "CLICK A SKIN TO EQUIP",
+            954, 650, 3, RetroWhite);
+    }
+
+    private void DrawSkinPicker(Graphics g)
+    {
+        for (int i = 0; i < Skins.Length; i++)
+        {
+            Rectangle tile = SkinTileRect(i);
+            SnakeSkin skin = Skins[i];
+            bool selected = i == _selectedSkin;
+            bool hover = tile.Contains(_mousePoint);
+
+            using var fill = new SolidBrush(selected
+                ? Color.FromArgb(24, 105, 8)
+                : hover ? Color.FromArgb(18, 91, 5) : RetroDark);
+            g.FillRectangle(fill, tile);
+            DrawPixelOutline(g, tile,
+                selected ? Color.FromArgb(255, 220, 78) : RetroGold,
+                selected ? 4 : 3);
+
+            DrawSkinSwatch(g, tile, skin);
+            DrawPixelText(g, SkinShortName(i), tile.X + 157,
+                tile.Y + 20, 3, skin.IsLegendary
+                    ? Color.FromArgb(255, 224, 95)
+                    : selected ? Color.FromArgb(200, 255, 135) : RetroWhite);
+        }
+
+        DrawPixelText(g, "ARROWS TO SELECT  -  ENTER TO RETURN",
+            390, 690, 3, RetroWhite);
+    }
+
+    private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
+    {
+        int cell = 13;
+        int y = tile.Y + 23;
+        DrawRetroSnakeBlock(g, tile.X + 22, y, cell, skin, 0, false);
+        DrawRetroSnakeBlock(g, tile.X + 35, y, cell, skin, 1, false);
+        DrawRetroSnakeBlock(g, tile.X + 48, y, cell, skin, 2, true);
+    }
+
+    private static string SkinShortName(int index) => index switch
+    {
+        0 => "CLASSIC",
+        1 => "RUBY FANG",
+        2 => "OCEAN WAVE",
+        3 => "ARCTIC",
+        4 => "SOLAR GOLD",
+        5 => "CYBER NEON",
+        6 => "TOXIC SLIME",
+        7 => "PURPLE HAZE",
+        8 => "SUNSET",
+        9 => "TIGER",
+        10 => "ZEBRA",
+        11 => "MINT CHIP",
+        12 => "CANDY POP",
+        13 => "LAVA CORE",
+        14 => "GALAXY",
+        15 => "VOLT STRIKE",
+        16 => "JUNGLE CAMO",
+        17 => "ROSE QUARTZ",
+        18 => "DIAMOND",
+        19 => "SHADOW OPS",
+        _ => "PHOENIX"
+    };
+
+    private void DrawRetroSnakePreview(Graphics g, Rectangle area, SnakeSkin skin)
+    {
+        int size = 26;
+        Point[] centers =
+        [
+            new(area.X + 85, area.Y + 222),
+            new(area.X + 59, area.Y + 222),
+            new(area.X + 33, area.Y + 222),
+            new(area.X + 33, area.Y + 196),
+            new(area.X + 33, area.Y + 170),
+            new(area.X + 59, area.Y + 170),
+            new(area.X + 85, area.Y + 170),
+            new(area.X + 111, area.Y + 170),
+            new(area.X + 137, area.Y + 170),
+            new(area.X + 163, area.Y + 170)
+        ];
+
+        using (var grid = new Pen(Color.FromArgb(35, 190, 210, 130), 1))
+        {
+            for (int x = area.Left + 18; x < area.Right; x += 26)
+                g.DrawLine(grid, x, area.Top + 10, x, area.Bottom - 10);
+            for (int y = area.Top + 10; y < area.Bottom; y += 26)
+                g.DrawLine(grid, area.Left + 10, y, area.Right - 10, y);
+        }
+
+        for (int i = centers.Length - 1; i >= 0; i--)
+            DrawRetroSnakeBlock(g, centers[i].X, centers[i].Y, size,
+                skin, i, i == 0);
+
+        DrawPixelText(g, "PREVIEW", area.X + area.Width / 2,
+            area.Bottom - 31, 4, RetroWhite);
+    }
+
+    private void DrawRetroSnakeBlock(Graphics g, int centerX, int centerY,
+        int size, SnakeSkin skin, int index, bool head)
+    {
+        int x = centerX - size / 2;
+        int y = centerY - size / 2;
+        int pad = Math.Max(2, size / 7);
+
+        bool glow = skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+            SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
+            SkinPattern.Honeycomb or SkinPattern.Legendary;
+
+        if (glow)
+        {
+            using var glowBrush = new SolidBrush(Color.FromArgb(42, skin.PatternColor));
+            g.FillRectangle(glowBrush, x - pad, y - pad, size + pad * 2, size + pad * 2);
+        }
+
+        using var outline = new SolidBrush(skin.Outline);
+        using var body = new SolidBrush(head ? skin.Head : skin.Body);
+        using var pattern = new SolidBrush(skin.PatternColor);
+        using var accent = new SolidBrush(skin.Highlight);
+
+        g.FillRectangle(outline, x, y, size, size);
+        g.FillRectangle(body, x + pad, y + pad, size - pad * 2, size - pad * 2);
+        g.FillRectangle(accent, x + pad, y + pad, size - pad * 2, Math.Max(2, pad / 2));
+
+        int mark = Math.Max(2, size / 6);
+        switch (skin.Pattern)
+        {
+            case SkinPattern.Stripes:
+            case SkinPattern.Tiger:
+            case SkinPattern.Zebra:
+                g.FillRectangle(pattern, x + size / 3, y + pad, mark, size - pad * 2);
+                g.FillRectangle(pattern, x + size * 2 / 3, y + pad, mark, size - pad * 2);
+                break;
+            case SkinPattern.Dots:
+            case SkinPattern.Coral:
+                g.FillRectangle(pattern, x + pad * 2, y + pad * 2, mark, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                if (skin.Pattern == SkinPattern.Coral)
+                    g.FillRectangle(pattern, x + size - pad - mark, y + pad * 2, mark, size / 2);
+                break;
+            case SkinPattern.Waves:
+            case SkinPattern.Candy:
+                g.FillRectangle(pattern, x + pad, y + size / 2, size / 3, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 3, size / 3, mark);
+                break;
+            case SkinPattern.Lightning:
+                g.FillRectangle(pattern, x + size / 2, y + pad, mark, mark * 2);
+                g.FillRectangle(pattern, x + size / 3, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size / 2, y + size / 2, mark, mark * 2);
+                break;
+            case SkinPattern.Scales:
+            case SkinPattern.Honeycomb:
+            case SkinPattern.Prism:
+                g.FillRectangle(pattern, x + size / 3, y + size / 3, mark, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                g.FillRectangle(pattern, x + size * 2 / 3 - mark, y + size * 2 / 3 - mark, mark, mark);
+                break;
+            case SkinPattern.Flames:
+                g.FillRectangle(pattern, x + size / 2, y, mark, mark * 2);
+                g.FillRectangle(pattern, x + size / 3, y + pad, mark, mark * 2);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                break;
+            case SkinPattern.Frost:
+            case SkinPattern.Stars:
+            case SkinPattern.Galaxy:
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size - pad * 2);
+                g.FillRectangle(pattern, x + pad, y + size / 2 - mark / 2, size - pad * 2, mark);
+                break;
+            case SkinPattern.Circuit:
+                g.FillRectangle(pattern, x + pad, y + size / 3, size / 2, mark);
+                g.FillRectangle(pattern, x + size / 2, y + size / 3, mark, size / 2);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, mark, mark);
+                break;
+            case SkinPattern.Camo:
+                g.FillRectangle(pattern, x + pad, y + size / 3, size / 3, mark);
+                g.FillRectangle(accent, x + size / 2, y + size / 2, size / 3, mark);
+                break;
+            case SkinPattern.Neon:
+                g.FillRectangle(pattern, x + pad, y + size / 3, size - pad * 2, mark);
+                g.FillRectangle(accent, x + pad, y + size * 2 / 3, size - pad * 2, mark);
+                break;
+            case SkinPattern.Royal:
+                g.FillRectangle(pattern, x + pad, y + size / 2, mark, size / 3);
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size / 2);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size / 2, mark, size / 3);
+                break;
+            case SkinPattern.Legendary:
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size - pad * 2);
+                g.FillRectangle(accent, x + pad, y + size / 2 - mark / 2, size - pad * 2, mark);
+                break;
+        }
+
+        if (head)
+        {
+            using var eye = new SolidBrush(Color.FromArgb(10, 35, 4));
+            g.FillRectangle(RetroWhiteBrush, x + size - pad * 2, y + pad * 2, mark, mark);
+            g.FillRectangle(eye, x + size - pad * 2 + 1, y + pad * 2 + 1, Math.Max(1, mark / 2), Math.Max(1, mark / 2));
+        }
+    }
+
+    private void DrawPixelPanel(Graphics g, Rectangle rect, bool goldBorder)
+    {
+        using var fill = new SolidBrush(RetroDark);
+        g.FillRectangle(fill, rect);
+        DrawPixelOutline(g, rect, goldBorder ? RetroGold : RetroWhite, 4);
+    }
+
+    private void DrawPixelOutline(Graphics g, Rectangle rect, Color color, int thickness)
+    {
+        using var brush = new SolidBrush(color);
+        g.FillRectangle(brush, rect.X, rect.Y, rect.Width, thickness);
+        g.FillRectangle(brush, rect.X, rect.Bottom - thickness, rect.Width, thickness);
+        g.FillRectangle(brush, rect.X, rect.Y, thickness, rect.Height);
+        g.FillRectangle(brush, rect.Right - thickness, rect.Y, thickness, rect.Height);
     }
 
     private static string SkinPatternName(SkinPattern pattern) => pattern switch
@@ -1520,9 +1823,9 @@ public sealed class GameForm : Form
 
     private static Rectangle SkinTileRect(int index)
     {
-        int column = index % 4;
-        int row = index / 4;
-        return new Rectangle(94 + column * 157, 228 + row * 59, 149, 51);
+        int column = index % 3;
+        int row = index / 3;
+        return new Rectangle(42 + column * 236, 165 + row * 66, 224, 58);
     }
 
     private void DrawSecondaryButton(Graphics g, Rectangle rect, string label, bool warning = false)
@@ -2234,6 +2537,24 @@ public sealed class GameForm : Form
             _nextDirection = direction;
     }
 
+    private void CycleDifficulty(int direction)
+    {
+        if (_state is GameState.Playing or GameState.Paused)
+            return;
+
+        int next = ((int)_difficulty + direction + 3) % 3;
+        _difficulty = (Difficulty)next;
+        Invalidate();
+    }
+
+    private void MoveSkinSelection(int amount)
+    {
+        int next = Math.Clamp(_selectedSkin + amount, 0, Skins.Length - 1);
+        ApplySkin(next);
+        SaveSelectedSkin();
+        Invalidate();
+    }
+
     private void SetDifficulty(Difficulty difficulty)
     {
         if (_state is GameState.Playing or GameState.Paused)
@@ -2276,6 +2597,79 @@ public sealed class GameForm : Form
 
     private void HandleKeyDown(object? sender, KeyEventArgs e)
     {
+        if (_view == AppView.Home)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Enter:
+                    StartGame();
+                    e.Handled = true;
+                    break;
+                case Keys.S:
+                    NavigateTo(AppView.Skins);
+                    e.Handled = true;
+                    break;
+                case Keys.T:
+                    NavigateTo(AppView.Settings);
+                    e.Handled = true;
+                    break;
+                case Keys.Left:
+                case Keys.A:
+                    CycleDifficulty(-1);
+                    e.Handled = true;
+                    break;
+                case Keys.Right:
+                case Keys.D:
+                    CycleDifficulty(1);
+                    e.Handled = true;
+                    break;
+                case Keys.F11:
+                    ToggleFullscreen();
+                    e.Handled = true;
+                    break;
+                case Keys.Escape:
+                    Close();
+                    e.Handled = true;
+                    break;
+            }
+            if (e.Alt && e.KeyCode == Keys.Enter)
+                ToggleFullscreen();
+            return;
+        }
+
+        if (_view == AppView.Skins)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Enter:
+                case Keys.Escape:
+                    NavigateTo(AppView.Home);
+                    e.Handled = true;
+                    break;
+                case Keys.Left:
+                    MoveSkinSelection(-1);
+                    e.Handled = true;
+                    break;
+                case Keys.Right:
+                    MoveSkinSelection(1);
+                    e.Handled = true;
+                    break;
+                case Keys.Up:
+                    MoveSkinSelection(-3);
+                    e.Handled = true;
+                    break;
+                case Keys.Down:
+                    MoveSkinSelection(3);
+                    e.Handled = true;
+                    break;
+                case Keys.F11:
+                    ToggleFullscreen();
+                    e.Handled = true;
+                    break;
+            }
+            return;
+        }
+
         if (_view != AppView.Play)
         {
             if (e.KeyCode == Keys.F11 || (e.KeyCode == Keys.Enter && e.Alt))
@@ -2371,16 +2765,21 @@ public sealed class GameForm : Form
         if (_minimizeButton.Contains(point)) return 1;
         if (_fullscreenButton.Contains(point)) return 13;
 
-        if (_homeNavButton.Contains(point)) return 17;
-        if (_playNavButton.Contains(point)) return 18;
-        if (_skinsNavButton.Contains(point)) return 19;
-        if (_settingsNavButton.Contains(point)) return 20;
+        if (_view is not (AppView.Home or AppView.Skins))
+        {
+            if (_homeNavButton.Contains(point)) return 17;
+            if (_playNavButton.Contains(point)) return 18;
+            if (_skinsNavButton.Contains(point)) return 19;
+            if (_settingsNavButton.Contains(point)) return 20;
+        }
 
         if (_view == AppView.Home)
         {
-            if (_homePlayCard.Contains(point)) return 21;
-            if (_homeSkinsCard.Contains(point)) return 22;
-            if (_homeSettingsCard.Contains(point)) return 23;
+            if (_retroStartButton.Contains(point)) return 21;
+            if (_retroSkinsButton.Contains(point)) return 22;
+            if (_retroSettingsButton.Contains(point)) return 23;
+            if (_retroDifficultyLeft.Contains(point)) return 26;
+            if (_retroDifficultyRight.Contains(point)) return 27;
             return 0;
         }
 
@@ -2442,11 +2841,13 @@ public sealed class GameForm : Form
             18 => _playNavButton,
             19 => _skinsNavButton,
             20 => _settingsNavButton,
-            21 => _homePlayCard,
-            22 => _homeSkinsCard,
-            23 => _homeSettingsCard,
+            21 => _retroStartButton,
+            22 => _retroSkinsButton,
+            23 => _retroSettingsButton,
             24 => _settingsSoundButton,
             25 => _settingsResetButton,
+            26 => _retroDifficultyLeft,
+            27 => _retroDifficultyRight,
             _ => Rectangle.Empty
         };
     }
@@ -2458,9 +2859,10 @@ public sealed class GameForm : Form
         Point point = ClientToDesign(e.Location);
         if (e.Button == MouseButtons.Left && point.Y < 70 && !_isFullscreen &&
             !_closeButton.Contains(point) && !_minimizeButton.Contains(point) &&
-            !_fullscreenButton.Contains(point) && !_homeNavButton.Contains(point) &&
-            !_playNavButton.Contains(point) && !_skinsNavButton.Contains(point) &&
-            !_settingsNavButton.Contains(point))
+            !_fullscreenButton.Contains(point) &&
+            (_view is AppView.Home or AppView.Skins ||
+             (!_homeNavButton.Contains(point) && !_playNavButton.Contains(point) &&
+              !_skinsNavButton.Contains(point) && !_settingsNavButton.Contains(point))))
         {
             _dragging = true;
             _dragOffset = e.Location;
@@ -2487,16 +2889,26 @@ public sealed class GameForm : Form
             return;
         }
 
-        if (_homeNavButton.Contains(point)) { NavigateTo(AppView.Home); return; }
-        if (_playNavButton.Contains(point)) { NavigateTo(AppView.Play); return; }
-        if (_skinsNavButton.Contains(point)) { NavigateTo(AppView.Skins); return; }
-        if (_settingsNavButton.Contains(point)) { NavigateTo(AppView.Settings); return; }
+        if (_view is not (AppView.Home or AppView.Skins))
+        {
+            if (_homeNavButton.Contains(point)) { NavigateTo(AppView.Home); return; }
+            if (_playNavButton.Contains(point)) { NavigateTo(AppView.Play); return; }
+            if (_skinsNavButton.Contains(point)) { NavigateTo(AppView.Skins); return; }
+            if (_settingsNavButton.Contains(point)) { NavigateTo(AppView.Settings); return; }
+        }
 
         if (_view == AppView.Home)
         {
-            if (_homePlayCard.Contains(point)) NavigateTo(AppView.Play);
-            else if (_homeSkinsCard.Contains(point)) NavigateTo(AppView.Skins);
-            else if (_homeSettingsCard.Contains(point)) NavigateTo(AppView.Settings);
+            if (_retroStartButton.Contains(point))
+                StartGame();
+            else if (_retroSkinsButton.Contains(point))
+                NavigateTo(AppView.Skins);
+            else if (_retroSettingsButton.Contains(point))
+                NavigateTo(AppView.Settings);
+            else if (_retroDifficultyLeft.Contains(point))
+                CycleDifficulty(-1);
+            else if (_retroDifficultyRight.Contains(point))
+                CycleDifficulty(1);
             return;
         }
 

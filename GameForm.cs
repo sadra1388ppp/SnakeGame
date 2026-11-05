@@ -154,6 +154,7 @@ public sealed class GameForm : Form
     private bool _soundEnabled = true;
     private bool _won;
     private bool _newRecord;
+    private DateTime? _recordCelebrationStarted;
     private bool _scoreSaveFailed;
     private bool _isFullscreen;
     private int _selectedSkin;
@@ -201,9 +202,9 @@ public sealed class GameForm : Form
     private readonly Rectangle _retroDifficultyRight = new(661, 378, 44, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
-    private readonly Rectangle _mainButton = new(832, 540, 156, 40);
-    private readonly Rectangle _soundButton = new(996, 540, 48, 40);
-    private readonly Rectangle _restartButton = new(1052, 540, 46, 40);
+    private readonly Rectangle _mainButton = Rectangle.Empty;
+    private readonly Rectangle _soundButton = new(832, 542, 126, 38);
+    private readonly Rectangle _restartButton = new(972, 542, 126, 38);
     private readonly Rectangle _classicButton = new(832, 304, 82, 38);
     private readonly Rectangle _wrapButton = new(924, 304, 82, 38);
     private readonly Rectangle _rushButton = new(1016, 304, 82, 38);
@@ -211,7 +212,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _normalButton = new(924, 426, 82, 38);
     private readonly Rectangle _hardButton = new(1016, 426, 82, 38);
     private readonly Rectangle _modeTimerRect = new(1040, 270, 58, 20);
-    private readonly Rectangle _homeNavButton = new(32, 12, 226, 56);
+    private readonly Rectangle _homeNavButton = new(32, 12, 56, 56);
     private readonly Rectangle _playNavButton = new(390, 18, 82, 36);
     private readonly Rectangle _skinsNavButton = new(482, 18, 88, 36);
     private readonly Rectangle _settingsNavButton = new(580, 18, 108, 36);
@@ -482,6 +483,7 @@ public sealed class GameForm : Form
                 DrawRetroPlayChrome(g);
                 DrawBoardDynamic(g);
                 DrawRetroPlayDashboard(g);
+                DrawRecordCelebration(g);
                 break;
         }
 
@@ -627,7 +629,6 @@ public sealed class GameForm : Form
         DrawStaticButton(g, _easyButton);
         DrawStaticButton(g, _normalButton);
         DrawStaticButton(g, _hardButton);
-        DrawStaticButton(g, _mainButton, true);
         DrawStaticButton(g, _soundButton);
         DrawStaticButton(g, _restartButton);
         DrawStaticButton(g, _fullscreenButton);
@@ -680,7 +681,6 @@ public sealed class GameForm : Form
         StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15),
             7, FontStyle.Bold, Muted);
 
-        DrawNavigationButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawNavigationButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawNavigationButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
         DrawNavigationButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
@@ -791,22 +791,7 @@ public sealed class GameForm : Form
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
 
-        Rectangle statusBox = new(790, 20, 178, 40);
-        DrawPixelPanel(g, statusBox, false);
-        using var led = new SolidBrush(ActiveTheme.Highlight);
-        g.FillRectangle(led, 802, 33, 8, 8);
-
-        string status = _view switch
-        {
-            AppView.Home => "MAIN MENU",
-            AppView.Skins => "SKIN SELECT",
-            AppView.Settings => "SETTINGS",
-            _ when _state == GameState.GameOver => "GAME OVER",
-            _ when _state == GameState.Paused => "PAUSED",
-            _ when _state == GameState.Playing => "PLAYING",
-            _ => "READY"
-        };
-        DrawPixelText(g, status, 887, 34, 1, ActiveTheme.Text);
+        // The old MAIN MENU status box is intentionally removed from the top bar.
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -2532,7 +2517,8 @@ private void DrawThemeSectionCard(Graphics g)
 
         // Score card: two equal columns with generous space around the numbers.
         DrawPixelText(g, "SCORE", 890, 154, 2, RetroWhite);
-        DrawPixelText(g, "BEST", 1040, 154, 2, RetroGold);
+        DrawPixelText(g, "NEW", 1040, 132, 1, Color.FromArgb(255, 111, 242, 145));
+        DrawPixelText(g, "BEST", 1040, 158, 2, RetroGold);
         DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
         DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
 
@@ -2594,13 +2580,10 @@ private void DrawThemeSectionCard(Graphics g)
             GameState.GameOver => "ENDED",
             _ => "PLAY"
         };
-        DrawRetroButton(g, _mainButton, action, 2,
-            _state != GameState.GameOver && _mainButton.Contains(_mousePoint),
-            _state != GameState.GameOver);
         DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
             _soundButton.Contains(_mousePoint));
         DrawRetroButton(g, _restartButton,
-            _state == GameState.GameOver ? "LOCKED" : "RESET", 1,
+            _state == GameState.GameOver ? "LOCKED" : "RESTART", 1,
             _state != GameState.GameOver && _restartButton.Contains(_mousePoint));
         DrawRetroButton(g, _skinButton, "SKINS", 2,
             _skinButton.Contains(_mousePoint));
@@ -2638,7 +2621,6 @@ private void DrawThemeSectionCard(Graphics g)
             _ => "PLAY NOW"
         };
 
-        DrawActionButton(g, _mainButton, mainText, true);
         DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
         DrawActionButton(g, _restartButton, "↻", false);
         DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
@@ -3757,6 +3739,7 @@ private void DrawThemeSectionCard(Graphics g)
         _score = 0;
         _won = false;
         _newRecord = false;
+        _recordCelebrationStarted = null;
         _rushTimeLeft = TimeSpan.FromSeconds(60);
         _lastDisplayedSecond = 60;
         ResetSnake();
@@ -3920,7 +3903,7 @@ private void DrawThemeSectionCard(Graphics g)
             if (_score > _bestScore)
             {
                 _bestScore = _score;
-                _newRecord = true;
+                TriggerRecordCelebration();
                 SaveBestScore();
             }
 
@@ -3989,6 +3972,70 @@ private void DrawThemeSectionCard(Graphics g)
         return Point.Empty;
     }
 
+    private void TriggerRecordCelebration()
+    {
+        _newRecord = true;
+        _recordCelebrationStarted = DateTime.UtcNow;
+        InvalidateDesign(_field);
+    }
+
+    private void DrawRecordCelebration(Graphics g)
+    {
+        if (_recordCelebrationStarted is not DateTime started)
+            return;
+
+        double elapsed = (DateTime.UtcNow - started).TotalSeconds;
+        const float duration = 3.4f;
+        if (elapsed >= duration)
+        {
+            _recordCelebrationStarted = null;
+            return;
+        }
+
+        float fadeIn = Math.Clamp((float)(elapsed / 0.18), 0f, 1f);
+        float fadeOut = Math.Clamp((float)((duration - elapsed) / 0.85), 0f, 1f);
+        int alpha = (int)(255 * Math.Min(fadeIn, fadeOut));
+        float pulse = 1f + MathF.Sin((float)elapsed * 7.5f) * 0.025f;
+
+        int centerX = _field.Left + _field.Width / 2;
+        int bannerWidth = (int)(326 * pulse);
+        Rectangle banner = new(centerX - bannerWidth / 2, _field.Top + 12,
+            bannerWidth, 54);
+
+        using var shadow = new SolidBrush(Color.FromArgb(alpha * 3 / 4, 0, 0, 0));
+        using var fill = new SolidBrush(Color.FromArgb(alpha * 9 / 10, ActiveTheme.Dark));
+        using var edge = new Pen(Color.FromArgb(alpha, 111, 242, 145), 3);
+        using var inner = new Pen(Color.FromArgb(alpha / 2, ActiveTheme.Highlight), 1);
+
+        g.FillRectangle(shadow, banner.X + 5, banner.Y + 5, banner.Width, banner.Height);
+        g.FillRectangle(fill, banner);
+        g.DrawRectangle(edge, banner);
+        g.DrawRectangle(inner, banner.X + 6, banner.Y + 6,
+            banner.Width - 12, banner.Height - 12);
+
+        Color green = Color.FromArgb(alpha, 111, 242, 145);
+        Color subtitle = Color.FromArgb(alpha, ActiveTheme.Text);
+        DrawPixelText(g, "NEW RECORD", centerX, banner.Y + 9, 2, green);
+        DrawPixelText(g, "PERSONAL BEST ACHIEVED", centerX, banner.Y + 34, 1, subtitle);
+
+        using var spark = new SolidBrush(Color.FromArgb(alpha, 255, 220, 112));
+        using var greenSpark = new SolidBrush(Color.FromArgb(alpha, 111, 242, 145));
+        for (int i = 0; i < 12; i++)
+        {
+            float angle = (float)elapsed * 1.8f + i * MathF.PI / 6f;
+            float radius = 178 + MathF.Sin((float)elapsed * 4f + i) * 13f;
+            int x = centerX + (int)(MathF.Cos(angle) * radius);
+            int y = banner.Y + banner.Height / 2 + (int)(MathF.Sin(angle) * 30f);
+            SolidBrush brush = i % 2 == 0 ? spark : greenSpark;
+            g.FillRectangle(brush, x - 2, y - 2, 4, 4);
+            if (i % 3 == 0)
+            {
+                g.FillRectangle(brush, x - 5, y, 10, 2);
+                g.FillRectangle(brush, x, y - 5, 2, 10);
+            }
+        }
+    }
+
     private void EndGame()
     {
         _animationTimer.Stop();
@@ -3996,7 +4043,7 @@ private void DrawThemeSectionCard(Graphics g)
         if (_score > _bestScore)
         {
             _bestScore = _score;
-            _newRecord = true;
+            TriggerRecordCelebration();
         }
 
         if (_newRecord || _scoreSaveFailed)
@@ -4333,7 +4380,6 @@ private void DrawThemeSectionCard(Graphics g)
 
         if (_skinButton.Contains(point)) return 14;
         if (_resetBestButton.Contains(point)) return 15;
-        if (_mainButton.Contains(point)) return 3;
         if (_soundButton.Contains(point)) return 4;
         if (_restartButton.Contains(point)) return 5;
         if (_overlayButton.Contains(point) &&
@@ -4358,7 +4404,6 @@ private void DrawThemeSectionCard(Graphics g)
         {
             1 => _minimizeButton,
             2 => _closeButton,
-            3 => _mainButton,
             4 => _soundButton,
             5 => _restartButton,
             6 => _overlayButton,
@@ -4571,7 +4616,7 @@ private void DrawThemeSectionCard(Graphics g)
             return;
         }
 
-        if (_mainButton.Contains(point) || _overlayButton.Contains(point))
+        if (_overlayButton.Contains(point))
         {
             if (_state == GameState.GameOver)
                 return;

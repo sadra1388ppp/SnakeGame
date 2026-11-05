@@ -723,8 +723,8 @@ public sealed class GameForm : Form
         int pixelSize, bool hover, bool primary = false)
     {
         using var fill = new SolidBrush(hover
-            ? Color.FromArgb(20, 105, 5)
-            : primary ? Color.FromArgb(8, 62, 0) : RetroDark);
+            ? Color.FromArgb(255, ActiveTheme.Background)
+            : primary ? Color.FromArgb(255, ActiveTheme.Grid) : RetroDark);
         g.FillRectangle(fill, rect);
 
         DrawPixelOutline(g, rect,
@@ -922,11 +922,11 @@ public sealed class GameForm : Form
             bool hover = tile.Contains(_mousePoint);
 
             using var fill = new SolidBrush(selected
-                ? Color.FromArgb(24, 105, 8)
-                : hover ? Color.FromArgb(18, 91, 5) : RetroDark);
+                ? Color.FromArgb(255, ActiveTheme.Grid)
+                : hover ? Color.FromArgb(255, ActiveTheme.Background) : RetroDark);
             g.FillRectangle(fill, tile);
             DrawPixelOutline(g, tile,
-                selected ? Color.FromArgb(255, 220, 78) : RetroGold,
+                selected ? ActiveTheme.Highlight : RetroGold,
                 selected ? 3 : 2);
 
             DrawSkinSwatch(g, tile, skin);
@@ -1311,8 +1311,8 @@ public sealed class GameForm : Form
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
-                DrawPixelFlower(g, area.X + 25, area.Bottom - 27, detail);
-                DrawPixelFlower(g, area.X + 83, area.Bottom - 34, detail);
+                DrawPixelFlower(g, area.X + 25, area.Bottom - 27, detail, theme.Accent);
+                DrawPixelFlower(g, area.X + 83, area.Bottom - 34, detail, theme.Accent);
                 break;
             case ThemeSeason.Summer:
                 g.FillRectangle(detail, area.X + 11, area.Bottom - 25, 25, 3);
@@ -1330,11 +1330,12 @@ public sealed class GameForm : Form
         }
     }
 
-    private void DrawPixelFlower(Graphics g, int x, int y, Brush brush)
+    private static void DrawPixelFlower(Graphics g, int x, int y,
+        Brush brush, Color centerColor)
     {
         g.FillRectangle(brush, x - 3, y - 1, 7, 3);
         g.FillRectangle(brush, x - 1, y - 3, 3, 7);
-        using var center = new SolidBrush(ActiveTheme.Accent);
+        using var center = new SolidBrush(centerColor);
         g.FillRectangle(center, x, y, 2, 2);
     }
 
@@ -1397,7 +1398,7 @@ public sealed class GameForm : Form
             switch (theme.SeasonType)
             {
                 case ThemeSeason.Spring:
-                    DrawPixelFlower(g, x, y, effect);
+                    DrawPixelFlower(g, x, y, effect, theme.Accent);
                     break;
                 case ThemeSeason.Summer:
                     g.FillRectangle(effect, x, y, 3, 3);
@@ -1425,8 +1426,8 @@ public sealed class GameForm : Form
     {
         bool hover = rect.Contains(_mousePoint);
         using var fill = new SolidBrush(active
-            ? Color.FromArgb(24, 105, 8)
-            : hover ? Color.FromArgb(18, 91, 5) : RetroDark);
+            ? Color.FromArgb(255, ActiveTheme.Grid)
+            : hover ? Color.FromArgb(255, ActiveTheme.Background) : RetroDark);
         g.FillRectangle(fill, rect);
 
         Color edge = active ? Color.FromArgb(255, 220, 78) : RetroGold;
@@ -1452,7 +1453,7 @@ public sealed class GameForm : Form
 
         using var boardFill = new SolidBrush(RetroDark);
         g.FillRectangle(boardFill, _field);
-        using var grid = new Pen(Color.FromArgb(70, 185, 143, 17), 1);
+        using var grid = new Pen(Color.FromArgb(75, ActiveTheme.Grid), 1);
         for (int x = _field.Left; x <= _field.Right; x += CellSize)
             g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
         for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
@@ -3083,6 +3084,8 @@ public sealed class GameForm : Form
 
         if (_view == AppView.Settings)
         {
+            for (int i = 0; i < Themes.Length; i++)
+                if (ThemeTileRect(i).Contains(point)) return 200 + i;
             if (_settingsSoundButton.Contains(point)) return 24;
             if (_settingsResetButton.Contains(point)) return 25;
             return 0;
@@ -3108,6 +3111,8 @@ public sealed class GameForm : Form
     {
         if (id >= 100 && id < 100 + Skins.Length)
             return SkinTileRect(id - 100);
+        if (id >= 200 && id < 200 + Themes.Length)
+            return ThemeTileRect(id - 200);
 
         return id switch
         {
@@ -3228,6 +3233,15 @@ public sealed class GameForm : Form
 
         if (_view == AppView.Settings)
         {
+            for (int i = 0; i < Themes.Length; i++)
+            {
+                if (!ThemeTileRect(i).Contains(point))
+                    continue;
+
+                SelectTheme(i);
+                return;
+            }
+
             if (_settingsSoundButton.Contains(point))
             {
                 _soundEnabled = !_soundEnabled;

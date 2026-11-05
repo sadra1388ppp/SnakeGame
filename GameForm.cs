@@ -153,10 +153,10 @@ public sealed class GameForm : Form
     private readonly Rectangle _normalButton = new(926, 444, 82, 36);
     private readonly Rectangle _hardButton = new(1014, 444, 82, 36);
     private readonly Rectangle _modeTimerRect = new(1037, 282, 58, 20);
-    private readonly Rectangle _homeNavButton = new(250, 18, 76, 34);
-    private readonly Rectangle _playNavButton = new(334, 18, 76, 34);
-    private readonly Rectangle _skinsNavButton = new(418, 18, 82, 34);
-    private readonly Rectangle _settingsNavButton = new(508, 18, 104, 34);
+    private readonly Rectangle _homeNavButton = new(398, 18, 76, 36);
+    private readonly Rectangle _playNavButton = new(482, 18, 76, 36);
+    private readonly Rectangle _skinsNavButton = new(566, 18, 82, 36);
+    private readonly Rectangle _settingsNavButton = new(656, 18, 104, 36);
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
@@ -1164,12 +1164,20 @@ public sealed class GameForm : Form
 
     private void DrawRetroNavButton(Graphics g, Rectangle rect, string label, bool active)
     {
+        bool hover = rect.Contains(_mousePoint);
         using var fill = new SolidBrush(active
             ? Color.FromArgb(24, 105, 8)
-            : rect.Contains(_mousePoint) ? Color.FromArgb(18, 91, 5) : RetroDark);
+            : hover ? Color.FromArgb(18, 91, 5) : RetroDark);
         g.FillRectangle(fill, rect);
-        DrawPixelOutline(g, rect, active ? Color.FromArgb(255, 220, 78) : RetroGold, 2);
-        DrawPixelText(g, label, rect.X + rect.Width / 2, rect.Y + 10, 1, RetroWhite);
+
+        Color edge = active ? Color.FromArgb(255, 220, 78) : RetroGold;
+        DrawPixelOutline(g, rect, edge, 2);
+
+        int textSize = 2;
+        int textTop = rect.Y + (rect.Height - 7 * textSize) / 2;
+        Color textColor = active ? Color.FromArgb(255, 231, 145) : RetroWhite;
+        DrawPixelText(g, label, rect.X + rect.Width / 2, textTop,
+            textSize, textColor);
     }
 
     private void DrawRetroPlayChrome(Graphics g)
@@ -1227,8 +1235,6 @@ public sealed class GameForm : Form
         DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
             _resetBestButton.Contains(_mousePoint));
 
-        DrawPixelText(g, _state.ToString().ToUpperInvariant(),
-            960, 690, 2, RetroGold);
     }
 
     private static string ModeName(GameMode mode) => mode switch
@@ -1341,45 +1347,54 @@ public sealed class GameForm : Form
 
     private void DrawPauseOrGameOver(Graphics g)
     {
-        g.FillRectangle(_overlayBrush, _field);
-        g.FillPath(_cardBrush, _overlayPath);
+        g.SmoothingMode = SmoothingMode.None;
+        g.PixelOffsetMode = PixelOffsetMode.None;
 
-        string title = _state == GameState.Paused
-            ? "PAUSED"
-            : _won ? "PERFECT RUN" : "GAME OVER";
+        using var shade = new SolidBrush(Color.FromArgb(225, 3, 25, 0));
+        g.FillRectangle(shade, _field);
 
-        DrawLabel(g, title, _heroFont, _whiteBrush,
-            new Rectangle(190, 274, 434, 52), _centerFormat);
+        Rectangle panel = new(138, 220, 538, 334);
+        DrawPixelPanel(g, panel, true);
 
-        if (_state == GameState.Paused)
+        using (var accent = new SolidBrush(RetroGold))
+            g.FillRectangle(accent, panel.X + 24, panel.Y + 23,
+                panel.Width - 48, 3);
+
+        bool paused = _state == GameState.Paused;
+        string title = paused ? "PAUSED" : _won ? "PERFECT RUN" : "GAME OVER";
+        DrawPixelText(g, title, panel.X + panel.Width / 2, 263, 4,
+            paused ? RetroWhite : Color.FromArgb(255, 230, 139));
+
+        if (paused)
         {
-            DrawLabel(g, "Your run is waiting right here.",
-                _smallFont, _mutedBrush,
-                new Rectangle(190, 344, 434, 24), _centerFormat);
-            DrawLabel(g, "CURRENT SCORE", _labelFont, _mutedBrush,
-                new Rectangle(220, 384, 374, 18), _centerFormat);
-            DrawLabel(g, FormatScore(_score), _numberFont, _greenBrush,
-                new Rectangle(220, 404, 374, 42), _centerFormat);
+            DrawPixelText(g, "CURRENT SCORE",
+                panel.X + panel.Width / 2, 350, 2, RetroWhite);
+            DrawPixelText(g, FormatScore(_score),
+                panel.X + panel.Width / 2, 378, 5, Color.FromArgb(194, 255, 132));
+            DrawPixelText(g, "PERSONAL BEST  " + FormatScore(_bestScore),
+                panel.X + panel.Width / 2, 427, 2, RetroGold);
         }
         else
         {
-            DrawLabel(g, "FINAL SCORE", _labelFont, _mutedBrush,
-                new Rectangle(220, 340, 374, 18), _centerFormat);
-            DrawLabel(g, FormatScore(_score), _welcomeFont,
-                _newRecord ? _goldBrush : _whiteBrush,
-                new Rectangle(220, 360, 374, 48), _centerFormat);
-            DrawLabel(g, $"PERSONAL BEST  {FormatScore(_bestScore)}",
-                _smallFont, _newRecord ? _goldBrush : _greenBrush,
-                new Rectangle(220, 416, 374, 22), _centerFormat);
-            if (_scoreSaveFailed)
-                DrawLabel(g, "SCORE SAVE FAILED", _smallFont, _goldBrush,
-                    new Rectangle(220, 438, 374, 18), _centerFormat);
+            DrawPixelText(g, "FINAL SCORE",
+                panel.X + panel.Width / 2, 326, 2, RetroWhite);
+            DrawPixelText(g, FormatScore(_score),
+                panel.X + panel.Width / 2, 351, 5,
+                _newRecord ? Color.FromArgb(255, 225, 104) : RetroWhite);
+
+            string result = _scoreSaveFailed
+                ? "SCORE SAVE FAILED"
+                : _newRecord ? "NEW PERSONAL BEST" : "BEST  " + FormatScore(_bestScore);
+            DrawPixelText(g, result, panel.X + panel.Width / 2, 411, 2,
+                _scoreSaveFailed || _newRecord ? RetroGold : Color.FromArgb(190, 255, 142));
         }
 
-        DrawActionButton(g, _overlayButton,
-            _state == GameState.Paused ? "RESUME" : "PLAY AGAIN", true);
-        DrawLabel(g, "PRESS SPACE", _labelFont, _mutedBrush,
-            new Rectangle(280, 523, 254, 20), _centerFormat);
+        DrawRetroButton(g, _overlayButton,
+            paused ? "RESUME" : "PLAY AGAIN", 2,
+            _overlayButton.Contains(_mousePoint), true);
+
+        DrawPixelText(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
+            panel.X + panel.Width / 2, 529, 1, RetroWhite);
     }
 
     private Bitmap CreateAppleSprite(bool golden)

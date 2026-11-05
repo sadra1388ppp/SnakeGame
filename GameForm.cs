@@ -840,32 +840,71 @@ public sealed class GameForm : Form
 
     private void DrawHomePage(Graphics g)
     {
-        using var trail = new SolidBrush(RetroGold);
+        // Modern arcade presentation while keeping the original pixel-art identity.
+        var oldSmoothing = g.SmoothingMode;
+        g.SmoothingMode = SmoothingMode.None;
 
-        // Thin angular accents frame the title instead of crossing the text.
-        g.FillRectangle(trail, 792, 128, 112, 10);
-        g.FillRectangle(trail, 894, 128, 10, 108);
-        g.FillRectangle(trail, 760, 226, 144, 10);
-        g.FillRectangle(trail, 254, 275, 10, 96);
-        g.FillRectangle(trail, 254, 361, 150, 10);
+        using var panel = new SolidBrush(Color.FromArgb(105, ActiveTheme.Dark));
+        using var panelEdge = new Pen(Color.FromArgb(115, ActiveTheme.Accent), 2);
+        using var softEdge = new Pen(Color.FromArgb(45, ActiveTheme.Text), 1);
+        using var glow = new SolidBrush(Color.FromArgb(24, ActiveTheme.Highlight));
+        using var pixel = new SolidBrush(Color.FromArgb(38, ActiveTheme.Text));
+        using var accent = new SolidBrush(ActiveTheme.Accent);
 
-        DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
-        DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
+        // Quiet pixel-grid background gives the screen depth without adding clutter.
+        for (int x = 38; x < DesignWidth - 24; x += 32)
+        for (int y = 54; y < DesignHeight - 34; y += 32)
+            g.FillRectangle(pixel, x, y, 2, 2);
 
-        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
+        Point[] stars =
+        [
+            new(116, 154), new(166, 230), new(205, 112), new(948, 145),
+            new(1010, 218), new(1062, 112), new(130, 440), new(1030, 440),
+            new(220, 650), new(944, 650)
+        ];
+        foreach (Point star in stars)
+        {
+            g.FillRectangle(glow, star.X - 4, star.Y - 4, 12, 12);
+            g.FillRectangle(accent, star.X, star.Y, 4, 4);
+        }
+
+        // Main arcade frame: square corners and stepped pixel accents.
+        Rectangle hero = new(286, 92, 588, 365);
+        g.FillRectangle(panel, hero);
+        g.DrawRectangle(panelEdge, hero);
+        g.DrawRectangle(softEdge, hero.X + 7, hero.Y + 7, hero.Width - 14, hero.Height - 14);
+        g.FillRectangle(accent, hero.X - 5, hero.Y + 24, 5, 34);
+        g.FillRectangle(accent, hero.X + 24, hero.Y - 5, 34, 5);
+        g.FillRectangle(accent, hero.Right, hero.Bottom - 58, 5, 34);
+        g.FillRectangle(accent, hero.Right - 58, hero.Bottom, 34, 5);
+
+        DrawPixelText(g, "8-BIT ARCADE", DesignWidth / 2, 112, 2,
+            ActiveTheme.Accent);
+
+        // Layered title keeps the chunky original pixel lettering.
+        DrawPixelText(g, "SNAKE", DesignWidth / 2 + 4, 158, 12,
+            Color.FromArgb(110, ActiveTheme.Dark));
+        DrawPixelText(g, "SNAKE", DesignWidth / 2, 154, 12, RetroWhite);
+        DrawPixelText(g, "GAME", DesignWidth / 2 + 4, 252, 12,
+            Color.FromArgb(110, ActiveTheme.Dark));
+        DrawPixelText(g, "GAME", DesignWidth / 2, 248, 12, RetroWhite);
+
+        g.FillRectangle(accent, 476, 339, 208, 3);
+        g.FillRectangle(accent, 500, 345, 160, 2);
+        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 360, 2,
             RetroWhite);
 
-        DrawRetroMenuSnake(g, 345, 385);
-        DrawPixelApple(g, 410, 378, 5);
+        DrawRetroMenuSnake(g, 350, 402);
+        DrawPixelApple(g, 414, 395, 4);
 
         Color leftArrowColor = _hoverId == 26 ? ActiveTheme.Highlight : RetroWhite;
         Color difficultyColor = _hoverId == 28 ? ActiveTheme.Highlight : RetroWhite;
         Color rightArrowColor = _hoverId == 27 ? ActiveTheme.Highlight : RetroWhite;
 
-        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
+        DrawPixelArrow(g, 470, 418, true, leftArrowColor);
         DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            DesignWidth / 2, 394, 4, difficultyColor);
-        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
+            DesignWidth / 2, 414, 3, difficultyColor);
+        DrawPixelArrow(g, 670, 418, false, rightArrowColor);
 
         DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
             3, _retroStartButton.Contains(_mousePoint), true);
@@ -874,11 +913,17 @@ public sealed class GameForm : Form
         DrawRetroButton(g, _retroSettingsButton, "SETTINGS", 3,
             _retroSettingsButton.Contains(_mousePoint));
 
-        DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
+        DrawPixelText(g, "BEST  " + _bestScore.ToString(CultureInfo.InvariantCulture),
+            174, 610, 2, RetroWhite);
+        DrawPixelText(g, "ARROW KEYS  /  WASD",
+            DesignWidth / 2, 650, 2, Color.FromArgb(190, RetroWhite));
+        DrawPixelText(g, "PIXEL ARCADE EDITION",
             DesignWidth / 2, 704, 2, RetroWhite);
+
+        g.SmoothingMode = oldSmoothing;
     }
 
-        private void DrawRetroButton(Graphics g, Rectangle rect, string label,
+    private void DrawRetroButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool primary = false)
     {
         using var fill = new SolidBrush(hover

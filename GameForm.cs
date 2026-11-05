@@ -9,6 +9,7 @@ namespace SnakeGame;
 public sealed class GameForm : Form
 {
     private enum GameState { Ready, Playing, Paused, GameOver }
+    private enum AppView { Home, Play, Skins, Settings }
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
     private enum GameMode { Classic, Wrap, Rush }
@@ -73,6 +74,7 @@ public sealed class GameForm : Form
     private Point? _goldenFood;
 
     private GameState _state = GameState.Ready;
+    private AppView _view = AppView.Home;
     private Direction _direction = Direction.Right;
     private Direction _nextDirection = Direction.Right;
     private Difficulty _difficulty = Difficulty.Normal;
@@ -144,6 +146,15 @@ public sealed class GameForm : Form
     private readonly Rectangle _normalButton = new(926, 444, 82, 36);
     private readonly Rectangle _hardButton = new(1014, 444, 82, 36);
     private readonly Rectangle _modeTimerRect = new(1037, 282, 58, 20);
+    private readonly Rectangle _homeNavButton = new(250, 18, 76, 34);
+    private readonly Rectangle _playNavButton = new(334, 18, 76, 34);
+    private readonly Rectangle _skinsNavButton = new(418, 18, 82, 34);
+    private readonly Rectangle _settingsNavButton = new(508, 18, 104, 34);
+    private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
+    private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
+    private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
+    private readonly Rectangle _settingsSoundButton = new(110, 285, 300, 48);
+    private readonly Rectangle _settingsResetButton = new(110, 365, 300, 48);
     private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
     private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
     private readonly Rectangle _closeButton = new(1110, 19, 34, 30);
@@ -325,7 +336,6 @@ public sealed class GameForm : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-
         if (_chrome is null)
             return;
 
@@ -333,33 +343,41 @@ public sealed class GameForm : Form
         g.Clear(Background);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.Half;
-        g.DrawImageUnscaled(_chrome, 0, 0);
-        g.Transform = _viewMatrix;
 
-        if (_state == GameState.Ready)
+        if (_view == AppView.Play)
         {
-            DrawLobby(g);
-            if (_showSkinPicker)
-                DrawSkinPicker(g);
-            DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
-            DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
-            DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
-            return;
+            g.DrawImageUnscaled(_chrome, 0, 0);
+            g.Transform = _viewMatrix;
+
+            Rectangle clip = ClientToDesign(e.ClipRectangle);
+            if (clip.IntersectsWith(_field))
+                DrawBoardDynamic(g);
+            if (clip.IntersectsWith(_rightPanel))
+                DrawDashboard(g);
+        }
+        else
+        {
+            g.Transform = _viewMatrix;
+            DrawPageBackground(g);
+
+            switch (_view)
+            {
+                case AppView.Home:
+                    DrawHomePage(g);
+                    break;
+                case AppView.Skins:
+                    DrawSkinsPage(g);
+                    break;
+                case AppView.Settings:
+                    DrawSettingsPage(g);
+                    break;
+            }
         }
 
-        Rectangle clip = ClientToDesign(e.ClipRectangle);
-        if (clip.IntersectsWith(_field))
-            DrawBoardDynamic(g);
-
-        if (clip.IntersectsWith(_rightPanel))
-            DrawDashboard(g);
-
-        if (clip.IntersectsWith(_fullscreenButton))
-            DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
-        if (clip.IntersectsWith(_minimizeButton))
-            DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
-        if (clip.IntersectsWith(_closeButton))
-            DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
+        DrawAppHeader(g);
+        DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
+        DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
+        DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
     }
 
     private void UpdateViewTransform()
@@ -514,6 +532,220 @@ public sealed class GameForm : Form
         StaticText(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
             Color.FromArgb(133, 115, 78));
     }
+
+    private void NavigateTo(AppView view)
+    {
+        if (view != AppView.Play && _state == GameState.Playing)
+            SetState(GameState.Paused);
+
+        _view = view;
+        _showSkinPicker = false;
+        Invalidate();
+    }
+
+    private void DrawPageBackground(Graphics g)
+    {
+        using var background = new LinearGradientBrush(
+            new Rectangle(0, 0, DesignWidth, DesignHeight),
+            Color.FromArgb(13, 22, 27), Background, 90f);
+        g.FillRectangle(background, 0, 0, DesignWidth, DesignHeight);
+
+        using var glow = new SolidBrush(Color.FromArgb(18, 112, 198, 111));
+        g.FillEllipse(glow, -140, 400, 560, 480);
+        using var line = new Pen(Border, 1);
+        g.DrawLine(line, 0, 70, DesignWidth, 70);
+        g.DrawLine(line, 32, 724, 1128, 724);
+    }
+
+    private void DrawAppHeader(Graphics g)
+    {
+        FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
+        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18,
+            FontStyle.Bold, Background, StringAlignment.Center);
+        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23),
+            14, FontStyle.Bold, White);
+        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15),
+            7, FontStyle.Bold, Muted);
+
+        DrawNavigationButton(g, _homeNavButton, "HOME", _view == AppView.Home);
+        DrawNavigationButton(g, _playNavButton, "PLAY", _view == AppView.Play);
+        DrawNavigationButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawNavigationButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
+    }
+
+    private void DrawNavigationButton(Graphics g, Rectangle rect, string label, bool active)
+    {
+        bool hover = rect.Contains(_mousePoint);
+        Color fill = active ? Color.FromArgb(39, 68, 46) :
+            hover ? Color.FromArgb(34, 47, 52) : Color.Transparent;
+        FillRound(g, rect, 8, fill);
+        if (active)
+            StrokeRound(g, rect, 8, Color.FromArgb(80, Green));
+        DrawLabel(g, label, _buttonFont,
+            active ? _greenBrush : hover ? _whiteBrush : _mutedBrush,
+            rect, _centerFormat);
+    }
+
+    private void DrawHomePage(Graphics g)
+    {
+        DrawStaticPanel(g, _boardCard);
+        DrawStaticPanel(g, _rightPanel);
+
+        DrawLabel(g, "YOUR ARCADE HUB", _labelFont, _greenBrush,
+            new Rectangle(78, 142, 350, 22), _leftFormat);
+        DrawLabel(g, "WELCOME TO", _heroFont, _mutedBrush,
+            new Rectangle(74, 180, 330, 38), _leftFormat);
+        DrawLabel(g, "SNAKE ARCADE", _welcomeFont, _whiteBrush,
+            new Rectangle(74, 217, 350, 58), _leftFormat);
+        DrawLabel(g, "Play a quick run, personalize your snake, or tune the game to your style.",
+            _welcomeSmallFont, _mutedBrush, new Rectangle(78, 286, 330, 58), _leftFormat);
+
+        DrawLobbyArtwork(g);
+
+        DrawHomeOptionCard(g, _homePlayCard, "PLAY GAME",
+            "Choose a mode and start a run", "▶", 21);
+        DrawHomeOptionCard(g, _homeSkinsCard, "SKINS",
+            "Browse and equip your snakes", "◈", 22);
+        DrawHomeOptionCard(g, _homeSettingsCard, "SETTINGS",
+            "Sound, controls and game data", "⚙", 23);
+
+        DrawScorePanel(g);
+
+        DrawLabel(g, "YOUR PREFERENCES", _labelFont, _mutedBrush,
+            new Rectangle(842, 282, 240, 18), _leftFormat);
+        DrawLabel(g, "GAME MODE", _smallFont, _mutedBrush,
+            new Rectangle(842, 314, 110, 18), _leftFormat);
+        DrawLabel(g, ModeName(_mode), _buttonFont, _whiteBrush,
+            new Rectangle(842, 336, 250, 24), _leftFormat);
+
+        DrawLabel(g, "DIFFICULTY", _smallFont, _mutedBrush,
+            new Rectangle(842, 390, 110, 18), _leftFormat);
+        DrawLabel(g, DifficultyName(_difficulty), _buttonFont, _whiteBrush,
+            new Rectangle(842, 412, 250, 24), _leftFormat);
+
+        DrawLabel(g, "EQUIPPED SNAKE", _smallFont, _mutedBrush,
+            new Rectangle(842, 468, 170, 18), _leftFormat);
+        DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont,
+            Skins[_selectedSkin].IsLegendary ? _goldBrush : _greenBrush,
+            new Rectangle(842, 490, 250, 24), _leftFormat);
+
+        DrawLabel(g, _soundEnabled ? "SOUND ENABLED" : "SOUND MUTED",
+            _labelFont, _soundEnabled ? _greenBrush : _mutedBrush,
+            new Rectangle(842, 570, 240, 20), _leftFormat);
+        DrawLabel(g, "Your progress is saved on this PC.",
+            _smallFont, _mutedBrush, new Rectangle(842, 598, 250, 22), _leftFormat);
+    }
+
+    private void DrawHomeOptionCard(Graphics g, Rectangle rect, string title,
+        string description, string symbol, int hoverId)
+    {
+        bool hover = _hoverId == hoverId;
+        FillRound(g, rect, 12, hover
+            ? Color.FromArgb(34, 54, 53)
+            : PanelLight);
+        StrokeRound(g, rect, 12, hover
+            ? Color.FromArgb(100, Green)
+            : Border);
+
+        DrawLabel(g, symbol, _heroFont, _greenBrush,
+            new Rectangle(rect.X + 14, rect.Y + 12, 42, 42), _centerFormat);
+        DrawLabel(g, title, _buttonFont, _whiteBrush,
+            new Rectangle(rect.X + 64, rect.Y + 12, rect.Width - 76, 26), _leftFormat);
+        DrawLabel(g, description, _smallFont, _mutedBrush,
+            new Rectangle(rect.X + 16, rect.Y + 64, rect.Width - 32, 34), _leftFormat);
+    }
+
+    private void DrawSkinsPage(Graphics g)
+    {
+        DrawStaticPanel(g, _boardCard);
+        DrawStaticPanel(g, _rightPanel);
+        DrawLabel(g, "SNAKE COLLECTION", _labelFont, _greenBrush,
+            new Rectangle(82, 112, 360, 24), _leftFormat);
+        DrawLabel(g, "Choose a look for your next run.", _smallFont, _mutedBrush,
+            new Rectangle(82, 137, 430, 20), _leftFormat);
+
+        DrawSkinPicker(g);
+
+        SnakeSkin skin = Skins[_selectedSkin];
+        DrawLabel(g, "EQUIPPED", _labelFont, _greenBrush,
+            new Rectangle(830, 142, 240, 20), _leftFormat);
+        DrawLabel(g, skin.Name, _heroFont,
+            skin.IsLegendary ? _goldBrush : _whiteBrush,
+            new Rectangle(830, 176, 270, 62), _leftFormat);
+        using (var previewPen = new Pen(skin.Body, 20)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            g.DrawLine(previewPen, 846, 300, 1030, 300);
+        using (var headBrush = new SolidBrush(skin.Head))
+            g.FillEllipse(headBrush, 1016, 282, 38, 38);
+        DrawLabel(g, skin.IsLegendary ? "LEGENDARY SKIN" : "CUSTOM SKIN",
+            _labelFont, skin.IsLegendary ? _goldBrush : _mutedBrush,
+            new Rectangle(830, 350, 250, 22), _leftFormat);
+        DrawLabel(g, "Your selection is saved automatically.",
+            _smallFont, _mutedBrush, new Rectangle(830, 390, 260, 42), _leftFormat);
+        DrawSecondaryButton(g, new Rectangle(830, 470, 260, 42),
+            "BACK TO HOME");
+    }
+
+    private void DrawSettingsPage(Graphics g)
+    {
+        DrawStaticPanel(g, _boardCard);
+        DrawStaticPanel(g, _rightPanel);
+        DrawLabel(g, "SETTINGS", _welcomeFont, _whiteBrush,
+            new Rectangle(82, 122, 420, 54), _leftFormat);
+        DrawLabel(g, "Manage sound, controls and saved progress.",
+            _smallFont, _mutedBrush, new Rectangle(84, 180, 480, 24), _leftFormat);
+
+        DrawStaticPanel(g, new Rectangle(100, 235, 560, 120), PanelLight);
+        DrawLabel(g, "SOUND", _labelFont, _mutedBrush,
+            new Rectangle(124, 255, 220, 20), _leftFormat);
+        DrawLabel(g, "Toggle the in-game sound effects.",
+            _smallFont, _mutedBrush, new Rectangle(124, 282, 300, 20), _leftFormat);
+        DrawSecondaryButton(g, _settingsSoundButton,
+            _soundEnabled ? "SOUND  ·  ON" : "SOUND  ·  OFF");
+
+        DrawStaticPanel(g, new Rectangle(100, 380, 560, 120), PanelLight);
+        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
+            new Rectangle(124, 398, 220, 20), _leftFormat);
+        DrawLabel(g, $"Saved best score: {FormatScore(_bestScore)}",
+            _smallFont, _mutedBrush, new Rectangle(124, 426, 300, 20), _leftFormat);
+        DrawSecondaryButton(g, _settingsResetButton, "RESET BEST SCORE", true);
+
+        DrawStaticPanel(g, new Rectangle(100, 525, 560, 120), PanelLight);
+        DrawLabel(g, "KEYBOARD CONTROLS", _labelFont, _mutedBrush,
+            new Rectangle(124, 545, 220, 20), _leftFormat);
+        DrawLabel(g, "WASD / Arrow keys  ·  Space: pause  ·  F11: fullscreen",
+            _smallFont, _whiteBrush, new Rectangle(124, 575, 500, 24), _leftFormat);
+
+        DrawLabel(g, "GAME PROFILE", _labelFont, _mutedBrush,
+            new Rectangle(830, 142, 240, 20), _leftFormat);
+        DrawLabel(g, "CURRENT SKIN", _smallFont, _mutedBrush,
+            new Rectangle(830, 195, 230, 18), _leftFormat);
+        DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont,
+            Skins[_selectedSkin].IsLegendary ? _goldBrush : _greenBrush,
+            new Rectangle(830, 220, 260, 24), _leftFormat);
+        DrawLabel(g, "CURRENT MODE", _smallFont, _mutedBrush,
+            new Rectangle(830, 280, 230, 18), _leftFormat);
+        DrawLabel(g, ModeName(_mode), _buttonFont, _whiteBrush,
+            new Rectangle(830, 305, 260, 24), _leftFormat);
+        DrawLabel(g, "DIFFICULTY", _smallFont, _mutedBrush,
+            new Rectangle(830, 365, 230, 18), _leftFormat);
+        DrawLabel(g, DifficultyName(_difficulty), _buttonFont, _whiteBrush,
+            new Rectangle(830, 390, 260, 24), _leftFormat);
+    }
+
+    private static string ModeName(GameMode mode) => mode switch
+    {
+        GameMode.Classic => "Classic",
+        GameMode.Wrap => "Wrap",
+        _ => "Rush"
+    };
+
+    private static string DifficultyName(Difficulty difficulty) => difficulty switch
+    {
+        Difficulty.Easy => "Easy",
+        Difficulty.Hard => "Hard",
+        _ => "Normal"
+    };
 
     private void DrawLobby(Graphics g)
     {
@@ -1557,6 +1789,8 @@ public sealed class GameForm : Form
 
     private void StartGame()
     {
+        _view = AppView.Play;
+        _showSkinPicker = false;
         _score = 0;
         _won = false;
         _newRecord = false;
@@ -1875,13 +2109,12 @@ public sealed class GameForm : Form
 
     private void HandleKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_showSkinPicker)
+        if (_view != AppView.Play)
         {
-            if (e.KeyCode == Keys.Escape)
-            {
-                _showSkinPicker = false;
-                InvalidateDesign(_field);
-            }
+            if (e.KeyCode == Keys.F11 || (e.KeyCode == Keys.Enter && e.Alt))
+                ToggleFullscreen();
+            else if (e.KeyCode == Keys.Escape)
+                NavigateTo(AppView.Home);
             return;
         }
 
@@ -1967,7 +2200,24 @@ public sealed class GameForm : Form
 
     private int GetHoverId(Point point)
     {
-        if (_showSkinPicker)
+        if (_closeButton.Contains(point)) return 2;
+        if (_minimizeButton.Contains(point)) return 1;
+        if (_fullscreenButton.Contains(point)) return 13;
+
+        if (_homeNavButton.Contains(point)) return 17;
+        if (_playNavButton.Contains(point)) return 18;
+        if (_skinsNavButton.Contains(point)) return 19;
+        if (_settingsNavButton.Contains(point)) return 20;
+
+        if (_view == AppView.Home)
+        {
+            if (_homePlayCard.Contains(point)) return 21;
+            if (_homeSkinsCard.Contains(point)) return 22;
+            if (_homeSettingsCard.Contains(point)) return 23;
+            return 0;
+        }
+
+        if (_view == AppView.Skins)
         {
             if (_skinPickerClose.Contains(point)) return 16;
             for (int i = 0; i < Skins.Length; i++)
@@ -1975,17 +2225,19 @@ public sealed class GameForm : Form
             return 0;
         }
 
-        if (_closeButton.Contains(point)) return 2;
-        if (_state == GameState.Ready && _lobbyStartButton.Contains(point)) return 6;
-        if (_minimizeButton.Contains(point)) return 1;
-        if (_fullscreenButton.Contains(point)) return 13;
+        if (_view == AppView.Settings)
+        {
+            if (_settingsSoundButton.Contains(point)) return 24;
+            if (_settingsResetButton.Contains(point)) return 25;
+            return 0;
+        }
+
         if (_skinButton.Contains(point)) return 14;
         if (_resetBestButton.Contains(point)) return 15;
-        if (_state != GameState.Ready && _mainButton.Contains(point)) return 3;
+        if (_mainButton.Contains(point)) return 3;
         if (_soundButton.Contains(point)) return 4;
-        if (_state != GameState.Ready && _restartButton.Contains(point)) return 5;
-        if (_overlayButton.Contains(point) &&
-            (_state is GameState.Paused or GameState.GameOver)) return 6;
+        if (_restartButton.Contains(point)) return 5;
+        if (_overlayButton.Contains(point) && (_state is GameState.Paused or GameState.GameOver)) return 6;
         if (_classicButton.Contains(point)) return 7;
         if (_wrapButton.Contains(point)) return 8;
         if (_rushButton.Contains(point)) return 9;
@@ -2018,6 +2270,15 @@ public sealed class GameForm : Form
             14 => _skinButton,
             15 => _resetBestButton,
             16 => _skinPickerClose,
+            17 => _homeNavButton,
+            18 => _playNavButton,
+            19 => _skinsNavButton,
+            20 => _settingsNavButton,
+            21 => _homePlayCard,
+            22 => _homeSkinsCard,
+            23 => _homeSettingsCard,
+            24 => _settingsSoundButton,
+            25 => _settingsResetButton,
             _ => Rectangle.Empty
         };
     }
@@ -2029,7 +2290,9 @@ public sealed class GameForm : Form
         Point point = ClientToDesign(e.Location);
         if (e.Button == MouseButtons.Left && point.Y < 70 && !_isFullscreen &&
             !_closeButton.Contains(point) && !_minimizeButton.Contains(point) &&
-            !_fullscreenButton.Contains(point))
+            !_fullscreenButton.Contains(point) && !_homeNavButton.Contains(point) &&
+            !_playNavButton.Contains(point) && !_skinsNavButton.Contains(point) &&
+            !_settingsNavButton.Contains(point))
         {
             _dragging = true;
             _dragOffset = e.Location;
@@ -2040,12 +2303,40 @@ public sealed class GameForm : Form
     {
         Point point = ClientToDesign(e.Location);
 
-        if (_showSkinPicker)
+        if (_closeButton.Contains(point))
+        {
+            Close();
+            return;
+        }
+        if (_minimizeButton.Contains(point))
+        {
+            WindowState = FormWindowState.Minimized;
+            return;
+        }
+        if (_fullscreenButton.Contains(point))
+        {
+            ToggleFullscreen();
+            return;
+        }
+
+        if (_homeNavButton.Contains(point)) { NavigateTo(AppView.Home); return; }
+        if (_playNavButton.Contains(point)) { NavigateTo(AppView.Play); return; }
+        if (_skinsNavButton.Contains(point)) { NavigateTo(AppView.Skins); return; }
+        if (_settingsNavButton.Contains(point)) { NavigateTo(AppView.Settings); return; }
+
+        if (_view == AppView.Home)
+        {
+            if (_homePlayCard.Contains(point)) NavigateTo(AppView.Play);
+            else if (_homeSkinsCard.Contains(point)) NavigateTo(AppView.Skins);
+            else if (_homeSettingsCard.Contains(point)) NavigateTo(AppView.Settings);
+            return;
+        }
+
+        if (_view == AppView.Skins)
         {
             if (_skinPickerClose.Contains(point))
             {
-                _showSkinPicker = false;
-                InvalidateDesign(_field);
+                NavigateTo(AppView.Home);
                 return;
             }
 
@@ -2056,45 +2347,32 @@ public sealed class GameForm : Form
 
                 ApplySkin(i);
                 SaveSelectedSkin();
-                _showSkinPicker = false;
-                InvalidateDesign(_field);
+                Invalidate();
                 return;
             }
-
             return;
         }
 
-        if (_closeButton.Contains(point))
+        if (_view == AppView.Settings)
         {
-            Close();
-            return;
-        }
-
-        if (_fullscreenButton.Contains(point))
-        {
-            ToggleFullscreen();
+            if (_settingsSoundButton.Contains(point))
+            {
+                _soundEnabled = !_soundEnabled;
+                Invalidate();
+            }
+            else if (_settingsResetButton.Contains(point))
+                ResetBestScore();
             return;
         }
 
         if (_skinButton.Contains(point))
         {
-            if (_state == GameState.Playing)
-                SetState(GameState.Paused);
-
-            _showSkinPicker = true;
-            InvalidateDesign(_field);
+            NavigateTo(AppView.Skins);
             return;
         }
-
         if (_resetBestButton.Contains(point))
         {
             ResetBestScore();
-            return;
-        }
-
-        if (_minimizeButton.Contains(point))
-        {
-            WindowState = FormWindowState.Minimized;
             return;
         }
 
@@ -2112,15 +2390,13 @@ public sealed class GameForm : Form
             InvalidateDesign(_soundButton);
         }
 
-        if (_state != GameState.Ready && _restartButton.Contains(point))
+        if (_restartButton.Contains(point))
         {
             StartGame();
             return;
         }
 
-        if ((_state == GameState.Ready && _lobbyStartButton.Contains(point)) ||
-            (_state != GameState.Ready &&
-             (_mainButton.Contains(point) || _overlayButton.Contains(point))))
+        if (_mainButton.Contains(point) || _overlayButton.Contains(point))
         {
             if (_state == GameState.Playing)
                 TogglePause();

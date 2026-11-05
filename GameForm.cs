@@ -101,6 +101,9 @@ public sealed class GameForm : Form
         new("LEGENDARY PHOENIX", Color.FromArgb(151,74,205), Color.FromArgb(255,202,91), Color.FromArgb(74,31,130), Color.FromArgb(255,238,174), Color.FromArgb(255,178,63), SkinPattern.Legendary, true)
     ];
 
+    private static readonly int[] SkinDisplayOrder =
+        [20, 5, 7, 9, 12, 13, 14, 15, 18, 19, 0, 1, 2, 3, 4, 6, 8, 10, 11, 16, 17];
+
     private const int CellSize = 23;
     private const int Columns = 30;
     private const int Rows = 21;
@@ -210,7 +213,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _normalButton = new(924, 426, 82, 38);
     private readonly Rectangle _hardButton = new(1016, 426, 82, 38);
     private readonly Rectangle _modeTimerRect = new(1040, 270, 58, 20);
-    private readonly Rectangle _homeNavButton = new(32, 12, 56, 56);
+    private readonly Rectangle _homeNavButton = new(298, 18, 82, 36);
     private readonly Rectangle _playNavButton = new(390, 18, 82, 36);
     private readonly Rectangle _skinsNavButton = new(482, 18, 88, 36);
     private readonly Rectangle _settingsNavButton = new(580, 18, 108, 36);
@@ -777,7 +780,6 @@ public sealed class GameForm : Form
         using var seam = new Pen(Color.FromArgb(125, ActiveTheme.Highlight), 1);
         g.DrawLine(seam, 34, 61, 1126, 61);
 
-        // The logo remains the home shortcut; the HOME navigation tab is removed.
         using var logo = new SolidBrush(ActiveTheme.Accent);
         g.FillRectangle(logo, 40, 21, 36, 36);
         DrawPixelOutline(g, new Rectangle(40, 21, 36, 36), ActiveTheme.Highlight, 2);
@@ -785,11 +787,10 @@ public sealed class GameForm : Form
         DrawPixelText(g, "SNAKE", 132, 24, 2, ActiveTheme.Text);
         DrawPixelText(g, "ARCADE EDITION", 132, 45, 1, ActiveTheme.Highlight);
 
+        DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
-
-        // The old MAIN MENU status box is intentionally removed from the top bar.
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -1030,7 +1031,6 @@ public sealed class GameForm : Form
 
         Rectangle previewPanel = new(780, 166, 348, 309);
         DrawPixelPanel(g, previewPanel, true);
-        DrawPixelText(g, "SKIN SHOWCASE", 954, 184, 2, RetroWhite);
         using (var separator = new Pen(Color.FromArgb(150, ActiveTheme.Accent), 2))
             g.DrawLine(separator, 798, 197, 1110, 197);
 
@@ -1046,20 +1046,21 @@ public sealed class GameForm : Form
         DrawPixelPanel(g, infoPanel, false);
         SnakeSkin skin = Skins[_selectedSkin];
         Color rarityColor = SkinRarityColor(skin);
-        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 516, 2, rarityColor);
-        DrawPixelText(g, SkinRarityLabel(skin), 954, 545, 2, rarityColor);
-        DrawPixelText(g, SkinPatternShortName(skin.Pattern), 954, 572, 1, RetroWhite);
-        DrawPixelText(g, "SELECT A CARD TO EQUIP", 954, 618, 1,
-            Color.FromArgb(160, RetroWhite));
+        int nameSize = skin.Name.Length > 14 ? 1 : 2;
+        DrawPixelText(g, skin.Name, 954, 516, nameSize, rarityColor);
+        DrawPixelText(g, SkinRarityLabel(skin), 954, 550, 2, rarityColor);
+        DrawPixelText(g, SkinPatternShortName(skin.Pattern), 954, 584, 1,
+            Color.FromArgb(190, ActiveTheme.Text));
     }
 
     private void DrawSkinPicker(Graphics g)
     {
-        for (int i = 0; i < Skins.Length; i++)
+        for (int i = 0; i < SkinDisplayOrder.Length; i++)
         {
+            int skinIndex = SkinDisplayOrder[i];
             Rectangle tile = SkinTileRect(i);
-            SnakeSkin skin = Skins[i];
-            bool selected = i == _selectedSkin;
+            SnakeSkin skin = Skins[skinIndex];
+            bool selected = skinIndex == _selectedSkin;
             bool hover = tile.Contains(_mousePoint);
             Color rarityColor = SkinRarityColor(skin);
 
@@ -1082,16 +1083,16 @@ public sealed class GameForm : Form
                 ? rarityColor
                 : selected ? RetroWhite : Color.FromArgb(215, ActiveTheme.Text);
             int textCenter = tile.X + 82 + (tile.Width - 94) / 2;
-            DrawPixelText(g, SkinShortName(i), textCenter, tile.Y + 12, 1, nameColor);
-
-            string info = SkinRarityLabel(skin) + "  " + SkinPatternShortName(skin.Pattern);
-            DrawPixelText(g, info, textCenter, tile.Y + 34, 1,
-                skin.IsLegendary || skin.IsEpic
-                    ? rarityColor : Color.FromArgb(145, ActiveTheme.Text));
+            DrawPixelText(g, skin.Name, textCenter, tile.Y + 12, 1, nameColor);
+            DrawPixelText(g, SkinRarityLabel(skin), textCenter, tile.Y + 34, 1,
+                rarityColor);
         }
 
-        DrawPixelText(g, "21 PIXEL SKINS  -  SELECT A CARD TO EQUIP",
-            389, 632, 1, Color.FromArgb(155, ActiveTheme.Text));
+        DrawPixelText(g, "LEGENDARY", 154, 632, 1,
+            Color.FromArgb(255, 255, 214, 86));
+        DrawPixelText(g, "EPIC", 390, 632, 1,
+            Color.FromArgb(255, 198, 145, 255));
+        DrawPixelText(g, "NORMAL", 626, 632, 1, RetroWhite);
     }
 
     private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
@@ -1110,7 +1111,7 @@ public sealed class GameForm : Form
     }
 
     private static string SkinRarityLabel(SnakeSkin skin) =>
-        skin.IsLegendary ? "LEGENDARY" : skin.IsEpic ? "EPIC" : "STANDARD";
+        skin.IsLegendary ? "LEGENDARY" : skin.IsEpic ? "EPIC" : "NORMAL";
 
     private Color SkinRarityColor(SnakeSkin skin) =>
         skin.IsLegendary ? Color.FromArgb(255, 255, 214, 86) :
@@ -2515,7 +2516,8 @@ private void DrawThemeSectionCard(Graphics g)
 
         // Score card: two equal columns with generous space around the numbers.
         DrawPixelText(g, "SCORE", 890, 154, 2, RetroWhite);
-        DrawPixelText(g, "NEW", 1040, 132, 1, Color.FromArgb(255, 111, 242, 145));
+        if (_newRecord)
+            DrawPixelText(g, "NEW", 1040, 132, 1, Color.FromArgb(255, 111, 242, 145));
         DrawPixelText(g, "BEST", 1040, 158, 2, RetroGold);
         DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
         DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
@@ -3875,7 +3877,8 @@ private void DrawThemeSectionCard(Graphics g)
             if (_score > _bestScore)
             {
                 _bestScore = _score;
-                TriggerRecordCelebration();
+                if (!_newRecord)
+                    TriggerRecordCelebration();
                 SaveBestScore();
             }
 
@@ -4015,7 +4018,8 @@ private void DrawThemeSectionCard(Graphics g)
         if (_score > _bestScore)
         {
             _bestScore = _score;
-            TriggerRecordCelebration();
+            if (!_newRecord)
+                TriggerRecordCelebration();
         }
 
         if (_newRecord || _scoreSaveFailed)
@@ -4056,8 +4060,9 @@ private void DrawThemeSectionCard(Graphics g)
 
     private void MoveSkinSelection(int amount)
     {
-        int next = Math.Clamp(_selectedSkin + amount, 0, Skins.Length - 1);
-        ApplySkin(next);
+        int position = Array.IndexOf(SkinDisplayOrder, _selectedSkin);
+        int nextPosition = Math.Clamp(position + amount, 0, SkinDisplayOrder.Length - 1);
+        ApplySkin(SkinDisplayOrder[nextPosition]);
         SaveSelectedSkin();
         Invalidate();
     }
@@ -4319,7 +4324,7 @@ private void DrawThemeSectionCard(Graphics g)
         if (_view == AppView.Skins)
         {
             if (_skinPickerClose.Contains(point)) return 16;
-            for (int i = 0; i < Skins.Length; i++)
+            for (int i = 0; i < SkinDisplayOrder.Length; i++)
                 if (SkinTileRect(i).Contains(point)) return 100 + i;
             return 0;
         }
@@ -4474,12 +4479,12 @@ private void DrawThemeSectionCard(Graphics g)
                 return;
             }
 
-            for (int i = 0; i < Skins.Length; i++)
+            for (int i = 0; i < SkinDisplayOrder.Length; i++)
             {
                 if (!SkinTileRect(i).Contains(point))
                     continue;
 
-                ApplySkin(i);
+                ApplySkin(SkinDisplayOrder[i]);
                 SaveSelectedSkin();
                 Invalidate();
                 return;

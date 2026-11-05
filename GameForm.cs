@@ -189,12 +189,12 @@ public sealed class GameForm : Form
     private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(980, 95, 128, 36);
-    private readonly Rectangle _retroStartButton = new(112, 478, 404, 62);
-    private readonly Rectangle _retroSkinsButton = new(112, 558, 194, 48);
-    private readonly Rectangle _retroSettingsButton = new(322, 558, 194, 48);
-    private readonly Rectangle _retroDifficultyLeft = new(112, 394, 52, 48);
-    private readonly Rectangle _retroDifficultyText = new(170, 394, 290, 48);
-    private readonly Rectangle _retroDifficultyRight = new(466, 394, 50, 48);
+    private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
+    private readonly Rectangle _retroSkinsButton = new(350, 575, 220, 48);
+    private readonly Rectangle _retroSettingsButton = new(590, 575, 220, 48);
+    private readonly Rectangle _retroDifficultyLeft = new(455, 378, 44, 48);
+    private readonly Rectangle _retroDifficultyText = new(500, 378, 160, 48);
+    private readonly Rectangle _retroDifficultyRight = new(661, 378, 44, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -805,74 +805,44 @@ public sealed class GameForm : Form
 
     private void DrawHomePage(Graphics g)
     {
-        DrawUiPanel(g, new Rectangle(52, 94, 1056, 610), true, 24);
+        using var trail = new SolidBrush(RetroGold);
 
-        using var eyebrow = new SolidBrush(ActiveTheme.Highlight);
-        using var titleBrush = new SolidBrush(ActiveTheme.Text);
-        using var subtitleBrush = new SolidBrush(Color.FromArgb(205, ActiveTheme.Text));
-        using var labelBrush = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
+        // Thin angular accents frame the title instead of crossing the text.
+        g.FillRectangle(trail, 792, 128, 112, 10);
+        g.FillRectangle(trail, 894, 128, 10, 108);
+        g.FillRectangle(trail, 760, 226, 144, 10);
+        g.FillRectangle(trail, 254, 275, 10, 96);
+        g.FillRectangle(trail, 254, 361, 150, 10);
 
-        FillRound(g, new Rectangle(104, 154, 110, 27), 8,
-            Color.FromArgb(90, ActiveTheme.Accent));
-        DrawLabel(g, "ARCADE CLASSIC", _microFont, eyebrow,
-            new Rectangle(104, 154, 110, 27), _centerFormat);
+        DrawPixelText(g, "RETRO ARCADE", DesignWidth / 2, 76, 3, RetroGold);
 
-        DrawLabel(g, "SNAKE", _displayFont, titleBrush,
-            new Rectangle(104, 194, 470, 76), _leftFormat);
-        DrawLabel(g, "A fresh run. A new high score.", _pageTitleFont,
-            titleBrush, new Rectangle(108, 270, 470, 42), _leftFormat);
-        DrawLabel(g, "Choose your pace, pick your look and take the field.",
-            _bodyFont, subtitleBrush, new Rectangle(110, 318, 460, 28), _leftFormat);
+        DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
+        DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
 
-        DrawUiPanel(g, new Rectangle(610, 145, 444, 330), false, 20);
-        using (var glow = new SolidBrush(Color.FromArgb(30, ActiveTheme.Highlight)))
-            g.FillEllipse(glow, 690, 190, 280, 220);
-        DrawSnakePreview(g, new Rectangle(650, 164, 365, 286), Skins[_selectedSkin]);
-        using (var tagFill = new SolidBrush(Color.FromArgb(205, ActiveTheme.Dark)))
-            FillRound(g, new Rectangle(632, 420, 190, 32), 9, tagFill);
-        DrawLabel(g, $"EQUIPPED  ·  {SkinShortName(_selectedSkin)}",
-            _microFont, eyebrow, new Rectangle(642, 420, 180, 32), _centerFormat);
+        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
+            RetroWhite);
 
-        DrawLabel(g, "SELECT DIFFICULTY", _sectionFont, titleBrush,
-            new Rectangle(112, 366, 260, 24), _leftFormat);
-        DrawUiPanel(g, new Rectangle(104, 391, 424, 56), false, 12);
-        FillRound(g, _retroDifficultyLeft, 9,
-            Color.FromArgb(215, ActiveTheme.Dark));
-        StrokeRound(g, _retroDifficultyLeft, 9,
-            _hoverId == 26 ? ActiveTheme.Highlight : ActiveTheme.Grid);
-        FillRound(g, _retroDifficultyRight, 9,
-            Color.FromArgb(215, ActiveTheme.Dark));
-        StrokeRound(g, _retroDifficultyRight, 9,
-            _hoverId == 27 ? ActiveTheme.Highlight : ActiveTheme.Grid);
-        using (var arrowBrush = new SolidBrush(ActiveTheme.Text))
-        {
-            DrawLabel(g, "‹", _iconFont, arrowBrush, _retroDifficultyLeft, _centerFormat);
-            DrawLabel(g, "›", _iconFont, arrowBrush, _retroDifficultyRight, _centerFormat);
-        }
-        using (var difficultyBrush = new SolidBrush(ActiveTheme.Highlight))
-            DrawLabel(g, DifficultyName(_difficulty).ToUpperInvariant(),
-                _sectionFont, difficultyBrush, _retroDifficultyText, _centerFormat);
+        DrawRetroMenuSnake(g, 345, 385);
+        DrawPixelApple(g, 410, 378, 5);
 
-        DrawUiButton(g, _retroStartButton, "START GAME   →", true);
-        DrawUiButton(g, _retroSkinsButton, "CHANGE SKIN");
-        DrawUiButton(g, _retroSettingsButton, "SETTINGS");
+        Color leftArrowColor = _hoverId == 26 ? ActiveTheme.Highlight : RetroWhite;
+        Color difficultyColor = _hoverId == 28 ? ActiveTheme.Highlight : RetroWhite;
+        Color rightArrowColor = _hoverId == 27 ? ActiveTheme.Highlight : RetroWhite;
 
-        DrawUiPanel(g, new Rectangle(610, 500, 444, 112), false, 16);
-        DrawLabel(g, "PERSONAL BEST", _microFont, labelBrush,
-            new Rectangle(642, 518, 160, 20), _leftFormat);
-        DrawLabel(g, FormatScore(_bestScore), _scoreFont, titleBrush,
-            new Rectangle(640, 535, 185, 54), _leftFormat);
-        using (var divider = new Pen(Color.FromArgb(95, ActiveTheme.Grid), 1))
-            g.DrawLine(divider, 845, 520, 845, 590);
-        DrawLabel(g, ActiveTheme.Season + "  ·  " + ActiveTheme.TimeOfDay,
-            _sectionFont, eyebrow, new Rectangle(865, 528, 165, 22), _leftFormat);
-        DrawLabel(g, "THEME ACTIVE", _microFont, labelBrush,
-            new Rectangle(865, 552, 165, 20), _leftFormat);
-        DrawLabel(g, "21 UNIQUE SNAKE SKINS", _microFont, labelBrush,
-            new Rectangle(865, 576, 165, 20), _leftFormat);
+        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
+        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
+            DesignWidth / 2, 394, 4, difficultyColor);
+        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
 
-        DrawLabel(g, "WASD / ARROWS  ·  SPACE TO PAUSE",
-            _microFont, labelBrush, new Rectangle(108, 644, 410, 22), _leftFormat);
+        DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
+            3, _retroStartButton.Contains(_mousePoint), true);
+        DrawRetroButton(g, _retroSkinsButton, "SKINS", 3,
+            _retroSkinsButton.Contains(_mousePoint));
+        DrawRetroButton(g, _retroSettingsButton, "SETTINGS", 3,
+            _retroSettingsButton.Contains(_mousePoint));
+
+        DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
+            DesignWidth / 2, 704, 2, RetroWhite);
     }
 
         private void DrawRetroButton(Graphics g, Rectangle rect, string label,

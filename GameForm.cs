@@ -359,50 +359,32 @@ public sealed class GameForm : Form
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.Half;
 
-        bool retroView = _view is AppView.Home or AppView.Skins;
+        g.Transform = _viewMatrix;
+        g.SmoothingMode = SmoothingMode.None;
+        g.PixelOffsetMode = PixelOffsetMode.None;
+        g.Clear(RetroBackground);
 
-        if (_view == AppView.Play)
+        switch (_view)
         {
-            g.DrawImageUnscaled(_chrome, 0, 0);
-            g.Transform = _viewMatrix;
-
-            Rectangle clip = ClientToDesign(e.ClipRectangle);
-            if (clip.IntersectsWith(_field))
-                DrawBoardDynamic(g);
-            if (clip.IntersectsWith(_rightPanel))
-                DrawDashboard(g);
-        }
-        else
-        {
-            g.Transform = _viewMatrix;
-
-            if (retroView)
-            {
-                g.SmoothingMode = SmoothingMode.None;
-                g.PixelOffsetMode = PixelOffsetMode.None;
-                g.Clear(RetroBackground);
-
-                if (_view == AppView.Home)
-                    DrawHomePage(g);
-                else
-                    DrawSkinsPage(g);
-
-                DrawRetroWindowControls(g);
-            }
-            else
-            {
-                DrawPageBackground(g);
+            case AppView.Home:
+                DrawHomePage(g);
+                break;
+            case AppView.Skins:
+                DrawSkinsPage(g);
+                break;
+            case AppView.Settings:
                 DrawSettingsPage(g);
-            }
+                DrawRetroNavigation(g);
+                break;
+            case AppView.Play:
+                DrawRetroPlayChrome(g);
+                DrawBoardDynamic(g);
+                DrawRetroPlayDashboard(g);
+                DrawRetroNavigation(g);
+                break;
         }
 
-        if (!retroView)
-        {
-            DrawAppHeader(g);
-            DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
-            DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
-            DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
-        }
+        DrawRetroWindowControls(g);
     }
 
     private void UpdateViewTransform()
@@ -839,9 +821,6 @@ public sealed class GameForm : Form
                 ? Color.FromArgb(255, 226, 125)
                 : RetroWhite);
         DrawPixelText(g, "SKINS", DesignWidth / 2, 48, 8, RetroWhite);
-        DrawPixelText(g, "CHOOSE YOUR SNAKE", 390, 113, 3,
-            Color.FromArgb(228, 238, 220));
-
         DrawSkinPicker(g);
 
         SnakeSkin skin = Skins[_selectedSkin];
@@ -958,8 +937,6 @@ public sealed class GameForm : Form
             DrawRetroSnakeBlock(g, centers[i].X, centers[i].Y, size,
                 skin, i, i == 0);
 
-        DrawPixelText(g, "PREVIEW", area.X + area.Width / 2,
-            area.Bottom - 31, 4, RetroWhite);
     }
 
     private void DrawRetroLegendaryAura(Graphics g, Point center)
@@ -1136,49 +1113,122 @@ public sealed class GameForm : Form
 
     private void DrawSettingsPage(Graphics g)
     {
-        DrawStaticPanel(g, _boardCard);
-        DrawStaticPanel(g, _rightPanel);
-        DrawLabel(g, "SETTINGS", _welcomeFont, _whiteBrush,
-            new Rectangle(82, 122, 420, 54), _leftFormat);
-        DrawLabel(g, "Manage sound, controls and saved progress.",
-            _smallFont, _mutedBrush, new Rectangle(84, 180, 480, 24), _leftFormat);
+        DrawPixelText(g, "SETTINGS", DesignWidth / 2, 82, 6, RetroWhite);
+        DrawPixelText(g, "GAME OPTIONS", 380, 172, 3, RetroGold);
 
-        DrawStaticPanel(g, new Rectangle(100, 235, 560, 120), PanelLight);
-        DrawLabel(g, "SOUND", _labelFont, _mutedBrush,
-            new Rectangle(124, 255, 220, 20), _leftFormat);
-        DrawLabel(g, "Toggle the in-game sound effects.",
-            _smallFont, _mutedBrush, new Rectangle(124, 282, 300, 20), _leftFormat);
-        DrawSecondaryButton(g, _settingsSoundButton,
-            _soundEnabled ? "SOUND  ·  ON" : "SOUND  ·  OFF");
+        Rectangle soundPanel = new(105, 210, 570, 130);
+        Rectangle scorePanel = new(105, 365, 570, 130);
+        Rectangle controlsPanel = new(105, 520, 570, 130);
+        Rectangle profilePanel = new(735, 160, 390, 490);
 
-        DrawStaticPanel(g, new Rectangle(100, 380, 560, 120), PanelLight);
-        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
-            new Rectangle(124, 398, 220, 20), _leftFormat);
-        DrawLabel(g, $"Saved best score: {FormatScore(_bestScore)}",
-            _smallFont, _mutedBrush, new Rectangle(124, 426, 300, 20), _leftFormat);
-        DrawSecondaryButton(g, _settingsResetButton, "RESET BEST SCORE", true);
+        DrawPixelPanel(g, soundPanel, true);
+        DrawPixelPanel(g, scorePanel, true);
+        DrawPixelPanel(g, controlsPanel, true);
+        DrawPixelPanel(g, profilePanel, true);
 
-        DrawStaticPanel(g, new Rectangle(100, 525, 560, 120), PanelLight);
-        DrawLabel(g, "KEYBOARD CONTROLS", _labelFont, _mutedBrush,
-            new Rectangle(124, 545, 220, 20), _leftFormat);
-        DrawLabel(g, "WASD / Arrow keys  ·  Space: pause  ·  F11: fullscreen",
-            _smallFont, _whiteBrush, new Rectangle(124, 575, 500, 24), _leftFormat);
+        DrawPixelText(g, "SOUND", 250, 236, 3, RetroWhite);
+        DrawPixelText(g, "GAME EFFECTS", 250, 274, 2, RetroGold);
+        DrawRetroButton(g, _settingsSoundButton,
+            _soundEnabled ? "SOUND ON" : "SOUND OFF", 2,
+            _settingsSoundButton.Contains(_mousePoint));
 
-        DrawLabel(g, "GAME PROFILE", _labelFont, _mutedBrush,
-            new Rectangle(830, 142, 240, 20), _leftFormat);
-        DrawLabel(g, "CURRENT SKIN", _smallFont, _mutedBrush,
-            new Rectangle(830, 195, 230, 18), _leftFormat);
-        DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont,
-            Skins[_selectedSkin].IsLegendary ? _goldBrush : _greenBrush,
-            new Rectangle(830, 220, 260, 24), _leftFormat);
-        DrawLabel(g, "CURRENT MODE", _smallFont, _mutedBrush,
-            new Rectangle(830, 280, 230, 18), _leftFormat);
-        DrawLabel(g, ModeName(_mode), _buttonFont, _whiteBrush,
-            new Rectangle(830, 305, 260, 24), _leftFormat);
-        DrawLabel(g, "DIFFICULTY", _smallFont, _mutedBrush,
-            new Rectangle(830, 365, 230, 18), _leftFormat);
-        DrawLabel(g, DifficultyName(_difficulty), _buttonFont, _whiteBrush,
-            new Rectangle(830, 390, 260, 24), _leftFormat);
+        DrawPixelText(g, "PERSONAL BEST", 270, 390, 3, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 270, 431, 4, RetroGold);
+        DrawRetroButton(g, _settingsResetButton, "RESET SCORE", 2,
+            _settingsResetButton.Contains(_mousePoint));
+
+        DrawPixelText(g, "KEYBOARD", 260, 546, 3, RetroWhite);
+        DrawPixelText(g, "MOVE: WASD / ARROWS", 380, 590, 2, RetroWhite);
+        DrawPixelText(g, "PAUSE: SPACE", 380, 620, 2, RetroGold);
+
+        DrawPixelText(g, "GAME PROFILE", 930, 194, 3, RetroGold);
+        DrawPixelText(g, "SKIN", 810, 260, 2, RetroWhite);
+        DrawPixelText(g, SkinShortName(_selectedSkin), 930, 290, 3,
+            Skins[_selectedSkin].IsLegendary ? Color.FromArgb(255, 224, 95) : RetroWhite);
+        DrawPixelText(g, "MODE", 810, 355, 2, RetroWhite);
+        DrawPixelText(g, ModeName(_mode).ToUpperInvariant(), 930, 385, 3, RetroWhite);
+        DrawPixelText(g, "DIFFICULTY", 840, 450, 2, RetroWhite);
+        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
+            930, 480, 3, RetroWhite);
+        DrawRetroSnakePreview(g, new Rectangle(810, 515, 240, 105),
+            Skins[_selectedSkin]);
+    }
+
+    private void DrawRetroNavigation(Graphics g)
+    {
+        DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
+        DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
+        DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
+    }
+
+    private void DrawRetroNavButton(Graphics g, Rectangle rect, string label, bool active)
+    {
+        using var fill = new SolidBrush(active
+            ? Color.FromArgb(24, 105, 8)
+            : rect.Contains(_mousePoint) ? Color.FromArgb(18, 91, 5) : RetroDark);
+        g.FillRectangle(fill, rect);
+        DrawPixelOutline(g, rect, active ? Color.FromArgb(255, 220, 78) : RetroGold, 2);
+        DrawPixelText(g, label, rect.X + rect.Width / 2, rect.Y + 10, 1, RetroWhite);
+    }
+
+    private void DrawRetroPlayChrome(Graphics g)
+    {
+        DrawPixelPanel(g, _boardCard, true);
+        DrawPixelPanel(g, _rightPanel, true);
+
+        using var boardFill = new SolidBrush(RetroDark);
+        g.FillRectangle(boardFill, _field);
+        using var grid = new Pen(Color.FromArgb(70, 185, 143, 17), 1);
+        for (int x = _field.Left; x <= _field.Right; x += CellSize)
+            g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
+        for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
+            g.DrawLine(grid, _field.Left, y, _field.Right, y);
+        DrawPixelOutline(g, _field, RetroGold, 3);
+
+        DrawPixelText(g, "SCORE", 875, 125, 2, RetroWhite);
+        DrawPixelText(g, "BEST", 1040, 125, 2, RetroGold);
+        DrawPixelText(g, "MODE", 960, 265, 2, RetroWhite);
+        DrawPixelText(g, "DIFFICULTY", 960, 385, 2, RetroWhite);
+    }
+
+    private void DrawRetroPlayDashboard(Graphics g)
+    {
+        DrawPixelText(g, FormatScore(_score), 875, 160, 4, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1040, 160, 4, RetroGold);
+
+        DrawRetroButton(g, _classicButton, "CLASSIC", 1,
+            _mode == GameMode.Classic, _mode == GameMode.Classic);
+        DrawRetroButton(g, _wrapButton, "WRAP", 2,
+            _mode == GameMode.Wrap, _mode == GameMode.Wrap);
+        DrawRetroButton(g, _rushButton, "RUSH", 2,
+            _mode == GameMode.Rush, _mode == GameMode.Rush);
+
+        DrawRetroButton(g, _easyButton, "EASY", 2,
+            _difficulty == Difficulty.Easy, _difficulty == Difficulty.Easy);
+        DrawRetroButton(g, _normalButton, "NORMAL", 1,
+            _difficulty == Difficulty.Normal, _difficulty == Difficulty.Normal);
+        DrawRetroButton(g, _hardButton, "HARD", 2,
+            _difficulty == Difficulty.Hard, _difficulty == Difficulty.Hard);
+
+        string action = _state switch
+        {
+            GameState.Playing => "PAUSE",
+            GameState.Paused => "RESUME",
+            _ => "PLAY"
+        };
+        DrawRetroButton(g, _mainButton, action, 2, true, true);
+        DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
+            _soundButton.Contains(_mousePoint));
+        DrawRetroButton(g, _restartButton, "RESET", 1,
+            _restartButton.Contains(_mousePoint));
+        DrawRetroButton(g, _skinButton, "SKINS", 2,
+            _skinButton.Contains(_mousePoint));
+        DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
+            _resetBestButton.Contains(_mousePoint));
+
+        DrawPixelText(g, _state.ToString().ToUpperInvariant(),
+            960, 690, 2, RetroGold);
     }
 
     private static string ModeName(GameMode mode) => mode switch

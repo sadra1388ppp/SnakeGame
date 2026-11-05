@@ -200,9 +200,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _retroDifficultyLeft = new(455, 378, 44, 48);
     private readonly Rectangle _retroDifficultyText = new(500, 378, 160, 48);
     private readonly Rectangle _retroDifficultyRight = new(661, 378, 44, 48);
-    private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
-    private readonly Rectangle _mainButton = Rectangle.Empty;
     private readonly Rectangle _soundButton = new(832, 542, 126, 38);
     private readonly Rectangle _restartButton = new(972, 542, 126, 38);
     private readonly Rectangle _classicButton = new(832, 304, 82, 38);
@@ -2573,13 +2571,6 @@ private void DrawThemeSectionCard(Graphics g)
         DrawRetroButton(g, _hardButton, "HARD", 2,
             _difficulty == Difficulty.Hard, _difficulty == Difficulty.Hard);
 
-        string action = _state switch
-        {
-            GameState.Playing => "PAUSE",
-            GameState.Paused => "RESUME",
-            GameState.GameOver => "ENDED",
-            _ => "PLAY"
-        };
         DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
             _soundButton.Contains(_mousePoint));
         DrawRetroButton(g, _restartButton,
@@ -2614,30 +2605,11 @@ private void DrawThemeSectionCard(Graphics g)
         DrawChoice(g, _normalButton, "MEDIUM", _difficulty == Difficulty.Normal);
         DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
 
-        string mainText = _state switch
-        {
-            GameState.Playing => "PAUSE",
-            GameState.Paused => "RESUME",
-            _ => "PLAY NOW"
-        };
-
         DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
         DrawActionButton(g, _restartButton, "↻", false);
         DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
         DrawSecondaryButton(g, _resetBestButton, "RESET BEST SCORE", true);
 
-        DrawLabel(g, _state switch
-        {
-            GameState.Playing => "IN PLAY",
-            GameState.Paused => "PAUSED",
-            GameState.GameOver => "FINISHED",
-            _ => "READY"
-        }, _labelFont,
-            _state == GameState.Playing ? _greenBrush : _mutedBrush,
-            _boardStatus, _centerFormat);
-
-        using var statusPen = new Pen(Border, 1);
-        DrawRoundOutline(g, _boardStatus, 10, statusPen);
     }
 
     private void DrawBoardDynamic(Graphics g)

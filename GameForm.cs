@@ -1150,8 +1150,8 @@ public sealed class GameForm : Form
         DrawPixelText(g, "DIFFICULTY", 840, 450, 2, RetroWhite);
         DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
             930, 480, 3, RetroWhite);
-        DrawRetroSnakePreview(g, new Rectangle(810, 515, 240, 105),
-            Skins[_selectedSkin]);
+        DrawRetroMenuSnake(g, 845, 565);
+        DrawPixelApple(g, 910, 555, 3);
     }
 
     private void DrawRetroNavigation(Graphics g)

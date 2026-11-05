@@ -33,18 +33,18 @@ public sealed class GameForm : Form
         new("Solar Gold", Color.FromArgb(218,157,41), Color.FromArgb(255,220,105), Color.FromArgb(117,74,18), Color.FromArgb(255,244,177), Color.FromArgb(255,231,142), SkinPattern.Stars),
         new("Cyber Neon", Color.FromArgb(32,205,178), Color.FromArgb(115,255,224), Color.FromArgb(7,91,90), Color.FromArgb(190,255,245), Color.FromArgb(77,255,226), SkinPattern.Neon),
         new("Toxic Slime", Color.FromArgb(115,190,43), Color.FromArgb(193,255,75), Color.FromArgb(45,91,22), Color.FromArgb(228,255,146), Color.FromArgb(211,255,74), SkinPattern.Dots),
-        new("Purple Haze", Color.FromArgb(131,86,190), Color.FromArgb(193,139,255), Color.FromArgb(61,38,111), Color.FromArgb(230,204,255), Color.FromArgb(213,161,255), SkinPattern.Stars),
+        new("Purple Haze", Color.FromArgb(131,86,190), Color.FromArgb(193,139,255), Color.FromArgb(61,38,111), Color.FromArgb(230,204,255), Color.FromArgb(213,161,255), SkinPattern.Royal),
         new("Sunset Blaze", Color.FromArgb(224,91,52), Color.FromArgb(255,166,81), Color.FromArgb(117,43,38), Color.FromArgb(255,211,148), Color.FromArgb(255,194,104), SkinPattern.Flames),
         new("Tiger Rush", Color.FromArgb(221,133,37), Color.FromArgb(255,190,76), Color.FromArgb(82,48,26), Color.FromArgb(255,229,160), Color.FromArgb(39,28,26), SkinPattern.Tiger),
         new("Zebra Stripe", Color.FromArgb(218,224,229), Color.FromArgb(255,255,255), Color.FromArgb(55,62,72), Color.FromArgb(255,255,255), Color.FromArgb(54,63,76), SkinPattern.Zebra),
-        new("Mint Chip", Color.FromArgb(77,177,145), Color.FromArgb(154,238,195), Color.FromArgb(26,93,75), Color.FromArgb(218,255,228), Color.FromArgb(222,255,233), SkinPattern.Dots),
+        new("Mint Chip", Color.FromArgb(77,177,145), Color.FromArgb(154,238,195), Color.FromArgb(26,93,75), Color.FromArgb(218,255,228), Color.FromArgb(222,255,233), SkinPattern.Scales),
         new("Candy Pop", Color.FromArgb(231,99,164), Color.FromArgb(255,174,213), Color.FromArgb(124,42,94), Color.FromArgb(255,223,241), Color.FromArgb(255,244,255), SkinPattern.Candy),
-        new("Lava Core", Color.FromArgb(184,58,35), Color.FromArgb(255,118,49), Color.FromArgb(75,25,24), Color.FromArgb(255,194,104), Color.FromArgb(255,224,93), SkinPattern.Flames),
+        new("Lava Core", Color.FromArgb(184,58,35), Color.FromArgb(255,118,49), Color.FromArgb(75,25,24), Color.FromArgb(255,194,104), Color.FromArgb(255,224,93), SkinPattern.Honeycomb),
         new("Galaxy Dust", Color.FromArgb(72,70,153), Color.FromArgb(154,137,255), Color.FromArgb(34,28,93), Color.FromArgb(226,217,255), Color.FromArgb(255,221,135), SkinPattern.Galaxy),
         new("Volt Strike", Color.FromArgb(62,120,217), Color.FromArgb(144,210,255), Color.FromArgb(26,52,122), Color.FromArgb(221,244,255), Color.FromArgb(255,237,99), SkinPattern.Lightning),
         new("Jungle Camo", Color.FromArgb(91,119,57), Color.FromArgb(166,187,91), Color.FromArgb(39,65,36), Color.FromArgb(202,222,143), Color.FromArgb(44,69,40), SkinPattern.Camo),
         new("Rose Quartz", Color.FromArgb(203,110,142), Color.FromArgb(255,188,206), Color.FromArgb(104,48,78), Color.FromArgb(255,229,238), Color.FromArgb(255,226,239), SkinPattern.Coral),
-        new("Diamond Skin", Color.FromArgb(100,183,205), Color.FromArgb(208,251,255), Color.FromArgb(42,103,133), Color.FromArgb(255,255,255), Color.FromArgb(225,255,255), SkinPattern.Honeycomb),
+        new("Diamond Skin", Color.FromArgb(100,183,205), Color.FromArgb(208,251,255), Color.FromArgb(42,103,133), Color.FromArgb(255,255,255), Color.FromArgb(225,255,255), SkinPattern.Prism),
         new("Shadow Ops", Color.FromArgb(66,79,91), Color.FromArgb(142,160,173), Color.FromArgb(22,29,39), Color.FromArgb(185,205,216), Color.FromArgb(114,235,203), SkinPattern.Circuit),
         new("LEGENDARY PHOENIX", Color.FromArgb(151,74,205), Color.FromArgb(255,202,91), Color.FromArgb(74,31,130), Color.FromArgb(255,238,174), Color.FromArgb(255,178,63), SkinPattern.Legendary, true)
     ];
@@ -207,6 +207,14 @@ public sealed class GameForm : Form
     };
     private readonly Pen _headOutlinePen = new(Color.FromArgb(190, 57, 123, 64), 1.2f);
     private readonly Pen _skinPatternPen = new(Color.FromArgb(180, 255, 255, 255), 2.4f)
+    {
+        StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
+    };
+    private readonly Pen _skinAccentPen = new(Color.FromArgb(180, 255, 255, 255), 1.4f)
+    {
+        StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
+    };
+    private readonly Pen _skinGlowPen = new(Color.FromArgb(45, 165, 239, 104), 25f)
     {
         StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
     };
@@ -585,65 +593,8 @@ public sealed class GameForm : Form
 
     private void DrawLobbyArtwork(Graphics g)
     {
-        Rectangle art = new(430, 145, 320, 310);
-        FillRound(g, art, 18, Color.FromArgb(215, 10, 19, 23));
-        StrokeRound(g, art, 18, Color.FromArgb(55, 75, 78));
-
-        using (var gridPen = new Pen(Color.FromArgb(22, 140, 180, 150), 1))
-        {
-            for (int x = art.Left + 24; x < art.Right; x += 28)
-                g.DrawLine(gridPen, x, art.Top + 1, x, art.Bottom - 1);
-            for (int y = art.Top + 24; y < art.Bottom; y += 28)
-                g.DrawLine(gridPen, art.Left + 1, y, art.Right - 1, y);
-        }
-
-        using (var halo = new SolidBrush(Color.FromArgb(18, 165, 239, 104)))
-            g.FillEllipse(halo, 482, 190, 220, 220);
-
-        using var snakePath = new GraphicsPath();
-        snakePath.AddBezier(470, 370, 500, 315, 535, 390, 565, 335);
-        snakePath.AddBezier(565, 335, 595, 270, 640, 270, 658, 320);
-        snakePath.AddBezier(658, 320, 680, 372, 630, 405, 600, 365);
-
-        using (var glowPen = new Pen(Color.FromArgb(45, 165, 239, 104), 34)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-            g.DrawPath(glowPen, snakePath);
-
-        using (var outlinePen = new Pen(Color.FromArgb(55, 126, 72), 25)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-            g.DrawPath(outlinePen, snakePath);
-
-        using (var bodyBrush = new LinearGradientBrush(art,
-                   Color.FromArgb(75, 190, 86), Color.FromArgb(183, 247, 122), 35f))
-        using (var bodyPen = new Pen(bodyBrush, 17)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-            g.DrawPath(bodyPen, snakePath);
-
-        using (var headBrush = new SolidBrush(Color.FromArgb(183, 247, 122)))
-        using (var headOutline = new Pen(Color.FromArgb(43, 104, 57), 2))
-        {
-            g.FillEllipse(headBrush, 585, 348, 30, 30);
-            g.DrawEllipse(headOutline, 585, 348, 30, 30);
-        }
-
-        using (var eyeBrush = new SolidBrush(Color.FromArgb(12, 27, 20)))
-        {
-            g.FillEllipse(eyeBrush, 593, 356, 3.5f, 3.5f);
-            g.FillEllipse(eyeBrush, 603, 356, 3.5f, 3.5f);
-        }
-
-        if (_appleSprite is not null)
-            g.DrawImageUnscaled(_appleSprite, 680, 208);
-
-        using (var dot = new SolidBrush(Color.FromArgb(140, Green)))
-            g.FillEllipse(dot, 475, 205, 5, 5);
-        using (var dot = new SolidBrush(Color.FromArgb(120, Gold)))
-            g.FillEllipse(dot, 690, 390, 4, 4);
-
-        DrawLabel(g, "READY FOR THE NEXT RUN?", _labelFont, _greenBrush,
-            new Rectangle(452, 410, 275, 24), _centerFormat);
+        DrawSnakePreview(g, new Rectangle(420, 132, 326, 312), Skins[_selectedSkin]);
     }
-
 
     private void DrawScorePanel(Graphics g)
     {
@@ -664,104 +615,183 @@ public sealed class GameForm : Form
         DrawStaticPanel(g, _boardCard);
         DrawStaticPanel(g, _rightPanel);
         DrawStaticPanel(g, _scoreArea, PanelLight);
-        DrawStaticPanel(g, _modeArea, PanelLight);
-        DrawStaticPanel(g, _difficultyArea, PanelLight);
-        DrawStaticPanel(g, _actionArea, PanelLight);
-        using (var scoreDivider = new Pen(Border, 1))
-            g.DrawLine(scoreDivider, 968, 142, 968, 238);
 
-        DrawLabel(g, "YOUR ARCADE HUB", _labelFont, _greenBrush,
-            new Rectangle(78, 142, 350, 22), _leftFormat);
-        DrawLabel(g, "WELCOME TO", _heroFont, _mutedBrush,
-            new Rectangle(74, 180, 330, 38), _leftFormat);
-        DrawLabel(g, "SNAKE ARCADE", _welcomeFont, _whiteBrush,
-            new Rectangle(74, 217, 350, 58), _leftFormat);
-        DrawLabel(g, "Play a quick run, personalize your snake, or tune the game to your style.",
-            _welcomeSmallFont, _mutedBrush, new Rectangle(78, 286, 330, 58), _leftFormat);
+        using (var divider = new Pen(Border, 1))
+            g.DrawLine(divider, 968, 142, 968, 238);
+
+        Rectangle hero = new(56, 116, 702, 328);
+        using (var heroBrush = new LinearGradientBrush(hero,
+                   Color.FromArgb(27, 43, 43), Color.FromArgb(13, 21, 26), 18f))
+            FillRound(g, hero, 18, heroBrush);
+        StrokeRound(g, hero, 18, Color.FromArgb(58, 83, 77));
+
+        using (var glow = new SolidBrush(Color.FromArgb(22, 165, 239, 104)))
+            g.FillEllipse(glow, 260, 135, 250, 250);
+
+        DrawLabel(g, "YOUR PERSONAL ARCADE", _labelFont, _greenBrush,
+            new Rectangle(82, 148, 300, 20), _leftFormat);
+        DrawLabel(g, "READY FOR", _heroFont, _mutedBrush,
+            new Rectangle(80, 190, 300, 38), _leftFormat);
+        DrawLabel(g, "A NEW RECORD?", _welcomeFont, _whiteBrush,
+            new Rectangle(78, 226, 330, 52), _leftFormat);
+        DrawLabel(g, "Choose your challenge, equip a new look, and make every run count.",
+            _welcomeSmallFont, _mutedBrush,
+            new Rectangle(84, 292, 300, 52), _leftFormat);
+
+        FillRound(g, new Rectangle(84, 365, 178, 34), 9,
+            Color.FromArgb(44, 75, 49));
+        StrokeRound(g, new Rectangle(84, 365, 178, 34), 9,
+            Color.FromArgb(95, Green));
+        DrawLabel(g, "21 UNIQUE SKINS", _labelFont, _greenBrush,
+            new Rectangle(91, 365, 164, 34), _centerFormat);
 
         DrawLobbyArtwork(g);
 
         DrawHomeOptionCard(g, _homePlayCard, "PLAY GAME",
-            "Pick a mode and start a run", "▶", 21);
+            "Start a new challenge", "▶", 21);
         DrawHomeOptionCard(g, _homeSkinsCard, "SKINS",
-            "Browse and equip skins", "◈", 22);
+            "Choose your look", "◈", 22);
         DrawHomeOptionCard(g, _homeSettingsCard, "SETTINGS",
-            "Sound, controls and scores", "⚙", 23);
+            "Tune your arcade", "⚙", 23);
+
+        DrawStaticPanel(g, new Rectangle(78, 609, 202, 59), PanelLight);
+        DrawStaticPanel(g, new Rectangle(292, 609, 202, 59), PanelLight);
+        DrawStaticPanel(g, new Rectangle(506, 609, 218, 59), PanelLight);
+
+        DrawLabel(g, "PERSONAL BEST", _smallFont, _mutedBrush,
+            new Rectangle(94, 615, 170, 17), _leftFormat);
+        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
+            new Rectangle(94, 630, 170, 32), _leftFormat);
+
+        DrawLabel(g, "GAME MODES", _smallFont, _mutedBrush,
+            new Rectangle(308, 615, 170, 17), _leftFormat);
+        DrawLabel(g, "03", _numberFont, _whiteBrush,
+            new Rectangle(308, 630, 170, 32), _leftFormat);
+
+        DrawLabel(g, "SKIN COLLECTION", _smallFont, _mutedBrush,
+            new Rectangle(522, 615, 186, 17), _leftFormat);
+        DrawLabel(g, "21 DESIGNS", _buttonFont, _goldBrush,
+            new Rectangle(522, 636, 186, 22), _leftFormat);
 
         DrawScorePanel(g);
 
-        DrawLabel(g, "YOUR PREFERENCES", _labelFont, _mutedBrush,
-            new Rectangle(842, 282, 240, 18), _leftFormat);
+        DrawLabel(g, "RUN PROFILE", _labelFont, _greenBrush,
+            new Rectangle(842, 278, 240, 20), _leftFormat);
         DrawLabel(g, "GAME MODE", _smallFont, _mutedBrush,
-            new Rectangle(842, 314, 110, 18), _leftFormat);
-        DrawLabel(g, ModeName(_mode), _buttonFont, _whiteBrush,
-            new Rectangle(842, 336, 250, 24), _leftFormat);
+            new Rectangle(842, 312, 120, 17), _leftFormat);
+        DrawLabel(g, ModeName(_mode).ToUpperInvariant(), _buttonFont, _whiteBrush,
+            new Rectangle(842, 332, 250, 22), _leftFormat);
+
+        using (var divider = new Pen(Border, 1))
+            g.DrawLine(divider, 842, 364, 1090, 364);
 
         DrawLabel(g, "DIFFICULTY", _smallFont, _mutedBrush,
-            new Rectangle(842, 390, 110, 18), _leftFormat);
-        DrawLabel(g, DifficultyName(_difficulty), _buttonFont, _whiteBrush,
-            new Rectangle(842, 412, 250, 24), _leftFormat);
+            new Rectangle(842, 380, 120, 17), _leftFormat);
+        DrawLabel(g, DifficultyName(_difficulty).ToUpperInvariant(), _buttonFont, _whiteBrush,
+            new Rectangle(842, 400, 250, 22), _leftFormat);
 
-        DrawLabel(g, "EQUIPPED SNAKE", _smallFont, _mutedBrush,
-            new Rectangle(842, 528, 170, 18), _leftFormat);
+        using (var divider = new Pen(Border, 1))
+            g.DrawLine(divider, 842, 434, 1090, 434);
+
+        DrawLabel(g, "EQUIPPED SKIN", _smallFont, _mutedBrush,
+            new Rectangle(842, 451, 180, 17), _leftFormat);
         DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont,
             Skins[_selectedSkin].IsLegendary ? _goldBrush : _greenBrush,
-            new Rectangle(842, 550, 250, 24), _leftFormat);
+            new Rectangle(842, 472, 250, 24), _leftFormat);
 
+        FillRound(g, new Rectangle(842, 525, 248, 44), 9, PanelLight);
         DrawLabel(g, _soundEnabled ? "SOUND ENABLED" : "SOUND MUTED",
             _labelFont, _soundEnabled ? _greenBrush : _mutedBrush,
-            new Rectangle(842, 592, 240, 20), _leftFormat);
+            new Rectangle(856, 525, 220, 44), _leftFormat);
         DrawLabel(g, "Your progress is saved on this PC.",
-            _smallFont, _mutedBrush, new Rectangle(842, 618, 250, 22), _leftFormat);
+            _smallFont, _mutedBrush, new Rectangle(842, 594, 250, 22), _leftFormat);
+        DrawLabel(g, "OFFLINE  ·  NO ACCOUNT REQUIRED",
+            _smallFont, _mutedBrush, new Rectangle(842, 622, 250, 20), _leftFormat);
     }
 
-    private void DrawHomeOptionCard(Graphics g, Rectangle rect, string title,
-        string description, string symbol, int hoverId)
+    private void DrawHomeOptionCard(Graphics g, Rectangle rect,
+        string title, string description, string symbol, int hoverId)
     {
         bool hover = _hoverId == hoverId;
-        FillRound(g, rect, 12, hover
-            ? Color.FromArgb(34, 54, 53)
+        FillRound(g, rect, 13, hover
+            ? Color.FromArgb(33, 55, 52)
             : PanelLight);
-        StrokeRound(g, rect, 12, hover
-            ? Color.FromArgb(100, Green)
-            : Border);
+        StrokeRound(g, rect, 13, hover ? Color.FromArgb(115, Green) : Border);
 
+        FillRound(g, new Rectangle(rect.X + 15, rect.Y + 18, 44, 44), 13,
+            hover ? Color.FromArgb(62, 104, 64) : Color.FromArgb(37, 58, 49));
         DrawLabel(g, symbol, _heroFont, _greenBrush,
-            new Rectangle(rect.X + 14, rect.Y + 12, 42, 42), _centerFormat);
+            new Rectangle(rect.X + 15, rect.Y + 18, 44, 44), _centerFormat);
         DrawLabel(g, title, _buttonFont, _whiteBrush,
-            new Rectangle(rect.X + 64, rect.Y + 12, rect.Width - 76, 26), _leftFormat);
+            new Rectangle(rect.X + 70, rect.Y + 16, rect.Width - 84, 24), _leftFormat);
         DrawLabel(g, description, _smallFont, _mutedBrush,
-            new Rectangle(rect.X + 16, rect.Y + 64, rect.Width - 32, 34), _leftFormat);
+            new Rectangle(rect.X + 70, rect.Y + 42, rect.Width - 84, 30), _leftFormat);
+        DrawLabel(g, "OPEN  ›", _smallFont, hover ? _greenBrush : _mutedBrush,
+            new Rectangle(rect.X + 16, rect.Y + 79, rect.Width - 30, 18), _leftFormat);
     }
 
     private void DrawSkinsPage(Graphics g)
     {
         DrawStaticPanel(g, _boardCard);
         DrawStaticPanel(g, _rightPanel);
+
         DrawLabel(g, "SNAKE COLLECTION", _labelFont, _greenBrush,
             new Rectangle(82, 112, 360, 24), _leftFormat);
-        DrawLabel(g, "Choose a look for your next run.", _smallFont, _mutedBrush,
-            new Rectangle(82, 137, 430, 20), _leftFormat);
+        DrawLabel(g, "Pick a design. The preview shows your equipped snake in-game.",
+            _smallFont, _mutedBrush, new Rectangle(82, 137, 650, 20), _leftFormat);
 
         DrawSkinPicker(g);
 
         SnakeSkin skin = Skins[_selectedSkin];
-        DrawLabel(g, "EQUIPPED", _labelFont, _greenBrush,
-            new Rectangle(830, 142, 240, 20), _leftFormat);
+        DrawLabel(g, "EQUIPPED SKIN", _labelFont, _greenBrush,
+            new Rectangle(830, 132, 250, 20), _leftFormat);
         DrawLabel(g, skin.Name, _heroFont,
             skin.IsLegendary ? _goldBrush : _whiteBrush,
-            new Rectangle(830, 176, 270, 62), _leftFormat);
-        using (var previewPen = new Pen(skin.Body, 20)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round })
-            g.DrawLine(previewPen, 846, 300, 1030, 300);
-        using (var headBrush = new SolidBrush(skin.Head))
-            g.FillEllipse(headBrush, 1016, 282, 38, 38);
-        DrawLabel(g, skin.IsLegendary ? "LEGENDARY SKIN" : "CUSTOM SKIN",
-            _labelFont, skin.IsLegendary ? _goldBrush : _mutedBrush,
-            new Rectangle(830, 350, 250, 22), _leftFormat);
-        DrawLabel(g, "Your selection is saved automatically.",
-            _smallFont, _mutedBrush, new Rectangle(830, 390, 260, 42), _leftFormat);
+            new Rectangle(830, 165, 270, 52), _leftFormat);
+
+        DrawSnakePreview(g, new Rectangle(824, 236, 282, 236), skin);
+
+        DrawLabel(g, "SIGNATURE DESIGN", _labelFont, _mutedBrush,
+            new Rectangle(830, 500, 250, 18), _leftFormat);
+        DrawLabel(g, SkinPatternName(skin.Pattern), _buttonFont,
+            skin.IsLegendary ? _goldBrush : _greenBrush,
+            new Rectangle(830, 521, 260, 24), _leftFormat);
+        DrawLabel(g, skin.IsLegendary
+                ? "Special aura, orbiting sparks and radiant details."
+                : "Custom colours, a unique body pattern and matching head.",
+            _smallFont, _mutedBrush, new Rectangle(830, 553, 260, 48), _leftFormat);
+
+        FillRound(g, new Rectangle(830, 625, 260, 38), 9,
+            skin.IsLegendary ? Color.FromArgb(55, 75, 46) : Color.FromArgb(36, 62, 47));
+        DrawLabel(g, skin.IsLegendary ? "LEGENDARY EQUIPPED" : "EQUIPPED  ·  SAVED AUTOMATICALLY",
+            _smallFont, skin.IsLegendary ? _goldBrush : _greenBrush,
+            new Rectangle(838, 625, 244, 38), _centerFormat);
     }
+
+    private static string SkinPatternName(SkinPattern pattern) => pattern switch
+    {
+        SkinPattern.Plain => "Classic finish",
+        SkinPattern.Stripes => "Ruby cross-stripes",
+        SkinPattern.Dots => "Toxic spots",
+        SkinPattern.Waves => "Ocean wave lines",
+        SkinPattern.Lightning => "Electric lightning",
+        SkinPattern.Scales => "Mint scales",
+        SkinPattern.Flames => "Blazing flame marks",
+        SkinPattern.Frost => "Arctic snowflakes",
+        SkinPattern.Circuit => "Cyber circuit traces",
+        SkinPattern.Galaxy => "Galaxy stars and orbit",
+        SkinPattern.Camo => "Jungle camouflage",
+        SkinPattern.Candy => "Candy twist",
+        SkinPattern.Coral => "Rose coral branches",
+        SkinPattern.Prism => "Diamond facets",
+        SkinPattern.Stars => "Solar starbursts",
+        SkinPattern.Honeycomb => "Lava honeycomb",
+        SkinPattern.Tiger => "Tiger bands",
+        SkinPattern.Zebra => "Zebra bands",
+        SkinPattern.Neon => "Neon energy lines",
+        SkinPattern.Royal => "Royal crown marks",
+        _ => "Legendary phoenix aura"
+    };
 
     private void DrawSettingsPage(Graphics g)
     {
@@ -1100,52 +1130,112 @@ public sealed class GameForm : Form
                 _field.Top + cellY * CellSize + CellSize / 2f);
         }
 
+        DrawSnakeVisual(g, _snakeCenters, _snake.Count, Skins[_selectedSkin], _direction);
+    }
+
+    private void DrawSnakePreview(Graphics g, Rectangle area, SnakeSkin skin)
+    {
+        FillRound(g, area, 15, Color.FromArgb(245, 9, 16, 21));
+        StrokeRound(g, area, 15, Color.FromArgb(58, 79, 82));
+
+        GraphicsState state = g.Save();
+        g.SetClip(area);
+
+        using (var glow = new SolidBrush(Color.FromArgb(18, skin.PatternColor)))
+            g.FillEllipse(glow, area.X + 35, area.Y + 20, area.Width - 70, area.Height - 48);
+
+        using (var grid = new Pen(Color.FromArgb(18, 140, 180, 160), 1))
+        {
+            for (int x = area.Left + 20; x < area.Right; x += 24)
+                g.DrawLine(grid, x, area.Top + 1, x, area.Bottom - 1);
+            for (int y = area.Top + 20; y < area.Bottom; y += 24)
+                g.DrawLine(grid, area.Left + 1, y, area.Right - 1, y);
+        }
+
+        float scale = Math.Clamp(area.Width / 280f, 0.78f, 1.15f);
+        float x = area.Right - 42f * scale;
+        float y = area.Top + area.Height * 0.59f;
+        PointF[] previewCenters =
+        [
+            new(x, y),
+            new(x - 19 * scale, y),
+            new(x - 38 * scale, y),
+            new(x - 57 * scale, y),
+            new(x - 76 * scale, y),
+            new(x - 95 * scale, y),
+            new(x - 114 * scale, y),
+            new(x - 132 * scale, y - 9 * scale),
+            new(x - 137 * scale, y - 27 * scale),
+            new(x - 128 * scale, y - 44 * scale),
+            new(x - 108 * scale, y - 51 * scale),
+            new(x - 88 * scale, y - 51 * scale)
+        ];
+
+        DrawSnakeVisual(g, previewCenters, previewCenters.Length, skin, Direction.Right);
+        g.Restore(state);
+
+        DrawLabel(g, skin.IsLegendary ? "PHOENIX PREVIEW" : "LIVE SKIN PREVIEW",
+            _smallFont, skin.IsLegendary ? _goldBrush : _mutedBrush,
+            new Rectangle(area.X + 14, area.Bottom - 27, area.Width - 28, 16), _leftFormat);
+    }
+
+    private void DrawSnakeVisual(Graphics g, PointF[] centers, int count,
+        SnakeSkin skin, Direction direction)
+    {
+        if (count == 0)
+            return;
+
         _snakePath.Reset();
         _snakeHighlightPath.Reset();
 
         int sectionStart = 0;
-        for (int i = 1; i < _snake.Count; i++)
+        for (int i = 1; i < count; i++)
         {
-            float dx = _snakeCenters[i].X - _snakeCenters[i - 1].X;
-            float dy = _snakeCenters[i].Y - _snakeCenters[i - 1].Y;
+            float dx = centers[i].X - centers[i - 1].X;
+            float dy = centers[i].Y - centers[i - 1].Y;
 
             if (Math.Abs(dx) > CellSize * 1.5f || Math.Abs(dy) > CellSize * 1.5f)
             {
-                AddSnakeSection(g, sectionStart, i - 1);
+                AddSnakeSection(g, centers, sectionStart, i - 1);
                 sectionStart = i;
             }
         }
 
-        AddSnakeSection(g, sectionStart, _snake.Count - 1);
+        AddSnakeSection(g, centers, sectionStart, count - 1);
 
         if (_snakePath.PointCount > 0)
         {
+            if (skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+                SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
+                SkinPattern.Honeycomb or SkinPattern.Legendary)
+                g.DrawPath(_skinGlowPen, _snakePath);
+
             g.DrawPath(_snakeOutlinePen, _snakePath);
             g.DrawPath(_snakeBodyPen, _snakePath);
             if (_snakeHighlightPath.PointCount > 0)
                 g.DrawPath(_snakeHighlightPen, _snakeHighlightPath);
         }
 
-        if (Skins[_selectedSkin].Pattern != SkinPattern.Plain)
-            DrawSkinPattern(g);
+        if (skin.Pattern != SkinPattern.Plain)
+            DrawSkinPattern(g, centers, count, skin);
 
-        if (Skins[_selectedSkin].IsLegendary)
-            DrawLegendaryAura(g, _snakeCenters[0]);
+        if (skin.IsLegendary)
+            DrawLegendaryAura(g, centers[0], centers, count);
 
-        DrawSnakeHead(g, _snakeCenters[0]);
+        DrawSnakeHead(g, centers[0], direction);
     }
 
-    private void AddSnakeSection(Graphics g, int start, int end)
+    private void AddSnakeSection(Graphics g, PointF[] centers, int start, int end)
     {
         if (end < start)
             return;
 
         if (end == start)
         {
-            PointF center = _snakeCenters[start];
+            PointF center = centers[start];
             const float diameter = CellSize - 6;
-            g.FillEllipse(_snakeBrush, center.X - diameter / 2f, center.Y - diameter / 2f,
-                diameter, diameter);
+            g.FillEllipse(_snakeBrush, center.X - diameter / 2f,
+                center.Y - diameter / 2f, diameter, diameter);
             return;
         }
 
@@ -1154,8 +1244,8 @@ public sealed class GameForm : Form
 
         for (int i = start + 1; i <= end; i++)
         {
-            PointF previous = _snakeCenters[i - 1];
-            PointF current = _snakeCenters[i];
+            PointF previous = centers[i - 1];
+            PointF current = centers[i];
             _snakePath.AddLine(previous, current);
             _snakeHighlightPath.AddLine(
                 new PointF(previous.X - 1.2f, previous.Y - 3.2f),
@@ -1163,7 +1253,7 @@ public sealed class GameForm : Form
         }
     }
 
-    private void DrawSnakeHead(Graphics g, PointF center)
+    private void DrawSnakeHead(Graphics g, PointF center, Direction direction)
     {
         const float size = CellSize - 3;
         RectangleF head = new(center.X - size / 2f, center.Y - size / 2f, size, size);
@@ -1176,7 +1266,7 @@ public sealed class GameForm : Form
 
         PointF eyeOne;
         PointF eyeTwo;
-        switch (_direction)
+        switch (direction)
         {
             case Direction.Up:
                 eyeOne = new PointF(center.X - 4.2f, center.Y - 4.0f);
@@ -1315,14 +1405,7 @@ public sealed class GameForm : Form
                 ? Green
                 : skin.IsLegendary ? Gold : Border);
 
-            using var preview = new Pen(skin.Body, 8)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round
-            };
-            g.DrawLine(preview, tile.X + 15, tile.Y + 19, tile.X + 32, tile.Y + 19);
-            using var head = new SolidBrush(skin.Head);
-            g.FillEllipse(head, tile.X + 27, tile.Y + 11, 16, 16);
+            DrawSkinSwatch(g, tile, skin);
 
             DrawLabel(g, skin.Name, _buttonFont,
                 skin.IsLegendary ? _goldBrush : selected ? _greenBrush : _whiteBrush,
@@ -1338,6 +1421,101 @@ public sealed class GameForm : Form
 
         DrawLabel(g, "Select a skin to equip it. Your choice is saved on this PC.",
             _smallFont, _mutedBrush, new Rectangle(100, 586, 600, 20), _leftFormat);
+    }
+
+    private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
+    {
+        using var body = new Pen(skin.Body, 8)
+        {
+            StartCap = LineCap.Round, EndCap = LineCap.Round
+        };
+        using var detail = new Pen(skin.PatternColor, 1.7f)
+        {
+            StartCap = LineCap.Round, EndCap = LineCap.Round
+        };
+        using var head = new SolidBrush(skin.Head);
+        using var outline = new Pen(skin.Outline, 1.1f);
+
+        if (skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+            SkinPattern.Galaxy or SkinPattern.Legendary)
+        {
+            using var glow = new Pen(Color.FromArgb(55, skin.PatternColor), 14)
+            {
+                StartCap = LineCap.Round, EndCap = LineCap.Round
+            };
+            g.DrawLine(glow, tile.X + 15, tile.Y + 19, tile.X + 37, tile.Y + 19);
+        }
+
+        g.DrawLine(body, tile.X + 15, tile.Y + 19, tile.X + 37, tile.Y + 19);
+
+        switch (skin.Pattern)
+        {
+            case SkinPattern.Stripes:
+            case SkinPattern.Tiger:
+            case SkinPattern.Zebra:
+                g.DrawLine(detail, tile.X + 20, tile.Y + 13, tile.X + 20, tile.Y + 25);
+                g.DrawLine(detail, tile.X + 29, tile.Y + 13, tile.X + 29, tile.Y + 25);
+                break;
+            case SkinPattern.Dots:
+            case SkinPattern.Coral:
+                g.DrawEllipse(detail, tile.X + 19, tile.Y + 15, 5, 5);
+                g.DrawEllipse(detail, tile.X + 29, tile.Y + 18, 4, 4);
+                break;
+            case SkinPattern.Waves:
+                g.DrawArc(detail, tile.X + 17, tile.Y + 12, 12, 12, 190, 150);
+                g.DrawArc(detail, tile.X + 26, tile.Y + 12, 12, 12, 190, 150);
+                break;
+            case SkinPattern.Lightning:
+            case SkinPattern.Circuit:
+                g.DrawLine(detail, tile.X + 18, tile.Y + 14, tile.X + 25, tile.Y + 19);
+                g.DrawLine(detail, tile.X + 25, tile.Y + 19, tile.X + 21, tile.Y + 24);
+                break;
+            case SkinPattern.Scales:
+                g.DrawArc(detail, tile.X + 17, tile.Y + 14, 10, 9, 180, 180);
+                g.DrawArc(detail, tile.X + 26, tile.Y + 14, 10, 9, 180, 180);
+                break;
+            case SkinPattern.Flames:
+                g.DrawLine(detail, tile.X + 20, tile.Y + 25, tile.X + 23, tile.Y + 12);
+                g.DrawLine(detail, tile.X + 23, tile.Y + 12, tile.X + 28, tile.Y + 24);
+                break;
+            case SkinPattern.Frost:
+            case SkinPattern.Stars:
+                g.DrawLine(detail, tile.X + 22, tile.Y + 12, tile.X + 22, tile.Y + 25);
+                g.DrawLine(detail, tile.X + 16, tile.Y + 18, tile.X + 28, tile.Y + 18);
+                break;
+            case SkinPattern.Galaxy:
+            case SkinPattern.Royal:
+            case SkinPattern.Legendary:
+                g.DrawLine(detail, tile.X + 21, tile.Y + 13, tile.X + 21, tile.Y + 25);
+                g.DrawLine(detail, tile.X + 16, tile.Y + 19, tile.X + 26, tile.Y + 19);
+                g.DrawEllipse(detail, tile.X + 28, tile.Y + 13, 7, 7);
+                break;
+            case SkinPattern.Camo:
+                g.DrawEllipse(detail, tile.X + 17, tile.Y + 14, 7, 5);
+                g.DrawEllipse(detail, tile.X + 27, tile.Y + 18, 7, 5);
+                break;
+            case SkinPattern.Candy:
+                g.DrawLine(detail, tile.X + 18, tile.Y + 13, tile.X + 26, tile.Y + 25);
+                g.DrawLine(detail, tile.X + 27, tile.Y + 13, tile.X + 35, tile.Y + 25);
+                break;
+            case SkinPattern.Prism:
+            case SkinPattern.Honeycomb:
+                g.DrawPolygon(detail, new[]
+                {
+                    new Point(tile.X + 21, tile.Y + 12),
+                    new Point(tile.X + 29, tile.Y + 19),
+                    new Point(tile.X + 21, tile.Y + 26),
+                    new Point(tile.X + 13, tile.Y + 19)
+                });
+                break;
+            case SkinPattern.Neon:
+                g.DrawLine(detail, tile.X + 16, tile.Y + 16, tile.X + 35, tile.Y + 16);
+                g.DrawLine(detail, tile.X + 16, tile.Y + 22, tile.X + 35, tile.Y + 22);
+                break;
+        }
+
+        g.FillEllipse(head, tile.X + 31, tile.Y + 11, 16, 16);
+        g.DrawEllipse(outline, tile.X + 31, tile.Y + 11, 16, 16);
     }
 
     private static Rectangle SkinTileRect(int index)
@@ -1379,6 +1557,11 @@ public sealed class GameForm : Form
         _snakeHighlightPen.Color = skin.Highlight;
         _headOutlinePen.Color = skin.Outline;
         _skinPatternPen.Color = skin.PatternColor;
+        _skinAccentPen.Color = skin.Highlight;
+        int glowAlpha = skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+            SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
+            SkinPattern.Honeycomb or SkinPattern.Legendary ? 58 : 0;
+        _skinGlowPen.Color = Color.FromArgb(glowAlpha, skin.PatternColor);
 
         InvalidateDesign(_field);
         InvalidateDesign(_rightPanel);
@@ -1458,80 +1641,159 @@ public sealed class GameForm : Form
         }
     }
 
-    private void DrawSkinPattern(Graphics g)
+    private void DrawSkinPattern(Graphics g, PointF[] centers, int count, SnakeSkin skin)
     {
-        SnakeSkin skin = Skins[_selectedSkin];
         _skinPatternPen.Color = skin.PatternColor;
-        float phase = Environment.TickCount64 / 180f;
+        _skinAccentPen.Color = skin.Highlight;
 
-        int stride = skin.Pattern is SkinPattern.Dots or SkinPattern.Stars or SkinPattern.Galaxy ? 2 : 3;
-        for (int i = 1; i < _snake.Count - 1; i += stride)
+        float phase = Environment.TickCount64 / 180f;
+        int stride = skin.Pattern is SkinPattern.Dots or SkinPattern.Stars or
+            SkinPattern.Galaxy or SkinPattern.Coral ? 2 : 3;
+
+        for (int i = 1; i < count - 1; i += stride)
         {
-            PointF p = _snakeCenters[i];
-            PointF before = _snakeCenters[i - 1];
-            PointF after = _snakeCenters[i + 1];
+            PointF p = centers[i];
+            PointF before = centers[i - 1];
+            PointF after = centers[i + 1];
 
             float dx = after.X - before.X;
             float dy = after.Y - before.Y;
             float length = Math.Max(1f, MathF.Sqrt(dx * dx + dy * dy));
-            float nx = -dy / length;
-            float ny = dx / length;
+            float tx = dx / length;
+            float ty = dy / length;
+            float nx = -ty;
+            float ny = tx;
+
+            PointF At(float along, float across) =>
+                new(p.X + tx * along + nx * across,
+                    p.Y + ty * along + ny * across);
 
             switch (skin.Pattern)
             {
                 case SkinPattern.Stripes:
-                case SkinPattern.Tiger:
-                case SkinPattern.Zebra:
-                case SkinPattern.Candy:
-                case SkinPattern.Neon:
-                    g.DrawLine(_skinPatternPen,
-                        p.X - nx * 7, p.Y - ny * 7, p.X + nx * 7, p.Y + ny * 7);
+                    g.DrawLine(_skinPatternPen, At(0, -7), At(0, 7));
                     break;
-
                 case SkinPattern.Dots:
-                case SkinPattern.Camo:
-                case SkinPattern.Coral:
-                    g.DrawEllipse(_skinPatternPen, p.X - 3.5f, p.Y - 3.5f, 7, 7);
+                    g.DrawEllipse(_skinPatternPen, p.X - 3.2f, p.Y - 3.2f, 6.4f, 6.4f);
+                    g.DrawEllipse(_skinAccentPen, At(-5, 4).X - 1.8f,
+                        At(-5, 4).Y - 1.8f, 3.6f, 3.6f);
                     break;
-
                 case SkinPattern.Waves:
-                    g.DrawArc(_skinPatternPen, p.X - 8, p.Y - 5, 16, 10,
-                        (float)(phase * 20 % 180), 145);
+                    g.DrawBezier(_skinPatternPen, At(-7, 0), At(-3, -6),
+                        At(3, 6), At(7, 0));
                     break;
-
                 case SkinPattern.Lightning:
-                case SkinPattern.Circuit:
-                    g.DrawLine(_skinPatternPen, p.X - 5, p.Y - 4, p.X + 1, p.Y);
-                    g.DrawLine(_skinPatternPen, p.X + 1, p.Y, p.X - 2, p.Y + 5);
+                    g.DrawLine(_skinPatternPen, At(-6, -4), At(0, 1));
+                    g.DrawLine(_skinPatternPen, At(0, 1), At(-2, 7));
+                    g.DrawLine(_skinPatternPen, At(-2, 7), At(7, -3));
                     break;
-
                 case SkinPattern.Scales:
-                case SkinPattern.Honeycomb:
-                    g.DrawEllipse(_skinPatternPen, p.X - 5, p.Y - 4, 10, 8);
+                    g.DrawArc(_skinPatternPen, p.X - 6, p.Y - 5, 12, 10, 195, 150);
+                    g.DrawArc(_skinAccentPen, p.X - 2, p.Y - 4, 11, 9, 195, 150);
                     break;
-
                 case SkinPattern.Flames:
-                    g.DrawLine(_skinPatternPen, p.X - 4, p.Y + 4, p.X, p.Y - 5);
-                    g.DrawLine(_skinPatternPen, p.X, p.Y - 5, p.X + 4, p.Y + 2);
+                    g.DrawLine(_skinPatternPen, At(-5, 6), At(-2, -2));
+                    g.DrawLine(_skinPatternPen, At(-2, -2), At(1, -7));
+                    g.DrawLine(_skinPatternPen, At(1, -7), At(3, 0));
+                    g.DrawLine(_skinPatternPen, At(3, 0), At(6, 5));
                     break;
-
                 case SkinPattern.Frost:
-                case SkinPattern.Stars:
-                case SkinPattern.Prism:
+                    g.DrawLine(_skinPatternPen, At(-6, 0), At(6, 0));
+                    g.DrawLine(_skinPatternPen, At(0, -6), At(0, 6));
+                    g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
+                    g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
+                    break;
+                case SkinPattern.Circuit:
+                    g.DrawLine(_skinPatternPen, At(-7, -4), At(1, -4));
+                    g.DrawLine(_skinPatternPen, At(1, -4), At(1, 4));
+                    g.DrawLine(_skinPatternPen, At(1, 4), At(7, 4));
+                    g.DrawEllipse(_skinAccentPen, At(5, 4).X - 2, At(5, 4).Y - 2, 4, 4);
+                    break;
                 case SkinPattern.Galaxy:
+                    g.DrawLine(_skinPatternPen, At(-5, 0), At(5, 0));
+                    g.DrawLine(_skinPatternPen, At(0, -5), At(0, 5));
+                    g.DrawEllipse(_skinAccentPen, p.X - 5, p.Y - 3, 10, 6);
+                    break;
+                case SkinPattern.Camo:
+                    g.DrawEllipse(_skinPatternPen, p.X - 5, p.Y - 3, 8, 6);
+                    g.DrawEllipse(_skinAccentPen, p.X + 1, p.Y - 4, 7, 5);
+                    break;
+                case SkinPattern.Candy:
+                    g.DrawLine(_skinPatternPen, At(-6, -5), At(5, 5));
+                    g.DrawLine(_skinAccentPen, At(-6, 5), At(5, -5));
+                    break;
+                case SkinPattern.Coral:
+                    g.DrawEllipse(_skinPatternPen, p.X - 2.5f, p.Y - 2.5f, 5, 5);
+                    g.DrawLine(_skinAccentPen, At(-2, -2), At(-7, -7));
+                    g.DrawLine(_skinAccentPen, At(2, 2), At(7, 7));
+                    break;
+                case SkinPattern.Prism:
+                    g.DrawPolygon(_skinPatternPen, new[]
+                    {
+                        At(-6, 0), At(0, -6), At(6, 0), At(0, 6)
+                    });
+                    g.DrawLine(_skinAccentPen, At(-6, 0), At(0, 6));
+                    break;
+                case SkinPattern.Stars:
+                    g.DrawLine(_skinPatternPen, At(-6, 0), At(6, 0));
+                    g.DrawLine(_skinPatternPen, At(0, -6), At(0, 6));
+                    g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
+                    g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
+                    break;
+                case SkinPattern.Honeycomb:
+                    g.DrawPolygon(_skinPatternPen, new[]
+                    {
+                        At(-5, -3), At(0, -6), At(5, -3),
+                        At(5, 3), At(0, 6), At(-5, 3)
+                    });
+                    break;
+                case SkinPattern.Tiger:
+                    g.DrawLine(_skinPatternPen, At(-2, -7), At(0, 1));
+                    g.DrawLine(_skinPatternPen, At(4, -6), At(6, 3));
+                    break;
+                case SkinPattern.Zebra:
+                    g.DrawLine(_skinPatternPen, At(-5, -7), At(-3, 7));
+                    g.DrawLine(_skinAccentPen, At(0, -7), At(2, 7));
+                    break;
+                case SkinPattern.Neon:
+                    g.DrawLine(_skinPatternPen, At(-7, -4), At(7, -4));
+                    g.DrawLine(_skinAccentPen, At(-7, 4), At(7, 4));
+                    g.FillEllipse(_skinAccentPen.Brush, At(0, 0).X - 2,
+                        At(0, 0).Y - 2, 4, 4);
+                    break;
                 case SkinPattern.Royal:
-                    g.DrawLine(_skinPatternPen, p.X - 4, p.Y, p.X + 4, p.Y);
-                    g.DrawLine(_skinPatternPen, p.X, p.Y - 4, p.X, p.Y + 4);
+                    g.DrawPolygon(_skinPatternPen, new[]
+                    {
+                        At(-7, 4), At(-6, -3), At(-2, 1),
+                        At(0, -6), At(3, 1), At(6, -3), At(7, 4)
+                    });
+                    g.DrawLine(_skinAccentPen, At(-7, 5), At(7, 5));
+                    break;
+                case SkinPattern.Legendary:
+                    g.DrawLine(_skinPatternPen, At(-6, 0), At(6, 0));
+                    g.DrawLine(_skinPatternPen, At(0, -6), At(0, 6));
+                    g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
+                    g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
                     break;
             }
-        }
 
+            if ((skin.Pattern is SkinPattern.Neon or SkinPattern.Galaxy or SkinPattern.Legendary) &&
+                i % (stride * 2) == 1)
+            {
+                float sparkle = 2.5f + (MathF.Sin(phase + i) + 1f) * 1.1f;
+                g.DrawLine(_skinAccentPen, p.X - sparkle, p.Y,
+                    p.X + sparkle, p.Y);
+                g.DrawLine(_skinAccentPen, p.X, p.Y - sparkle,
+                    p.X, p.Y + sparkle);
+            }
+        }
     }
 
-    private void DrawLegendaryAura(Graphics g, PointF head)
+    private void DrawLegendaryAura(Graphics g, PointF head, PointF[] centers, int count)
     {
         float time = Environment.TickCount64 / 260f;
         float pulse = 1f + MathF.Sin(time) * 0.12f;
+
         for (int ring = 0; ring < 3; ring++)
         {
             float radius = (18 + ring * 7) * pulse;
@@ -1551,9 +1813,9 @@ public sealed class GameForm : Form
             g.DrawLine(_legendaryPens[i % 3], x, y - arm, x, y + arm);
         }
 
-        for (int i = 3; i < _snake.Count; i += 7)
+        for (int i = 3; i < count; i += 3)
         {
-            PointF p = _snakeCenters[i];
+            PointF p = centers[i];
             float twinkle = 2.5f + (MathF.Sin(time * 2 + i) + 1f) * 1.5f;
             g.DrawLine(_legendaryPens[2], p.X - twinkle, p.Y, p.X + twinkle, p.Y);
             g.DrawLine(_legendaryPens[2], p.X, p.Y - twinkle, p.X, p.Y + twinkle);
@@ -2430,6 +2692,8 @@ public sealed class GameForm : Form
         _cardBrush.Dispose();
         _goldPen.Dispose();
         _skinPatternPen.Dispose();
+        _skinAccentPen.Dispose();
+        _skinGlowPen.Dispose();
         foreach (Pen pen in _legendaryPens)
             pen.Dispose();
         foreach (Pen pen in _goldBurstPens)

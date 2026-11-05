@@ -4,7 +4,12 @@ A polished, fully offline Snake arcade game built with **C# and Windows Forms**.
 
 ## Highlights
 
-- Welcoming start screen with your personal best score
+- In-app Home hub with Home, Play, Skins, and Settings sections
+- Switch between sections without opening extra windows
+- Leaving an active run pauses it; returning to Play lets you resume
+- Dedicated skin collection with saved skin selection
+- Settings for sound, keyboard controls, and personal-best management
+- Welcoming Play screen with your personal best score
 - Smooth animated snake and custom red/golden apple sprites
 - 20 custom snake skins plus the **Legendary Phoenix** skin
 - Skin patterns include stripes, waves, scales, flames, frost, circuits, galaxy, neon, and more

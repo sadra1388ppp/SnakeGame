@@ -116,7 +116,7 @@ public sealed class GameForm : Form
     private static readonly Color Green = Color.FromArgb(165, 239, 104);
     private static readonly Color Gold = Color.FromArgb(255, 194, 83);
     private int _selectedTheme;
-    private bool _showSeasonThemes;
+    private int _themeMenuLevel;
     private ArcadeTheme ActiveTheme => Themes[_selectedTheme];
     private Color RetroBackground => ActiveTheme.Background;
     private Color RetroGold => ActiveTheme.Accent;
@@ -215,13 +215,14 @@ public sealed class GameForm : Form
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
+    private readonly Rectangle _themeCategoryTile = new(540, 252, 560, 220);
     private readonly Rectangle _seasonCategoryTile = new(540, 252, 560, 220);
     private readonly Rectangle _seasonBackButton = new(1000, 184, 104, 32);
     private readonly Rectangle _settingsSoundButton = new(330, 222, 145, 48);
     private readonly Rectangle _settingsResetButton = new(330, 378, 145, 48);
-    private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
-    private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
-    private readonly Rectangle _closeButton = new(1110, 19, 34, 30);
+    private readonly Rectangle _minimizeButton = new(986, 18, 40, 36);
+    private readonly Rectangle _fullscreenButton = new(1032, 18, 40, 36);
+    private readonly Rectangle _closeButton = new(1078, 18, 40, 36);
 
     private Point _mousePoint = new(-1, -1);
     private Point _dragOffset;
@@ -617,6 +618,9 @@ public sealed class GameForm : Form
         if (view != AppView.Play && _state == GameState.Playing)
             SetState(GameState.Paused);
 
+        if (view == AppView.Settings && _view != AppView.Settings)
+            _themeMenuLevel = 0;
+
         _view = view;
         Invalidate();
     }
@@ -788,9 +792,9 @@ public sealed class GameForm : Form
 
     private void DrawUiWindowControls(Graphics g)
     {
-        DrawWindowButton(g, _minimizeButton, "−", _minimizeButton.Contains(_mousePoint));
-        DrawWindowButton(g, _fullscreenButton, "□", _fullscreenButton.Contains(_mousePoint));
-        DrawWindowButton(g, _closeButton, "×", _closeButton.Contains(_mousePoint));
+        DrawWindowButton(g, _minimizeButton, 1, _hoverId == 1);
+        DrawWindowButton(g, _fullscreenButton, 2, _hoverId == 13);
+        DrawWindowButton(g, _closeButton, 3, _hoverId == 2);
     }
 
     private void DrawUiPageTitle(Graphics g, string title, string subtitle)
@@ -816,8 +820,6 @@ public sealed class GameForm : Form
         g.FillRectangle(trail, 760, 226, 144, 10);
         g.FillRectangle(trail, 254, 275, 10, 96);
         g.FillRectangle(trail, 254, 361, 150, 10);
-
-        DrawPixelText(g, "RETRO ARCADE", DesignWidth / 2, 76, 3, RetroGold);
 
         DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
         DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
@@ -1340,13 +1342,12 @@ public sealed class GameForm : Form
 
         using var heading = new SolidBrush(ActiveTheme.Text);
         using var accent = new SolidBrush(ActiveTheme.Highlight);
+        using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
 
         DrawLabel(g, "SOUND", _sectionFont, heading,
             new Rectangle(82, 198, 170, 24), _leftFormat);
-        using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
         DrawLabel(g, "Game effects and arcade feedback",
-            _bodyFont, description,
-            new Rectangle(82, 226, 230, 24), _leftFormat);
+            _bodyFont, description, new Rectangle(82, 226, 230, 24), _leftFormat);
         DrawUiButton(g, _settingsSoundButton,
             _soundEnabled ? "SOUND ON" : "SOUND OFF", false, _soundEnabled);
 
@@ -1367,18 +1368,22 @@ public sealed class GameForm : Form
         DrawLabel(g, "SPACE", _bodyFont, heading,
             new Rectangle(162, 583, 270, 24), _leftFormat);
 
-        DrawLabel(g, _showSeasonThemes ? "SEASON" : "THEMES",
-            _sectionFont, heading, new Rectangle(536, 184, 260, 28), _leftFormat);
-
-        if (_showSeasonThemes)
+        if (_themeMenuLevel == 0)
         {
-            DrawUiButton(g, _seasonBackButton, "← BACK");
-            for (int i = 0; i < Themes.Length; i++)
-                DrawThemeCard(g, i);
+            DrawThemeSectionCard(g);
         }
         else
         {
-            DrawSeasonCategoryCard(g);
+            string title = _themeMenuLevel == 1 ? "THEMES" : "SEASON THEMES";
+            DrawLabel(g, title, _sectionFont, heading,
+                new Rectangle(536, 184, 300, 28), _leftFormat);
+            DrawUiButton(g, _seasonBackButton, "← BACK");
+
+            if (_themeMenuLevel == 1)
+                DrawSeasonCategoryCard(g);
+            else
+                for (int i = 0; i < Themes.Length; i++)
+                    DrawThemeCard(g, i);
         }
     }
 
@@ -1425,9 +1430,18 @@ public sealed class GameForm : Form
         }
     }
 
-private void DrawSeasonCategoryCard(Graphics g)
+private void DrawThemeSectionCard(Graphics g)
     {
-        Rectangle tile = _seasonCategoryTile;
+        DrawThemeNavigationCard(g, _themeCategoryTile, "THEMES");
+    }
+
+    private void DrawSeasonCategoryCard(Graphics g)
+    {
+        DrawThemeNavigationCard(g, _seasonCategoryTile, "SEASON THEMES");
+    }
+
+    private void DrawThemeNavigationCard(Graphics g, Rectangle tile, string label)
+    {
         bool hover = tile.Contains(_mousePoint);
 
         using (var shadow = new SolidBrush(Color.FromArgb(45, 0, 0, 0)))
@@ -1457,7 +1471,7 @@ private void DrawSeasonCategoryCard(Graphics g)
 
         using var title = new SolidBrush(ActiveTheme.Text);
         using var arrow = new SolidBrush(ActiveTheme.Highlight);
-        DrawLabel(g, "SEASON", _pageTitleFont, title,
+        DrawLabel(g, label, _pageTitleFont, title,
             new Rectangle(tile.X + 18, tile.Y + 151, tile.Width - 90, 48), _leftFormat);
         DrawLabel(g, "›", _displayFont, arrow,
             new Rectangle(tile.Right - 76, tile.Y + 145, 54, 58), _centerFormat);
@@ -3191,10 +3205,56 @@ private void DrawSeasonCategoryCard(Graphics g)
         }
     }
 
-    private void DrawWindowButton(Graphics g, Rectangle rect, string label, bool hover)
+    private void DrawWindowButton(Graphics g, Rectangle rect, int type, bool hover)
     {
-        FillRound(g, rect, 8, hover ? PanelLight : Panel);
-        DrawLabel(g, label, _iconFont, _whiteBrush, rect, _centerFormat);
+        bool close = type == 3;
+        Color fillColor = close
+            ? hover ? Color.FromArgb(220, 190, 55, 64) : Color.FromArgb(34, 232, 105, 112)
+            : hover ? Color.FromArgb(65, ActiveTheme.Highlight) : Color.FromArgb(38, ActiveTheme.Text);
+        using (var fill = new SolidBrush(fillColor))
+            FillRound(g, rect, 9, fill);
+
+        Color edgeColor = close && hover
+            ? Color.FromArgb(235, 255, 195, 198)
+            : hover ? Color.FromArgb(180, ActiveTheme.Highlight) : Color.FromArgb(55, ActiveTheme.Text);
+        StrokeRound(g, rect, 9, edgeColor);
+
+        Color iconColor = close && hover
+            ? Color.FromArgb(255, 255, 245, 245)
+            : ActiveTheme.Text;
+        using var iconPen = new Pen(iconColor, 2f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+
+        int cx = rect.X + rect.Width / 2;
+        int cy = rect.Y + rect.Height / 2;
+
+        if (type == 1)
+        {
+            g.DrawLine(iconPen, cx - 6, cy + 4, cx + 6, cy + 4);
+        }
+        else if (type == 2)
+        {
+            if (_isFullscreen)
+            {
+                g.DrawRectangle(iconPen, cx - 5, cy - 2, 11, 10);
+                g.DrawLine(iconPen, cx - 5, cy - 2, cx - 2, cy - 2);
+                g.DrawLine(iconPen, cx - 5, cy - 2, cx - 5, cy + 1);
+                g.DrawRectangle(iconPen, cx - 7, cy - 5, 11, 10);
+            }
+            else
+            {
+                g.DrawRectangle(iconPen, cx - 6, cy - 5, 12, 11);
+            }
+        }
+        else
+        {
+            g.DrawLine(iconPen, cx - 5, cy - 5, cx + 5, cy + 5);
+            g.DrawLine(iconPen, cx + 5, cy - 5, cx - 5, cy + 5);
+        }
     }
 
     private void DrawChoice(Graphics g, Rectangle rect, string label, bool selected)
@@ -3744,9 +3804,9 @@ private void DrawSeasonCategoryCard(Graphics g)
                 ToggleFullscreen();
             else if (e.KeyCode == Keys.Escape)
             {
-                if (_view == AppView.Settings && _showSeasonThemes)
+                if (_view == AppView.Settings && _themeMenuLevel > 0)
                 {
-                    _showSeasonThemes = false;
+                    _themeMenuLevel--;
                     Invalidate();
                 }
                 else
@@ -3870,14 +3930,21 @@ private void DrawSeasonCategoryCard(Graphics g)
 
         if (_view == AppView.Settings)
         {
-            if (_showSeasonThemes)
+            if (_themeMenuLevel == 2)
             {
                 if (_seasonBackButton.Contains(point)) return 30;
                 for (int i = 0; i < Themes.Length; i++)
                     if (ThemeTileRect(i).Contains(point)) return 200 + i;
             }
-            else if (_seasonCategoryTile.Contains(point))
+            else if (_themeMenuLevel == 1)
+            {
+                if (_seasonBackButton.Contains(point)) return 30;
+                if (_seasonCategoryTile.Contains(point)) return 31;
+            }
+            else if (_themeCategoryTile.Contains(point))
+            {
                 return 29;
+            }
 
             if (_settingsSoundButton.Contains(point)) return 24;
             if (_settingsResetButton.Contains(point)) return 25;
@@ -3937,8 +4004,9 @@ private void DrawSeasonCategoryCard(Graphics g)
             26 => _retroDifficultyLeft,
             27 => _retroDifficultyRight,
             28 => _retroDifficultyText,
-            29 => _seasonCategoryTile,
+            29 => _themeCategoryTile,
             30 => _seasonBackButton,
+            31 => _seasonCategoryTile,
             _ => Rectangle.Empty
         };
     }
@@ -4024,11 +4092,11 @@ private void DrawSeasonCategoryCard(Graphics g)
 
         if (_view == AppView.Settings)
         {
-            if (_showSeasonThemes)
+            if (_themeMenuLevel == 2)
             {
                 if (_seasonBackButton.Contains(point))
                 {
-                    _showSeasonThemes = false;
+                    _themeMenuLevel = 1;
                     Invalidate();
                     return;
                 }
@@ -4042,9 +4110,25 @@ private void DrawSeasonCategoryCard(Graphics g)
                     return;
                 }
             }
-            else if (_seasonCategoryTile.Contains(point))
+            else if (_themeMenuLevel == 1)
             {
-                _showSeasonThemes = true;
+                if (_seasonBackButton.Contains(point))
+                {
+                    _themeMenuLevel = 0;
+                    Invalidate();
+                    return;
+                }
+
+                if (_seasonCategoryTile.Contains(point))
+                {
+                    _themeMenuLevel = 2;
+                    Invalidate();
+                    return;
+                }
+            }
+            else if (_themeCategoryTile.Contains(point))
+            {
+                _themeMenuLevel = 1;
                 Invalidate();
                 return;
             }

@@ -133,7 +133,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinPickerClose = new(686, 176, 34, 30);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
-    private readonly Rectangle _lobbyStartButton = new(245, 500, 280, 58);
+    private readonly Rectangle _lobbyStartButton = new(78, 604, 260, 54);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
     private readonly Rectangle _soundButton = new(1020, 552, 38, 48);
     private readonly Rectangle _restartButton = new(1066, 552, 38, 48);
@@ -155,8 +155,8 @@ public sealed class GameForm : Form
 
     private readonly Font _smallFont = new("Segoe UI", 8, FontStyle.Regular);
     private readonly Font _labelFont = new("Segoe UI", 8, FontStyle.Bold);
-    private readonly Font _scoreFont = new("Segoe UI", 34, FontStyle.Bold);
-    private readonly Font _numberFont = new("Segoe UI", 22, FontStyle.Bold);
+    private readonly Font _scoreFont = new("Segoe UI", 26, FontStyle.Bold);
+    private readonly Font _numberFont = new("Segoe UI", 25, FontStyle.Bold);
     private readonly Font _heroFont = new("Segoe UI", 25, FontStyle.Bold);
     private readonly Font _welcomeFont = new("Segoe UI", 30, FontStyle.Bold);
     private readonly Font _welcomeSmallFont = new("Segoe UI", 9, FontStyle.Regular);
@@ -457,6 +457,8 @@ public sealed class GameForm : Form
         DrawStaticPanel(g, _boardCard);
         DrawStaticPanel(g, _rightPanel);
         DrawStaticPanel(g, _scoreArea, PanelLight);
+        using (var scoreDivider = new Pen(Border, 1))
+            g.DrawLine(scoreDivider, 968, 142, 968, 238);
         DrawStaticPanel(g, _modeArea, PanelLight);
         DrawStaticPanel(g, _difficultyArea, PanelLight);
         DrawStaticPanel(g, _actionArea, PanelLight);
@@ -480,10 +482,7 @@ public sealed class GameForm : Form
             }
         }
 
-        StaticText(g, "SCORE", new Rectangle(844, 139, 100, 16), 7, FontStyle.Bold, Muted);
-        StaticText(g, "BEST", new Rectangle(1020, 139, 70, 16), 7, FontStyle.Bold, Muted);
-        using (var divider = new Pen(Border, 1))
-            g.DrawLine(divider, 1004, 144, 1004, 232);
+
 
         StaticText(g, "GAME MODE", new Rectangle(842, 282, 180, 18), 8, FontStyle.Bold, Muted);
         StaticText(g, "Choose your run", new Rectangle(842, 302, 180, 16), 7, FontStyle.Regular,
@@ -523,8 +522,8 @@ public sealed class GameForm : Form
                    Color.FromArgb(14, 25, 28), Background, 90f))
             g.FillRectangle(background, 0, 0, DesignWidth, DesignHeight);
 
-        using (var glow = new SolidBrush(Color.FromArgb(22, 123, 210, 105)))
-            g.FillEllipse(glow, 20, 360, 620, 520);
+        using (var glow = new SolidBrush(Color.FromArgb(24, 123, 210, 105)))
+            g.FillEllipse(glow, 50, 270, 570, 500);
 
         using (var line = new Pen(Border, 1))
         {
@@ -541,67 +540,153 @@ public sealed class GameForm : Form
         StaticText(g, "OFFLINE  ARCADE", new Rectangle(879, 17, 180, 20),
             8, FontStyle.Bold, Muted);
 
-        DrawStaticPanel(g, new Rectangle(32, 100, 750, 600));
+        DrawStaticPanel(g, _boardCard);
         DrawStaticPanel(g, _rightPanel);
-        DrawLabel(g, "WELCOME BACK", _labelFont, _greenBrush,
-            new Rectangle(76, 150, 300, 24), _leftFormat);
-        DrawLabel(g, "THE SNAKE", _welcomeFont, _whiteBrush,
-            new Rectangle(72, 194, 600, 68), _leftFormat);
-        DrawLabel(g, "A classic arcade challenge, rebuilt for your next high score.",
-            _welcomeSmallFont, _mutedBrush, new Rectangle(78, 270, 610, 30), _leftFormat);
+        DrawStaticPanel(g, _scoreArea, PanelLight);
+        DrawStaticPanel(g, _modeArea, PanelLight);
+        DrawStaticPanel(g, _difficultyArea, PanelLight);
+        DrawStaticPanel(g, _actionArea, PanelLight);
+        using (var divider = new Pen(Border, 1))
+            g.DrawLine(divider, 968, 142, 968, 238);
 
-        DrawStaticPanel(g, new Rectangle(78, 340, 190, 104), PanelLight);
-        DrawStaticPanel(g, new Rectangle(282, 340, 190, 104), PanelLight);
-        DrawStaticPanel(g, new Rectangle(486, 340, 238, 104), PanelLight);
-        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
-            new Rectangle(96, 355, 160, 20), _leftFormat);
-        DrawLabel(g, _bestScore.ToString("0000"), _scoreFont, _greenBrush,
-            new Rectangle(96, 377, 155, 55), _leftFormat);
-        DrawLabel(g, "20 CUSTOM SKINS", _labelFont, _mutedBrush,
-            new Rectangle(300, 355, 160, 20), _leftFormat);
-        DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont, _whiteBrush,
-            new Rectangle(300, 385, 160, 28), _leftFormat);
-        DrawLabel(g, "3 GAME MODES", _labelFont, _mutedBrush,
-            new Rectangle(504, 355, 190, 20), _leftFormat);
-        DrawLabel(g, "CLASSIC  ·  WRAP  ·  RUSH", _buttonFont, _whiteBrush,
-            new Rectangle(504, 385, 205, 28), _leftFormat);
+        DrawLabel(g, "ARCADE EDITION  /  CLASSIC REIMAGINED", _labelFont,
+            _greenBrush, new Rectangle(78, 142, 400, 22), _leftFormat);
+        DrawLabel(g, "SNAKE", _welcomeFont, _whiteBrush,
+            new Rectangle(74, 178, 330, 70), _leftFormat);
+        DrawLabel(g, "One more run. One higher score.", _heroFont,
+            _mutedBrush, new Rectangle(78, 248, 330, 42), _leftFormat);
+        DrawLabel(g, "Choose your mode, set your pace, and chase a new personal best.",
+            _welcomeSmallFont, _mutedBrush, new Rectangle(80, 300, 330, 48), _leftFormat);
 
-        DrawActionButton(g, _lobbyStartButton, "START GAME", true);
+        DrawLobbyArtwork(g);
+
+        DrawStaticPanel(g, new Rectangle(78, 478, 190, 88), PanelLight);
+        DrawStaticPanel(g, new Rectangle(282, 478, 190, 88), PanelLight);
+        DrawStaticPanel(g, new Rectangle(486, 478, 238, 88), PanelLight);
+
+        DrawLabel(g, "CUSTOM SNAKES", _labelFont, _mutedBrush,
+            new Rectangle(96, 493, 150, 18), _leftFormat);
+        DrawLabel(g, "20 SKINS", _numberFont, _greenBrush,
+            new Rectangle(96, 515, 150, 38), _leftFormat);
+
+        DrawLabel(g, "GAME MODES", _labelFont, _mutedBrush,
+            new Rectangle(300, 493, 150, 18), _leftFormat);
+        DrawLabel(g, "3 WAYS TO PLAY", _buttonFont, _whiteBrush,
+            new Rectangle(300, 520, 160, 28), _leftFormat);
+
+        DrawLabel(g, "SPECIAL EDITION", _labelFont, _mutedBrush,
+            new Rectangle(504, 493, 190, 18), _leftFormat);
+        DrawLabel(g, "LEGENDARY PHOENIX", _buttonFont, _goldBrush,
+            new Rectangle(504, 520, 205, 28), _leftFormat);
+
+        DrawActionButton(g, _lobbyStartButton, "START GAME   ›", true);
         DrawLabel(g, "WASD / ARROWS  ·  SPACE TO PAUSE",
-            _labelFont, _mutedBrush, new Rectangle(78, 582, 420, 22), _leftFormat);
+            _labelFont, _mutedBrush, new Rectangle(360, 617, 340, 26), _leftFormat);
 
-        DrawLabel(g, "GAME SETUP", _labelFont, _mutedBrush,
-            new Rectangle(842, 124, 180, 20), _leftFormat);
+        DrawScorePanel(g);
+
         DrawLabel(g, "GAME MODE", _labelFont, _mutedBrush,
             new Rectangle(842, 282, 180, 18), _leftFormat);
+        DrawLabel(g, "Choose your arena", _smallFont, _mutedBrush,
+            new Rectangle(842, 302, 180, 16), _leftFormat);
         DrawChoice(g, _classicButton, "CLASSIC", _mode == GameMode.Classic);
         DrawChoice(g, _wrapButton, "WRAP", _mode == GameMode.Wrap);
         DrawChoice(g, _rushButton, "RUSH", _mode == GameMode.Rush);
 
         DrawLabel(g, "DIFFICULTY", _labelFont, _mutedBrush,
             new Rectangle(842, 402, 180, 18), _leftFormat);
+        DrawLabel(g, "Choose your pace", _smallFont, _mutedBrush,
+            new Rectangle(842, 422, 180, 16), _leftFormat);
         DrawChoice(g, _easyButton, "EASY", _difficulty == Difficulty.Easy);
         DrawChoice(g, _normalButton, "NORMAL", _difficulty == Difficulty.Normal);
         DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
 
-        DrawLabel(g, "PERSONALIZE", _labelFont, _mutedBrush,
+        DrawLabel(g, "YOUR SESSION", _labelFont, _mutedBrush,
             new Rectangle(842, 528, 180, 18), _leftFormat);
         DrawActionButton(g, _soundButton, _soundEnabled ? "♪" : "×", false);
-        DrawLabel(g, "SOUND", _smallFont, _mutedBrush,
-            new Rectangle(842, 552, 150, 42), _leftFormat);
+        DrawLabel(g, _soundEnabled ? "SOUND ON" : "SOUND OFF",
+            _smallFont, _mutedBrush, new Rectangle(842, 552, 150, 42), _leftFormat);
         DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
         DrawSecondaryButton(g, _resetBestButton, "RESET BEST SCORE", true);
-        DrawLabel(g, "READY WHEN YOU ARE", _labelFont, _greenBrush,
-            new Rectangle(842, 680, 260, 18), _leftFormat);
+    }
+
+    private void DrawLobbyArtwork(Graphics g)
+    {
+        Rectangle art = new(430, 145, 320, 310);
+        FillRound(g, art, 18, Color.FromArgb(215, 10, 19, 23));
+        StrokeRound(g, art, 18, Color.FromArgb(55, 75, 78));
+
+        using (var gridPen = new Pen(Color.FromArgb(22, 140, 180, 150), 1))
+        {
+            for (int x = art.Left + 24; x < art.Right; x += 28)
+                g.DrawLine(gridPen, x, art.Top + 1, x, art.Bottom - 1);
+            for (int y = art.Top + 24; y < art.Bottom; y += 28)
+                g.DrawLine(gridPen, art.Left + 1, y, art.Right - 1, y);
+        }
+
+        using (var halo = new SolidBrush(Color.FromArgb(18, 165, 239, 104)))
+            g.FillEllipse(halo, 482, 190, 220, 220);
+
+        using var snakePath = new GraphicsPath();
+        snakePath.AddBezier(470, 370, 500, 315, 535, 390, 565, 335);
+        snakePath.AddBezier(565, 335, 595, 270, 640, 270, 658, 320);
+        snakePath.AddBezier(658, 320, 680, 372, 630, 405, 600, 365);
+
+        using (var glowPen = new Pen(Color.FromArgb(45, 165, 239, 104), 34)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawPath(glowPen, snakePath);
+
+        using (var outlinePen = new Pen(Color.FromArgb(55, 126, 72), 25)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawPath(outlinePen, snakePath);
+
+        using (var bodyBrush = new LinearGradientBrush(art,
+                   Color.FromArgb(75, 190, 86), Color.FromArgb(183, 247, 122), 35f))
+        using (var bodyPen = new Pen(bodyBrush, 17)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawPath(bodyPen, snakePath);
+
+        using (var headBrush = new SolidBrush(Color.FromArgb(183, 247, 122)))
+        using (var headOutline = new Pen(Color.FromArgb(43, 104, 57), 2))
+        {
+            g.FillEllipse(headBrush, 585, 348, 30, 30);
+            g.DrawEllipse(headOutline, 585, 348, 30, 30);
+        }
+
+        using (var eyeBrush = new SolidBrush(Color.FromArgb(12, 27, 20)))
+        {
+            g.FillEllipse(eyeBrush, 593, 356, 3.5f, 3.5f);
+            g.FillEllipse(eyeBrush, 603, 356, 3.5f, 3.5f);
+        }
+
+        if (_appleSprite is not null)
+            g.DrawImageUnscaled(_appleSprite, 680, 208);
+
+        using (var dot = new SolidBrush(Color.FromArgb(140, Green)))
+            g.FillEllipse(dot, 475, 205, 5, 5);
+        using (var dot = new SolidBrush(Color.FromArgb(120, Gold)))
+            g.FillEllipse(dot, 690, 390, 4, 4);
+
+        DrawLabel(g, "READY FOR THE NEXT RUN?", _labelFont, _greenBrush,
+            new Rectangle(452, 410, 275, 24), _centerFormat);
+    }
+
+    private void DrawScorePanel(Graphics g)
+    {
+        DrawLabel(g, "CURRENT SCORE", _labelFont, _mutedBrush,
+            new Rectangle(838, 139, 122, 18), _centerFormat);
+        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
+            new Rectangle(978, 139, 116, 18), _centerFormat);
+
+        DrawLabel(g, FormatScore(_score), _scoreFont, _whiteBrush,
+            new Rectangle(834, 166, 128, 52), _centerFormat);
+        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
+            new Rectangle(978, 166, 116, 52), _centerFormat);
     }
 
     private void DrawDashboard(Graphics g)
     {
-        DrawLabel(g, _score.ToString("0000"), _scoreFont, _whiteBrush,
-            new Rectangle(842, 161, 154, 60), _leftFormat);
-
-        DrawLabel(g, _bestScore.ToString("0000"), _numberFont, _greenBrush,
-            new Rectangle(1020, 172, 76, 42), _leftFormat);
+        DrawScorePanel(g);
 
         if (_mode == GameMode.Rush)
             DrawLabel(g, $"{Math.Ceiling(_rushTimeLeft.TotalSeconds):00}s", _labelFont,
@@ -686,8 +771,8 @@ public sealed class GameForm : Form
 
         DrawLabel(g, "YOUR BEST SCORE", _labelFont, _mutedBrush,
             new Rectangle(230, 392, 170, 24), _rightFormat);
-        DrawLabel(g, _bestScore.ToString("0000"), _numberFont, _greenBrush,
-            new Rectangle(412, 383, 120, 42), _leftFormat);
+        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
+            new Rectangle(412, 383, 150, 42), _leftFormat);
 
         DrawActionButton(g, _overlayButton, "START GAME", true);
         DrawLabel(g, "WASD  /  ARROW KEYS     •     SPACE TO PAUSE",
@@ -704,16 +789,33 @@ public sealed class GameForm : Form
             ? "PAUSED"
             : _won ? "PERFECT RUN" : "GAME OVER";
 
-        string subtitle = _state == GameState.Paused
-            ? "Your run is waiting right here."
-            : _scoreSaveFailed ? "SCORE SAVE FAILED" :
-              _newRecord ? "NEW PERSONAL BEST" : $"FINAL SCORE  {_score:0000}";
-
         DrawLabel(g, title, _heroFont, _whiteBrush,
-            new Rectangle(220, 304, 374, 54), _centerFormat);
-        DrawLabel(g, subtitle, _smallFont,
-            _state == GameState.GameOver && _newRecord ? _goldBrush : _mutedBrush,
-            new Rectangle(220, 366, 374, 25), _centerFormat);
+            new Rectangle(190, 274, 434, 52), _centerFormat);
+
+        if (_state == GameState.Paused)
+        {
+            DrawLabel(g, "Your run is waiting right here.",
+                _smallFont, _mutedBrush,
+                new Rectangle(190, 344, 434, 24), _centerFormat);
+            DrawLabel(g, "CURRENT SCORE", _labelFont, _mutedBrush,
+                new Rectangle(220, 384, 374, 18), _centerFormat);
+            DrawLabel(g, FormatScore(_score), _numberFont, _greenBrush,
+                new Rectangle(220, 404, 374, 42), _centerFormat);
+        }
+        else
+        {
+            DrawLabel(g, "FINAL SCORE", _labelFont, _mutedBrush,
+                new Rectangle(220, 340, 374, 18), _centerFormat);
+            DrawLabel(g, FormatScore(_score), _welcomeFont,
+                _newRecord ? _goldBrush : _whiteBrush,
+                new Rectangle(220, 360, 374, 48), _centerFormat);
+            DrawLabel(g, $"PERSONAL BEST  {FormatScore(_bestScore)}",
+                _smallFont, _newRecord ? _goldBrush : _greenBrush,
+                new Rectangle(220, 416, 374, 22), _centerFormat);
+            if (_scoreSaveFailed)
+                DrawLabel(g, "SCORE SAVE FAILED", _smallFont, _goldBrush,
+                    new Rectangle(220, 438, 374, 18), _centerFormat);
+        }
 
         DrawActionButton(g, _overlayButton,
             _state == GameState.Paused ? "RESUME" : "PLAY AGAIN", true);
@@ -1180,6 +1282,9 @@ public sealed class GameForm : Form
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SnakeGame",
             "selected-skin.txt");
+
+    private static string FormatScore(int value) =>
+        Math.Max(0, value).ToString("D5", CultureInfo.InvariantCulture);
 
     private void ResetBestScore()
     {

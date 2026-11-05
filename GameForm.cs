@@ -684,24 +684,20 @@ public sealed class GameForm : Form
         g.FillRectangle(trail, 254, 275, 10, 96);
         g.FillRectangle(trail, 254, 361, 150, 10);
 
-        DrawPixelText(g, "RETRO ARCADE", DesignWidth / 2, 76, 3,
-            Color.FromArgb(240, 214, 109));
+        DrawPixelText(g, "RETRO ARCADE", DesignWidth / 2, 76, 3, RetroGold);
 
         DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
         DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
 
         DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
-            Color.FromArgb(228, 238, 220));
+            RetroWhite);
 
         DrawRetroMenuSnake(g, 345, 385);
         DrawPixelApple(g, 410, 378, 5);
 
-        Color leftArrowColor = _hoverId == 26
-            ? Color.FromArgb(255, 226, 132) : RetroWhite;
-        Color difficultyColor = _hoverId == 28
-            ? Color.FromArgb(255, 226, 132) : RetroWhite;
-        Color rightArrowColor = _hoverId == 27
-            ? Color.FromArgb(255, 226, 132) : RetroWhite;
+        Color leftArrowColor = _hoverId == 26 ? ActiveTheme.Highlight : RetroWhite;
+        Color difficultyColor = _hoverId == 28 ? ActiveTheme.Highlight : RetroWhite;
+        Color rightArrowColor = _hoverId == 27 ? ActiveTheme.Highlight : RetroWhite;
 
         DrawPixelArrow(g, 470, 399, true, leftArrowColor);
         DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
@@ -886,9 +882,7 @@ public sealed class GameForm : Form
     private void DrawSkinsPage(Graphics g)
     {
         DrawPixelText(g, "BACK", 104, 75, 3,
-            _skinPickerClose.Contains(_mousePoint)
-                ? Color.FromArgb(255, 226, 125)
-                : RetroWhite);
+            _skinPickerClose.Contains(_mousePoint) ? ActiveTheme.Highlight : RetroWhite);
         DrawPixelText(g, "SKINS", DesignWidth / 2, 48, 8, RetroWhite);
         DrawSkinPicker(g);
 
@@ -898,7 +892,7 @@ public sealed class GameForm : Form
         DrawRetroSnakePreview(g, previewArea, skin);
 
         DrawPixelText(g, SkinShortName(_selectedSkin), 954, 490, 4,
-            skin.IsLegendary ? Color.FromArgb(255, 225, 90) : RetroWhite);
+            skin.IsLegendary ? ActiveTheme.Highlight : RetroWhite);
         DrawPixelText(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
             954, 535, 2, RetroWhite);
 
@@ -906,7 +900,7 @@ public sealed class GameForm : Form
                 ? "SPECIAL AURA AND SPARKS"
                 : "UNIQUE PIXEL DESIGN",
             954, 574, 2,
-            skin.IsLegendary ? Color.FromArgb(255, 224, 102) : RetroWhite);
+            skin.IsLegendary ? ActiveTheme.Accent : RetroWhite);
 
         DrawPixelText(g, "CLICK A SKIN TO EQUIP",
             954, 620, 2, RetroWhite);
@@ -1430,12 +1424,12 @@ public sealed class GameForm : Form
             : hover ? Color.FromArgb(255, ActiveTheme.Background) : RetroDark);
         g.FillRectangle(fill, rect);
 
-        Color edge = active ? Color.FromArgb(255, 220, 78) : RetroGold;
+        Color edge = active ? ActiveTheme.Highlight : RetroGold;
         DrawPixelOutline(g, rect, edge, 2);
 
         int textSize = 2;
         int textTop = rect.Y + (rect.Height - 7 * textSize) / 2;
-        Color textColor = active ? Color.FromArgb(255, 231, 145) : RetroWhite;
+        Color textColor = active ? ActiveTheme.Highlight : RetroWhite;
         DrawPixelText(g, label, rect.X + rect.Width / 2, textTop,
             textSize, textColor);
     }
@@ -1617,7 +1611,7 @@ public sealed class GameForm : Form
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
 
-        using var shade = new SolidBrush(Color.FromArgb(225, 3, 25, 0));
+        using var shade = new SolidBrush(Color.FromArgb(225, ActiveTheme.Dark));
         g.FillRectangle(shade, _field);
 
         Rectangle panel = new(138, 220, 538, 334);
@@ -1630,14 +1624,14 @@ public sealed class GameForm : Form
         bool paused = _state == GameState.Paused;
         string title = paused ? "PAUSED" : _won ? "PERFECT RUN" : "GAME OVER";
         DrawPixelText(g, title, panel.X + panel.Width / 2, 263, 4,
-            paused ? RetroWhite : Color.FromArgb(255, 230, 139));
+            paused ? RetroWhite : ActiveTheme.Highlight);
 
         if (paused)
         {
             DrawPixelText(g, "CURRENT SCORE",
                 panel.X + panel.Width / 2, 350, 2, RetroWhite);
             DrawPixelText(g, FormatScore(_score),
-                panel.X + panel.Width / 2, 378, 5, Color.FromArgb(194, 255, 132));
+                panel.X + panel.Width / 2, 378, 5, ActiveTheme.Highlight);
             DrawPixelText(g, "PERSONAL BEST  " + FormatScore(_bestScore),
                 panel.X + panel.Width / 2, 427, 2, RetroGold);
         }

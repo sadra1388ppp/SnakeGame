@@ -795,9 +795,9 @@ public sealed class GameForm : Form
 
     private void DrawRetroWindowControls(Graphics g)
     {
-        DrawPixelText(g, "-", 1047, 22, 3, RetroGold);
-        DrawPixelOutline(g, new Rectangle(1065, 20, 16, 16), RetroGold, 2);
-        DrawPixelText(g, "X", 1119, 20, 2, RetroGold);
+        DrawPixelText(g, "-", 1087, 22, 3, RetroGold);
+        DrawPixelOutline(g, new Rectangle(1039, 20, 16, 16), RetroGold, 2);
+        DrawPixelText(g, "X", 1127, 20, 2, RetroGold);
     }
 
     private void DrawHomeOptionCard(Graphics g, Rectangle rect,
@@ -840,7 +840,7 @@ public sealed class GameForm : Form
         DrawPixelText(g, SkinShortName(_selectedSkin), 954, 510, 5,
             skin.IsLegendary ? Color.FromArgb(255, 225, 90) : RetroWhite);
         DrawPixelText(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
-            954, 560, 3, RetroWhite);
+            954, 560, 2, RetroWhite);
 
         if (skin.IsLegendary)
         {
@@ -944,12 +944,39 @@ public sealed class GameForm : Form
                 g.DrawLine(grid, area.Left + 10, y, area.Right - 10, y);
         }
 
+        if (skin.IsLegendary)
+            DrawRetroLegendaryAura(g, centers[0]);
+
         for (int i = centers.Length - 1; i >= 0; i--)
             DrawRetroSnakeBlock(g, centers[i].X, centers[i].Y, size,
                 skin, i, i == 0);
 
         DrawPixelText(g, "PREVIEW", area.X + area.Width / 2,
             area.Bottom - 31, 4, RetroWhite);
+    }
+
+    private void DrawRetroLegendaryAura(Graphics g, Point center)
+    {
+        int phase = (int)(Environment.TickCount64 / 180) % 8;
+        Color[] colors =
+        [
+            Color.FromArgb(255, 220, 93),
+            Color.FromArgb(210, 151, 255),
+            Color.White
+        ];
+
+        for (int i = 0; i < 8; i++)
+        {
+            double angle = (i + phase) * Math.PI / 4;
+            int radius = 34 + (i % 3) * 5;
+            int x = center.X + (int)Math.Round(Math.Cos(angle) * radius);
+            int y = center.Y + (int)Math.Round(Math.Sin(angle) * radius);
+
+            using var spark = new SolidBrush(colors[i % colors.Length]);
+            g.FillRectangle(spark, x, y, 5, 5);
+            if (i % 2 == 0)
+                g.FillRectangle(spark, x - 3, y + 2, 11, 2);
+        }
     }
 
     private void DrawRetroSnakeBlock(Graphics g, int centerX, int centerY,
@@ -1049,8 +1076,13 @@ public sealed class GameForm : Form
         if (head)
         {
             using var eye = new SolidBrush(Color.FromArgb(10, 35, 4));
-            g.FillRectangle(_eyeWhiteBrush, x + size - pad * 2, y + pad * 2, mark, mark);
-            g.FillRectangle(eye, x + size - pad * 2 + 1, y + pad * 2 + 1, Math.Max(1, mark / 2), Math.Max(1, mark / 2));
+            int eyeX = x + size - pad * 2;
+            int eyeTop = y + pad * 2;
+            int eyeBottom = y + size - pad * 2 - mark;
+            g.FillRectangle(_eyeWhiteBrush, eyeX, eyeTop, mark, mark);
+            g.FillRectangle(_eyeWhiteBrush, eyeX, eyeBottom, mark, mark);
+            g.FillRectangle(eye, eyeX + 1, eyeTop + 1, Math.Max(1, mark / 2), Math.Max(1, mark / 2));
+            g.FillRectangle(eye, eyeX + 1, eyeBottom + 1, Math.Max(1, mark / 2), Math.Max(1, mark / 2));
         }
     }
 

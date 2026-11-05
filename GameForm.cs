@@ -218,8 +218,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _themeCategoryTile = new(540, 252, 560, 220);
     private readonly Rectangle _seasonCategoryTile = new(540, 252, 560, 220);
     private readonly Rectangle _seasonBackButton = new(1000, 184, 104, 32);
-    private readonly Rectangle _settingsSoundButton = new(330, 222, 145, 48);
-    private readonly Rectangle _settingsResetButton = new(330, 378, 145, 48);
+    private readonly Rectangle _settingsSoundButton = new(330, 229, 145, 46);
+    private readonly Rectangle _settingsResetButton = new(330, 343, 145, 46);
     private readonly Rectangle _minimizeButton = new(986, 18, 40, 36);
     private readonly Rectangle _fullscreenButton = new(1032, 18, 40, 36);
     private readonly Rectangle _closeButton = new(1078, 18, 40, 36);
@@ -1328,63 +1328,80 @@ public sealed class GameForm : Form
 
     private void DrawSettingsPage(Graphics g)
     {
-        DrawUiPageTitle(g, "SETTINGS", "Tune the arcade experience and choose your world.");
+        DrawUiPageTitle(g, "SETTINGS", "Manage your game preferences.");
 
-        Rectangle soundPanel = new(56, 178, 425, 128);
-        Rectangle scorePanel = new(56, 326, 425, 145);
-        Rectangle controlsPanel = new(56, 491, 425, 158);
+        Rectangle generalPanel = new(56, 166, 425, 489);
         Rectangle themePanel = new(510, 166, 620, 489);
 
-        DrawUiPanel(g, soundPanel, false, 16);
-        DrawUiPanel(g, scorePanel, false, 16);
-        DrawUiPanel(g, controlsPanel, false, 16);
+        DrawUiPanel(g, generalPanel, false, 18);
         DrawUiPanel(g, themePanel, true, 18);
 
         using var heading = new SolidBrush(ActiveTheme.Text);
         using var accent = new SolidBrush(ActiveTheme.Highlight);
         using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
+        using var divider = new Pen(Color.FromArgb(85, ActiveTheme.Grid), 1);
+        using var keyFill = new SolidBrush(Color.FromArgb(190, ActiveTheme.Dark));
+
+        // General settings
+        DrawLabel(g, "GENERAL SETTINGS", _sectionFont, heading,
+            new Rectangle(82, 188, 260, 25), _leftFormat);
 
         DrawLabel(g, "SOUND", _sectionFont, heading,
-            new Rectangle(82, 198, 170, 24), _leftFormat);
-        DrawLabel(g, "Game effects and arcade feedback",
-            _bodyFont, description, new Rectangle(82, 226, 230, 24), _leftFormat);
+            new Rectangle(82, 226, 170, 24), _leftFormat);
+        DrawLabel(g, "Game effects and arcade feedback", _bodyFont, description,
+            new Rectangle(82, 252, 230, 24), _leftFormat);
         DrawUiButton(g, _settingsSoundButton,
             _soundEnabled ? "SOUND ON" : "SOUND OFF", false, _soundEnabled);
 
+        g.DrawLine(divider, 82, 290, 455, 290);
+
         DrawLabel(g, "PERSONAL BEST", _sectionFont, heading,
-            new Rectangle(82, 346, 190, 24), _leftFormat);
+            new Rectangle(82, 312, 190, 24), _leftFormat);
         DrawLabel(g, FormatScore(_bestScore), _scoreFont, accent,
-            new Rectangle(82, 374, 190, 48), _leftFormat);
+            new Rectangle(82, 342, 190, 48), _leftFormat);
         DrawUiButton(g, _settingsResetButton, "RESET SCORE", false, false, true);
 
-        DrawLabel(g, "KEYBOARD CONTROLS", _sectionFont, heading,
-            new Rectangle(82, 510, 240, 24), _leftFormat);
-        DrawLabel(g, "MOVE", _microFont, accent,
-            new Rectangle(82, 547, 65, 20), _leftFormat);
-        DrawLabel(g, "WASD  /  ARROW KEYS", _bodyFont, heading,
-            new Rectangle(162, 545, 270, 24), _leftFormat);
-        DrawLabel(g, "PAUSE", _microFont, accent,
-            new Rectangle(82, 585, 65, 20), _leftFormat);
-        DrawLabel(g, "SPACE", _bodyFont, heading,
-            new Rectangle(162, 583, 270, 24), _leftFormat);
+        g.DrawLine(divider, 82, 410, 455, 410);
 
-        if (_themeMenuLevel == 0)
+        DrawLabel(g, "KEYBOARD CONTROLS", _sectionFont, heading,
+            new Rectangle(82, 430, 260, 24), _leftFormat);
+
+        DrawLabel(g, "MOVE", _microFont, accent,
+            new Rectangle(82, 475, 65, 22), _leftFormat);
+        FillRound(g, new Rectangle(162, 470, 285, 32), 8, keyFill);
+        StrokeRound(g, new Rectangle(162, 470, 285, 32), 8,
+            Color.FromArgb(90, ActiveTheme.Grid));
+        DrawLabel(g, "WASD  /  ARROW KEYS", _bodyFont, heading,
+            new Rectangle(170, 470, 269, 32), _centerFormat);
+
+        DrawLabel(g, "PAUSE", _microFont, accent,
+            new Rectangle(82, 525, 65, 22), _leftFormat);
+        FillRound(g, new Rectangle(162, 520, 285, 32), 8, keyFill);
+        StrokeRound(g, new Rectangle(162, 520, 285, 32), 8,
+            Color.FromArgb(90, ActiveTheme.Grid));
+        DrawLabel(g, "SPACE", _bodyFont, heading,
+            new Rectangle(170, 520, 269, 32), _centerFormat);
+
+        // Theme navigation
+        string themeTitle = _themeMenuLevel switch
         {
-            DrawThemeSectionCard(g);
-        }
-        else
-        {
-            string title = _themeMenuLevel == 1 ? "THEMES" : "SEASON THEMES";
-            DrawLabel(g, title, _sectionFont, heading,
-                new Rectangle(536, 184, 300, 28), _leftFormat);
+            0 => "APPEARANCE",
+            1 => "THEMES",
+            _ => "SEASON THEMES"
+        };
+        DrawLabel(g, themeTitle, _sectionFont, heading,
+            new Rectangle(536, 184, 300, 28), _leftFormat);
+
+        if (_themeMenuLevel > 0)
             DrawUiButton(g, _seasonBackButton, "← BACK");
 
-            if (_themeMenuLevel == 1)
-                DrawSeasonCategoryCard(g);
-            else
-                for (int i = 0; i < Themes.Length; i++)
-                    DrawThemeCard(g, i);
-        }
+        if (_themeMenuLevel == 0)
+            DrawThemeSectionCard(g);
+        else if (_themeMenuLevel == 1)
+            DrawSeasonCategoryCard(g);
+        else
+            for (int i = 0; i < Themes.Length; i++)
+                DrawThemeCard(g, i);
     }
 
         private static Rectangle ThemeTileRect(int index)

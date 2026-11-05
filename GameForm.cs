@@ -215,11 +215,11 @@ public sealed class GameForm : Form
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
-    private readonly Rectangle _themeCategoryTile = new(540, 252, 560, 220);
-    private readonly Rectangle _seasonCategoryTile = new(540, 252, 560, 220);
-    private readonly Rectangle _seasonBackButton = new(1000, 184, 104, 32);
-    private readonly Rectangle _settingsSoundButton = new(330, 229, 145, 46);
-    private readonly Rectangle _settingsResetButton = new(330, 343, 145, 46);
+    private readonly Rectangle _themeCategoryTile = new(790, 560, 260, 70);
+    private readonly Rectangle _seasonCategoryTile = new(530, 540, 520, 130);
+    private readonly Rectangle _seasonBackButton = new(960, 78, 150, 42);
+    private readonly Rectangle _settingsSoundButton = new(790, 166, 260, 52);
+    private readonly Rectangle _settingsResetButton = new(790, 298, 260, 52);
     private readonly Rectangle _minimizeButton = new(986, 18, 40, 36);
     private readonly Rectangle _fullscreenButton = new(1032, 18, 40, 36);
     private readonly Rectangle _closeButton = new(1078, 18, 40, 36);
@@ -1328,87 +1328,62 @@ public sealed class GameForm : Form
 
     private void DrawSettingsPage(Graphics g)
     {
-        DrawUiPageTitle(g, "SETTINGS", "Manage your game preferences.");
-
-        Rectangle generalPanel = new(56, 166, 425, 489);
-        Rectangle themePanel = new(510, 166, 620, 489);
-
-        DrawUiPanel(g, generalPanel, false, 18);
-        DrawUiPanel(g, themePanel, true, 18);
-
-        using var heading = new SolidBrush(ActiveTheme.Text);
-        using var accent = new SolidBrush(ActiveTheme.Highlight);
-        using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
-        using var divider = new Pen(Color.FromArgb(85, ActiveTheme.Grid), 1);
-        using var keyFill = new SolidBrush(Color.FromArgb(190, ActiveTheme.Dark));
-
-        // General settings
-        DrawLabel(g, "GENERAL SETTINGS", _sectionFont, heading,
-            new Rectangle(82, 188, 260, 25), _leftFormat);
-
-        DrawLabel(g, "SOUND", _sectionFont, heading,
-            new Rectangle(82, 226, 170, 24), _leftFormat);
-        DrawLabel(g, "Game effects and arcade feedback", _bodyFont, description,
-            new Rectangle(82, 252, 230, 24), _leftFormat);
-        DrawUiButton(g, _settingsSoundButton,
-            _soundEnabled ? "SOUND ON" : "SOUND OFF", false, _soundEnabled);
-
-        g.DrawLine(divider, 82, 290, 455, 290);
-
-        DrawLabel(g, "PERSONAL BEST", _sectionFont, heading,
-            new Rectangle(82, 312, 190, 24), _leftFormat);
-        DrawLabel(g, FormatScore(_bestScore), _scoreFont, accent,
-            new Rectangle(82, 342, 190, 48), _leftFormat);
-        DrawUiButton(g, _settingsResetButton, "RESET SCORE", false, false, true);
-
-        g.DrawLine(divider, 82, 410, 455, 410);
-
-        DrawLabel(g, "KEYBOARD CONTROLS", _sectionFont, heading,
-            new Rectangle(82, 430, 260, 24), _leftFormat);
-
-        DrawLabel(g, "MOVE", _microFont, accent,
-            new Rectangle(82, 475, 65, 22), _leftFormat);
-        FillRound(g, new Rectangle(162, 470, 285, 32), 8, keyFill);
-        StrokeRound(g, new Rectangle(162, 470, 285, 32), 8,
-            Color.FromArgb(90, ActiveTheme.Grid));
-        DrawLabel(g, "WASD  /  ARROW KEYS", _bodyFont, heading,
-            new Rectangle(170, 470, 269, 32), _centerFormat);
-
-        DrawLabel(g, "PAUSE", _microFont, accent,
-            new Rectangle(82, 525, 65, 22), _leftFormat);
-        FillRound(g, new Rectangle(162, 520, 285, 32), 8, keyFill);
-        StrokeRound(g, new Rectangle(162, 520, 285, 32), 8,
-            Color.FromArgb(90, ActiveTheme.Grid));
-        DrawLabel(g, "SPACE", _bodyFont, heading,
-            new Rectangle(170, 520, 269, 32), _centerFormat);
-
-        // Theme navigation
-        string themeTitle = _themeMenuLevel switch
+        if (_themeMenuLevel == 2)
         {
-            0 => "APPEARANCE",
-            1 => "THEMES",
-            _ => "SEASON THEMES"
-        };
-        DrawLabel(g, themeTitle, _sectionFont, heading,
-            new Rectangle(536, 184, 300, 28), _leftFormat);
+            DrawPixelText(g, "SEASON THEMES", DesignWidth / 2, 78, 4, RetroWhite);
+            DrawRetroButton(g, _seasonBackButton, "BACK", 2,
+                _seasonBackButton.Contains(_mousePoint));
+            DrawPixelText(g, "SELECT YOUR THEME", DesignWidth / 2, 130, 2, RetroGold);
 
-        if (_themeMenuLevel > 0)
-            DrawUiButton(g, _seasonBackButton, "← BACK");
+            for (int i = 0; i < Themes.Length; i++)
+                DrawThemeCard(g, i);
+
+            return;
+        }
+
+        DrawPixelText(g, "SETTINGS", DesignWidth / 2, 78, 6, RetroWhite);
+
+        Rectangle soundPanel = new(70, 130, 1020, 120);
+        Rectangle scorePanel = new(70, 260, 1020, 120);
+        Rectangle controlsPanel = new(70, 390, 1020, 120);
+        Rectangle themePanel = new(70, 520, 1020, 165);
+
+        DrawPixelPanel(g, soundPanel, true);
+        DrawPixelPanel(g, scorePanel, true);
+        DrawPixelPanel(g, controlsPanel, true);
+        DrawPixelPanel(g, themePanel, true);
+
+        DrawPixelText(g, "SOUND", 245, 164, 3, RetroWhite);
+        DrawPixelText(g, "GAME EFFECTS", 245, 210, 2, RetroGold);
+        DrawRetroButton(g, _settingsSoundButton,
+            _soundEnabled ? "SOUND ON" : "SOUND OFF", 2,
+            _settingsSoundButton.Contains(_mousePoint));
+
+        DrawPixelText(g, "PERSONAL BEST", 270, 291, 3, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 550, 310, 4, RetroGold);
+        DrawRetroButton(g, _settingsResetButton, "RESET SCORE", 2,
+            _settingsResetButton.Contains(_mousePoint));
+
+        DrawPixelText(g, "KEYBOARD CONTROLS", 280, 422, 3, RetroWhite);
+        DrawPixelText(g, "MOVE : WASD / ARROWS", 650, 430, 2, RetroGold);
+        DrawPixelText(g, "PAUSE : SPACE", 650, 472, 2, RetroWhite);
 
         if (_themeMenuLevel == 0)
             DrawThemeSectionCard(g);
-        else if (_themeMenuLevel == 1)
-            DrawSeasonCategoryCard(g);
         else
-            for (int i = 0; i < Themes.Length; i++)
-                DrawThemeCard(g, i);
+        {
+            DrawPixelText(g, "THEMES", 245, 582, 3, RetroWhite);
+            DrawRetroButton(g, _seasonBackButton, "BACK", 2,
+                _seasonBackButton.Contains(_mousePoint));
+            DrawSeasonCategoryCard(g);
+        }
     }
 
         private static Rectangle ThemeTileRect(int index)
     {
         int column = index % 4;
         int row = index / 4;
-        return new Rectangle(540 + column * 144, 238 + row * 190, 136, 180);
+        return new Rectangle(70 + column * 255, 160 + row * 225, 225, 205);
     }
 
 
@@ -1419,42 +1394,56 @@ public sealed class GameForm : Form
         bool selected = index == _selectedTheme;
         bool hover = tile.Contains(_mousePoint);
 
-        using (var shadow = new SolidBrush(Color.FromArgb(45, 0, 0, 0)))
-            FillRound(g, new Rectangle(tile.X + 2, tile.Y + 4, tile.Width, tile.Height),
-                12, shadow);
-        using (var fill = new LinearGradientBrush(tile, theme.Dark, theme.Background, 90f))
-            FillRound(g, tile, 12, fill);
-        StrokeRound(g, tile, 12, selected ? theme.Highlight :
-            hover ? theme.Text : Color.FromArgb(115, theme.Grid));
+        using var fill = new SolidBrush(theme.Dark);
+        g.FillRectangle(fill, tile);
+        DrawPixelOutline(g, tile,
+            selected ? theme.Highlight : hover ? theme.Text : theme.Accent,
+            selected ? 4 : 2);
 
-        Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 112);
+        Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 108);
         using (var artFill = new SolidBrush(theme.Background))
-            FillRound(g, art, 7, artFill);
-        GraphicsState state = g.Save();
-        using (GraphicsPath clip = RoundPath(art, 7))
-            g.SetClip(clip);
+            g.FillRectangle(artFill, art);
         DrawThemeThumbnail(g, art, theme);
-        g.Restore(state);
 
-        using var accentBrush = new SolidBrush(theme.Accent);
-        DrawLabel(g, theme.Season + "  ·  " + theme.TimeOfDay, _microFont, accentBrush,
-            new Rectangle(tile.X + 8, tile.Y + 132, tile.Width - 16, 28), _centerFormat);
+        DrawPixelText(g, theme.Season, tile.X + tile.Width / 2,
+            tile.Y + 126, 3, theme.Text);
+        DrawPixelText(g, theme.TimeOfDay, tile.X + tile.Width / 2,
+            tile.Y + 158, 2, theme.Accent);
 
         if (selected)
-        {
-            using var activeDot = new SolidBrush(theme.Highlight);
-            g.FillEllipse(activeDot, tile.Right - 20, tile.Y + 12, 8, 8);
-        }
+            DrawPixelText(g, "SELECTED", tile.X + tile.Width / 2,
+                tile.Y + 181, 1, theme.Highlight);
     }
 
 private void DrawThemeSectionCard(Graphics g)
     {
-        DrawThemeNavigationCard(g, _themeCategoryTile, "THEMES", false);
+        DrawPixelText(g, "THEMES", 245, 582, 3, RetroWhite);
+        DrawRetroButton(g, _themeCategoryTile, "OPEN THEMES", 2,
+            _themeCategoryTile.Contains(_mousePoint), true);
     }
 
     private void DrawSeasonCategoryCard(Graphics g)
     {
-        DrawThemeNavigationCard(g, _seasonCategoryTile, "SEASON THEMES", true);
+        Rectangle tile = _seasonCategoryTile;
+        using var fill = new SolidBrush(RetroDark);
+        g.FillRectangle(fill, tile);
+        DrawPixelOutline(g, tile, RetroGold, 3);
+
+        ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6]];
+        int gap = 8;
+        int artWidth = (tile.Width - 16 - gap * 3) / 4;
+
+        for (int i = 0; i < previews.Length; i++)
+        {
+            Rectangle art = new(tile.X + 8 + i * (artWidth + gap),
+                tile.Y + 7, artWidth, 78);
+            using var artFill = new SolidBrush(previews[i].Background);
+            g.FillRectangle(artFill, art);
+            DrawThemeThumbnail(g, art, previews[i]);
+        }
+
+        DrawPixelText(g, "SEASON THEMES",
+            tile.X + tile.Width / 2, tile.Y + 94, 2, RetroGold);
     }
 
     private void DrawThemeNavigationCard(

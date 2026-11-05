@@ -1931,8 +1931,8 @@ public sealed class GameForm : Form
         float scale, ArcadeTheme theme)
     {
         using var trunk = new SolidBrush(Color.FromArgb(235, 86, 62, 51));
-        g.FillRoundRectangle(trunk, x - 7 * scale, groundY - 250 * scale,
-            14 * scale, 253 * scale, 5 * scale);
+        FillRound(g, new RectangleF(x - 7 * scale, groundY - 250 * scale,
+            14 * scale, 253 * scale), 5 * scale, trunk);
 
         using var pineShadow = new SolidBrush(Color.FromArgb(235, 10, 48, 59));
         using var pine = new SolidBrush(Color.FromArgb(245, 20, 83, 83));

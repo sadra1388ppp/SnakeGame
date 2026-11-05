@@ -1602,30 +1602,30 @@ public sealed class GameForm : Form
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
-                DrawBlossomTree(g, 86, 724, 0.92f, theme);
-                DrawBlossomTree(g, 1075, 724, 0.86f, theme);
+                DrawBlossomTree(g, 14, 724, 0.98f, theme);
+                DrawBlossomTree(g, 1146, 724, 0.92f, theme);
                 DrawFlowerMeadow(g, tick, theme);
                 DrawFallingPetals(g, tick, theme, 22);
                 break;
 
             case ThemeSeason.Summer:
-                DrawPalmTree(g, 86, 724, 0.92f, theme);
-                DrawPalmTree(g, 1075, 724, 0.86f, theme);
+                DrawPalmTree(g, 14, 724, 0.98f, theme);
+                DrawPalmTree(g, 1146, 724, 0.92f, theme);
                 DrawWarmHaze(g, tick, theme);
                 DrawSummerGlints(g, tick, theme, 20);
                 break;
 
             case ThemeSeason.Autumn:
-                DrawBareTree(g, 86, 724, 0.94f, theme);
-                DrawBareTree(g, 1075, 724, 0.88f, theme);
+                DrawBareTree(g, 14, 724, 1.0f, theme);
+                DrawBareTree(g, 1146, 724, 0.94f, theme);
                 DrawAutumnGround(g, theme);
                 DrawFallingLeaves(g, tick, theme, 30);
                 DrawRain(g, tick, theme, 76);
                 break;
 
             case ThemeSeason.Winter:
-                DrawPineTree(g, 86, 724, 0.94f, theme);
-                DrawPineTree(g, 1075, 724, 0.88f, theme);
+                DrawPineTree(g, 14, 724, 1.0f, theme);
+                DrawPineTree(g, 1146, 724, 0.94f, theme);
                 DrawSnowGround(g, theme);
                 DrawSnowfall(g, tick, theme, 64);
                 break;
@@ -1808,6 +1808,10 @@ public sealed class GameForm : Form
         Color leafDark = Color.FromArgb(235, 27, 91, 55);
         Color leafMid = Color.FromArgb(245, 48, 142, 77);
         using var rib = new Pen(Color.FromArgb(220, 170, 208, 113), 2 * scale);
+        using var darkLeaflet = new Pen(leafDark, 3.2f * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        using var midLeaflet = new Pen(leafMid, 3.2f * scale)
+            { StartCap = LineCap.Round, EndCap = LineCap.Round };
         for (int frond = 0; frond < 8; frond++)
         {
             double angle = (-168 + frond * 32) * Math.PI / 180;
@@ -1834,8 +1838,7 @@ public sealed class GameForm : Form
                 float leafLen = (22 - t * 9) * scale;
                 float nx = -(end.Y - crown.Y) / Math.Max(1, length) * leafLen;
                 float ny = (end.X - crown.X) / Math.Max(1, length) * leafLen;
-                using var leaflet = new Pen(j % 3 == 0 ? leafDark : leafMid,
-                    3.2f * scale) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                Pen leaflet = j % 3 == 0 ? darkLeaflet : midLeaflet;
                 g.DrawLine(leaflet, bx, by, bx + nx, by + ny);
                 g.DrawLine(leaflet, bx, by, bx - nx * 0.78f, by - ny * 0.78f);
             }

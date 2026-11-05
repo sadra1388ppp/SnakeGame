@@ -460,7 +460,11 @@ public sealed class GameForm : Form
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
         g.Clear(RetroBackground);
-        DrawThemeAtmosphere(g);
+        // Full seasonal scenery belongs to the menus. During gameplay, keep only
+        // the clipped seasonal effects inside the board so trees and decorations
+        // never cover the snake, food, or game controls.
+        if (_view != AppView.Play)
+            DrawThemeAtmosphere(g);
 
         switch (_view)
         {

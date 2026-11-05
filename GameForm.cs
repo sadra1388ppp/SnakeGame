@@ -1153,22 +1153,22 @@ public sealed class GameForm : Form
         }
 
         float scale = Math.Clamp(area.Width / 280f, 0.78f, 1.15f);
-        float x = area.Right - 42f * scale;
-        float y = area.Top + area.Height * 0.59f;
+        float headX = area.Right - 42f * scale;
+        float headY = area.Top + area.Height * 0.59f;
         PointF[] previewCenters =
         [
-            new(x, y),
-            new(x - 19 * scale, y),
-            new(x - 38 * scale, y),
-            new(x - 57 * scale, y),
-            new(x - 76 * scale, y),
-            new(x - 95 * scale, y),
-            new(x - 114 * scale, y),
-            new(x - 132 * scale, y - 9 * scale),
-            new(x - 137 * scale, y - 27 * scale),
-            new(x - 128 * scale, y - 44 * scale),
-            new(x - 108 * scale, y - 51 * scale),
-            new(x - 88 * scale, y - 51 * scale)
+            new(headX, headY),
+            new(headX - 19 * scale, headY),
+            new(headX - 38 * scale, headY),
+            new(headX - 57 * scale, headY),
+            new(headX - 76 * scale, headY),
+            new(headX - 95 * scale, headY),
+            new(headX - 114 * scale, headY),
+            new(headX - 132 * scale, headY - 9 * scale),
+            new(headX - 137 * scale, headY - 27 * scale),
+            new(headX - 128 * scale, headY - 44 * scale),
+            new(headX - 108 * scale, headY - 51 * scale),
+            new(headX - 88 * scale, headY - 51 * scale)
         ];
 
         DrawSnakeVisual(g, previewCenters, previewCenters.Length, skin, Direction.Right);

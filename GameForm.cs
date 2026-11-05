@@ -1432,15 +1432,16 @@ public sealed class GameForm : Form
 
 private void DrawThemeSectionCard(Graphics g)
     {
-        DrawThemeNavigationCard(g, _themeCategoryTile, "THEMES");
+        DrawThemeNavigationCard(g, _themeCategoryTile, "THEMES", false);
     }
 
     private void DrawSeasonCategoryCard(Graphics g)
     {
-        DrawThemeNavigationCard(g, _seasonCategoryTile, "SEASON THEMES");
+        DrawThemeNavigationCard(g, _seasonCategoryTile, "SEASON THEMES", true);
     }
 
-    private void DrawThemeNavigationCard(Graphics g, Rectangle tile, string label)
+    private void DrawThemeNavigationCard(
+        Graphics g, Rectangle tile, string label, bool showSeasonPreviews)
     {
         bool hover = tile.Contains(_mousePoint);
 
@@ -1453,26 +1454,47 @@ private void DrawThemeSectionCard(Graphics g)
         StrokeRound(g, tile, 14,
             hover ? ActiveTheme.Highlight : Color.FromArgb(125, ActiveTheme.Grid));
 
-        ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6]];
-        int gap = 8;
-        int width = (tile.Width - 24 - gap * 3) / 4;
-        for (int i = 0; i < previews.Length; i++)
-        {
-            Rectangle art = new(tile.X + 12 + i * (width + gap),
-                tile.Y + 12, width, 126);
-            using var artFill = new SolidBrush(previews[i].Background);
-            FillRound(g, art, 8, artFill);
-            GraphicsState state = g.Save();
-            using (GraphicsPath clip = RoundPath(art, 8))
-                g.SetClip(clip);
-            DrawThemeThumbnail(g, art, previews[i]);
-            g.Restore(state);
-        }
-
         using var title = new SolidBrush(ActiveTheme.Text);
         using var arrow = new SolidBrush(ActiveTheme.Highlight);
-        DrawLabel(g, label, _pageTitleFont, title,
-            new Rectangle(tile.X + 18, tile.Y + 151, tile.Width - 90, 48), _leftFormat);
+
+        if (showSeasonPreviews)
+        {
+            ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6]];
+            int gap = 8;
+            int width = (tile.Width - 24 - gap * 3) / 4;
+            for (int i = 0; i < previews.Length; i++)
+            {
+                Rectangle art = new(tile.X + 12 + i * (width + gap),
+                    tile.Y + 12, width, 126);
+                using var artFill = new SolidBrush(previews[i].Background);
+                FillRound(g, art, 8, artFill);
+                GraphicsState state = g.Save();
+                using (GraphicsPath clip = RoundPath(art, 8))
+                    g.SetClip(clip);
+                DrawThemeThumbnail(g, art, previews[i]);
+                g.Restore(state);
+            }
+
+            DrawLabel(g, label, _pageTitleFont, title,
+                new Rectangle(tile.X + 18, tile.Y + 151, tile.Width - 90, 48), _leftFormat);
+        }
+        else
+        {
+            // A neutral category symbol keeps the Themes entry free of seasonal artwork.
+            using var swatchOne = new SolidBrush(ActiveTheme.Accent);
+            using var swatchTwo = new SolidBrush(ActiveTheme.Highlight);
+            using var swatchThree = new SolidBrush(ActiveTheme.Grid);
+            Rectangle icon = new(tile.X + 42, tile.Y + 76, 68, 68);
+            StrokeRound(g, icon, 18, Color.FromArgb(135, ActiveTheme.Highlight));
+            g.FillEllipse(swatchOne, icon.X + 13, icon.Y + 13, 18, 18);
+            g.FillEllipse(swatchTwo, icon.X + 37, icon.Y + 13, 18, 18);
+            g.FillEllipse(swatchThree, icon.X + 13, icon.Y + 37, 18, 18);
+            g.FillEllipse(title, icon.X + 37, icon.Y + 37, 18, 18);
+
+            DrawLabel(g, label, _pageTitleFont, title,
+                new Rectangle(tile.X + 138, tile.Y + 78, tile.Width - 230, 64), _leftFormat);
+        }
+
         DrawLabel(g, "›", _displayFont, arrow,
             new Rectangle(tile.Right - 76, tile.Y + 145, 54, 58), _centerFormat);
     }

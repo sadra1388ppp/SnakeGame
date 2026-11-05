@@ -13,6 +13,8 @@ public sealed class GameForm : Form
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
     private enum GameMode { Classic, Wrap, Rush }
+    private enum ThemeSeason { Spring, Summer, Autumn, Winter }
+
     private enum SkinPattern
     {
         Plain, Stripes, Dots, Waves, Lightning, Scales, Flames, Frost,
@@ -23,6 +25,55 @@ public sealed class GameForm : Form
     private sealed record SnakeSkin(
         string Name, Color Body, Color Head, Color Outline,
         Color Highlight, Color PatternColor, SkinPattern Pattern, bool IsLegendary = false);
+
+    private sealed record ArcadeTheme(
+        string Season, string TimeOfDay, ThemeSeason SeasonType, bool IsNight,
+        Color Background, Color Dark, Color Accent, Color Text,
+        Color Highlight, Color Grid, Color Effect);
+
+    private static readonly ArcadeTheme[] Themes =
+    [
+        new("SPRING", "DAY", ThemeSeason.Spring, false,
+            Color.FromArgb(35, 80, 39), Color.FromArgb(13, 48, 22),
+            Color.FromArgb(244, 198, 94), Color.FromArgb(255, 248, 220),
+            Color.FromArgb(185, 231, 135), Color.FromArgb(74, 127, 65),
+            Color.FromArgb(246, 166, 184)),
+        new("SPRING", "NIGHT", ThemeSeason.Spring, true,
+            Color.FromArgb(16, 37, 42), Color.FromArgb(7, 24, 29),
+            Color.FromArgb(111, 211, 176), Color.FromArgb(227, 255, 239),
+            Color.FromArgb(171, 235, 185), Color.FromArgb(42, 83, 78),
+            Color.FromArgb(214, 163, 220)),
+        new("SUMMER", "DAY", ThemeSeason.Summer, false,
+            Color.FromArgb(25, 100, 117), Color.FromArgb(8, 51, 66),
+            Color.FromArgb(255, 204, 75), Color.FromArgb(255, 247, 215),
+            Color.FromArgb(133, 226, 207), Color.FromArgb(49, 130, 145),
+            Color.FromArgb(255, 226, 116)),
+        new("SUMMER", "NIGHT", ThemeSeason.Summer, true,
+            Color.FromArgb(19, 38, 68), Color.FromArgb(8, 22, 45),
+            Color.FromArgb(95, 210, 226), Color.FromArgb(230, 245, 255),
+            Color.FromArgb(137, 195, 255), Color.FromArgb(48, 76, 116),
+            Color.FromArgb(170, 219, 255)),
+        new("AUTUMN", "DAY", ThemeSeason.Autumn, false,
+            Color.FromArgb(111, 62, 29), Color.FromArgb(54, 27, 15),
+            Color.FromArgb(246, 174, 68), Color.FromArgb(255, 239, 210),
+            Color.FromArgb(224, 119, 48), Color.FromArgb(145, 83, 39),
+            Color.FromArgb(241, 137, 55)),
+        new("AUTUMN", "NIGHT", ThemeSeason.Autumn, true,
+            Color.FromArgb(43, 29, 47), Color.FromArgb(25, 16, 31),
+            Color.FromArgb(224, 148, 75), Color.FromArgb(255, 232, 215),
+            Color.FromArgb(191, 116, 109), Color.FromArgb(83, 58, 77),
+            Color.FromArgb(234, 163, 91)),
+        new("WINTER", "DAY", ThemeSeason.Winter, false,
+            Color.FromArgb(63, 112, 139), Color.FromArgb(20, 54, 78),
+            Color.FromArgb(204, 237, 250), Color.FromArgb(245, 252, 255),
+            Color.FromArgb(153, 216, 242), Color.FromArgb(91, 145, 172),
+            Color.FromArgb(236, 251, 255)),
+        new("WINTER", "NIGHT", ThemeSeason.Winter, true,
+            Color.FromArgb(18, 29, 58), Color.FromArgb(8, 16, 37),
+            Color.FromArgb(139, 190, 245), Color.FromArgb(237, 244, 255),
+            Color.FromArgb(160, 177, 255), Color.FromArgb(48, 65, 104),
+            Color.FromArgb(193, 231, 255))
+    ];
 
     private static readonly SnakeSkin[] Skins =
     [
@@ -64,12 +115,15 @@ public sealed class GameForm : Form
     private static readonly Color Muted = Color.FromArgb(123, 143, 146);
     private static readonly Color Green = Color.FromArgb(165, 239, 104);
     private static readonly Color Gold = Color.FromArgb(255, 194, 83);
-    private static readonly Color RetroBackground = Color.FromArgb(14, 79, 0);
-    private static readonly Color RetroGold = Color.FromArgb(185, 143, 17);
-    private static readonly Color RetroWhite = Color.White;
-    private static readonly Color RetroDark = Color.FromArgb(7, 54, 0);
+    private int _selectedTheme;
+    private ArcadeTheme ActiveTheme => Themes[_selectedTheme];
+    private Color RetroBackground => ActiveTheme.Background;
+    private Color RetroGold => ActiveTheme.Accent;
+    private Color RetroWhite => ActiveTheme.Text;
+    private Color RetroDark => ActiveTheme.Dark;
 
     private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 16 };
+    private readonly System.Windows.Forms.Timer _ambientTimer = new() { Interval = 90 };
     private readonly Random _random = new();
     private readonly List<Point> _snake = [];
     private readonly Point[] _previousSnake = new Point[BoardCells];
@@ -160,8 +214,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
-    private readonly Rectangle _settingsSoundButton = new(430, 270, 200, 48);
-    private readonly Rectangle _settingsResetButton = new(430, 420, 200, 48);
+    private readonly Rectangle _settingsSoundButton = new(330, 222, 145, 48);
+    private readonly Rectangle _settingsResetButton = new(330, 378, 145, 48);
     private readonly Rectangle _fullscreenButton = new(1030, 19, 34, 30);
     private readonly Rectangle _minimizeButton = new(1070, 19, 34, 30);
     private readonly Rectangle _closeButton = new(1110, 19, 34, 30);
@@ -287,6 +341,7 @@ public sealed class GameForm : Form
 
         _bestScore = LoadBestScore();
         UpdateViewTransform();
+        _selectedTheme = LoadSelectedTheme();
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
         ResetSnake();
@@ -295,6 +350,12 @@ public sealed class GameForm : Form
         BuildChrome();
 
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
+        _ambientTimer.Tick += (_, _) =>
+        {
+            if (_view != AppView.Play || _state != GameState.Playing)
+                Invalidate();
+        };
+        _ambientTimer.Start();
         KeyDown += HandleKeyDown;
         MouseMove += HandleMouseMove;
         MouseDown += HandleMouseDown;
@@ -363,6 +424,7 @@ public sealed class GameForm : Form
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
         g.Clear(RetroBackground);
+        DrawThemeAtmosphere(g);
 
         switch (_view)
         {
@@ -3080,6 +3142,8 @@ public sealed class GameForm : Form
     {
         _animationTimer.Stop();
         _animationTimer.Dispose();
+        _ambientTimer.Stop();
+        _ambientTimer.Dispose();
         _chrome?.Dispose();
         _overlayPath.Dispose();
 

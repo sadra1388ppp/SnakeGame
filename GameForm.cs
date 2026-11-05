@@ -342,6 +342,7 @@ public sealed class GameForm : Form
         _bestScore = LoadBestScore();
         UpdateViewTransform();
         _selectedTheme = LoadSelectedTheme();
+        BackColor = RetroBackground;
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
         ResetSnake();
@@ -416,7 +417,7 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
-        g.Clear(Background);
+        g.Clear(RetroBackground);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.Half;
 
@@ -2168,6 +2169,7 @@ public sealed class GameForm : Form
             return;
 
         _selectedTheme = index;
+        BackColor = RetroBackground;
         try
         {
             string path = ThemePath();

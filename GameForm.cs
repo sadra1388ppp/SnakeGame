@@ -583,6 +583,82 @@ public sealed class GameForm : Form
             rect, _centerFormat);
     }
 
+    private void DrawLobbyArtwork(Graphics g)
+    {
+        Rectangle art = new(430, 145, 320, 310);
+        FillRound(g, art, 18, Color.FromArgb(215, 10, 19, 23));
+        StrokeRound(g, art, 18, Color.FromArgb(55, 75, 78));
+
+        using (var gridPen = new Pen(Color.FromArgb(22, 140, 180, 150), 1))
+        {
+            for (int x = art.Left + 24; x < art.Right; x += 28)
+                g.DrawLine(gridPen, x, art.Top + 1, x, art.Bottom - 1);
+            for (int y = art.Top + 24; y < art.Bottom; y += 28)
+                g.DrawLine(gridPen, art.Left + 1, y, art.Right - 1, y);
+        }
+
+        using (var halo = new SolidBrush(Color.FromArgb(18, 165, 239, 104)))
+            g.FillEllipse(halo, 482, 190, 220, 220);
+
+        using var snakePath = new GraphicsPath();
+        snakePath.AddBezier(470, 370, 500, 315, 535, 390, 565, 335);
+        snakePath.AddBezier(565, 335, 595, 270, 640, 270, 658, 320);
+        snakePath.AddBezier(658, 320, 680, 372, 630, 405, 600, 365);
+
+        using (var glowPen = new Pen(Color.FromArgb(45, 165, 239, 104), 34)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawPath(glowPen, snakePath);
+
+        using (var outlinePen = new Pen(Color.FromArgb(55, 126, 72), 25)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawPath(outlinePen, snakePath);
+
+        using (var bodyBrush = new LinearGradientBrush(art,
+                   Color.FromArgb(75, 190, 86), Color.FromArgb(183, 247, 122), 35f))
+        using (var bodyPen = new Pen(bodyBrush, 17)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+            g.DrawPath(bodyPen, snakePath);
+
+        using (var headBrush = new SolidBrush(Color.FromArgb(183, 247, 122)))
+        using (var headOutline = new Pen(Color.FromArgb(43, 104, 57), 2))
+        {
+            g.FillEllipse(headBrush, 585, 348, 30, 30);
+            g.DrawEllipse(headOutline, 585, 348, 30, 30);
+        }
+
+        using (var eyeBrush = new SolidBrush(Color.FromArgb(12, 27, 20)))
+        {
+            g.FillEllipse(eyeBrush, 593, 356, 3.5f, 3.5f);
+            g.FillEllipse(eyeBrush, 603, 356, 3.5f, 3.5f);
+        }
+
+        if (_appleSprite is not null)
+            g.DrawImageUnscaled(_appleSprite, 680, 208);
+
+        using (var dot = new SolidBrush(Color.FromArgb(140, Green)))
+            g.FillEllipse(dot, 475, 205, 5, 5);
+        using (var dot = new SolidBrush(Color.FromArgb(120, Gold)))
+            g.FillEllipse(dot, 690, 390, 4, 4);
+
+        DrawLabel(g, "READY FOR THE NEXT RUN?", _labelFont, _greenBrush,
+            new Rectangle(452, 410, 275, 24), _centerFormat);
+    }
+
+
+    private void DrawScorePanel(Graphics g)
+    {
+        DrawLabel(g, "CURRENT SCORE", _labelFont, _mutedBrush,
+            new Rectangle(838, 139, 122, 18), _centerFormat);
+        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
+            new Rectangle(978, 139, 116, 18), _centerFormat);
+
+        DrawLabel(g, FormatScore(_score), _scoreFont, _whiteBrush,
+            new Rectangle(834, 166, 128, 52), _centerFormat);
+        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
+            new Rectangle(978, 166, 116, 52), _centerFormat);
+    }
+
+
     private void DrawHomePage(Graphics g)
     {
         DrawStaticPanel(g, _boardCard);

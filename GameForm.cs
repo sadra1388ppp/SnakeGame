@@ -1036,33 +1036,40 @@ public sealed class GameForm : Form
 
     private void DrawSkinsPage(Graphics g)
     {
-        DrawUiPageTitle(g, "SNAKE SKINS", "Choose a look for your next run.");
-        DrawUiButton(g, _skinPickerClose, "←  BACK");
+        DrawPixelText(g, "SNAKE SKINS", 310, 88, 4, RetroWhite);
+        DrawPixelText(g, "CHOOSE YOUR ARCADE LOOK", 310, 124, 1,
+            Color.FromArgb(175, RetroWhite));
+        DrawRetroButton(g, _skinPickerClose, "BACK", 2,
+            _skinPickerClose.Contains(_mousePoint));
 
-        DrawUiPanel(g, new Rectangle(32, 166, 714, 484), false, 18);
+        DrawPixelPanel(g, new Rectangle(32, 166, 714, 484), true);
         DrawSkinPicker(g);
 
-        DrawUiPanel(g, new Rectangle(780, 166, 348, 309), true, 20);
-        using (var previewGlow = new SolidBrush(Color.FromArgb(28, ActiveTheme.Highlight)))
-            g.FillEllipse(previewGlow, 835, 188, 240, 205);
-        DrawSnakePreview(g, new Rectangle(804, 176, 300, 270), Skins[_selectedSkin]);
+        Rectangle previewPanel = new(780, 166, 348, 309);
+        DrawPixelPanel(g, previewPanel, true);
+        DrawPixelText(g, "SKIN SHOWCASE", 954, 184, 2, RetroWhite);
+        using (var separator = new Pen(Color.FromArgb(150, ActiveTheme.Accent), 2))
+            g.DrawLine(separator, 798, 197, 1110, 197);
 
-        DrawUiPanel(g, new Rectangle(780, 488, 348, 162), false, 18);
+        Rectangle previewArea = new(798, 202, 312, 261);
+        using (var previewFill = new SolidBrush(Color.FromArgb(255, ActiveTheme.Dark)))
+            g.FillRectangle(previewFill, previewArea);
+        DrawPixelOutline(g, previewArea, Color.FromArgb(110, ActiveTheme.Grid), 2);
+        DrawRetroSnakePreview(g, new Rectangle(
+            previewArea.X + 3, previewArea.Y + 3,
+            previewArea.Width - 6, previewArea.Height - 6), Skins[_selectedSkin]);
+
+        Rectangle infoPanel = new(780, 488, 348, 162);
+        DrawPixelPanel(g, infoPanel, false);
         SnakeSkin skin = Skins[_selectedSkin];
-        using var titleBrush = new SolidBrush(skin.IsLegendary
-            ? ActiveTheme.Highlight : ActiveTheme.Text);
-        using var subBrush = new SolidBrush(Color.FromArgb(185, ActiveTheme.Text));
-        DrawLabel(g, SkinShortName(_selectedSkin), _sectionFont, titleBrush,
-            new Rectangle(802, 508, 300, 24), _centerFormat);
-        DrawLabel(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
-            _microFont, subBrush, new Rectangle(802, 535, 300, 20), _centerFormat);
-        DrawLabel(g, skin.IsLegendary ? "LEGENDARY SPECIAL EFFECTS" : "CUSTOM PIXEL DESIGN",
-            _microFont, titleBrush, new Rectangle(802, 560, 300, 20), _centerFormat);
-        DrawLabel(g, "CLICK ANY CARD TO EQUIP",
-            _microFont, subBrush, new Rectangle(802, 600, 300, 20), _centerFormat);
+        Color rarityColor = SkinRarityColor(skin);
+        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 516, 2, rarityColor);
+        DrawPixelText(g, SkinRarityLabel(skin), 954, 545, 2, rarityColor);
+        DrawPixelText(g, SkinPatternShortName(skin.Pattern), 954, 572, 1, RetroWhite);
+        DrawPixelText(g, "SELECT A CARD TO EQUIP", 954, 618, 1,
+            Color.FromArgb(160, RetroWhite));
     }
 
-    
     private void DrawSkinPicker(Graphics g)
     {
         for (int i = 0; i < Skins.Length; i++)
@@ -1071,38 +1078,85 @@ public sealed class GameForm : Form
             SnakeSkin skin = Skins[i];
             bool selected = i == _selectedSkin;
             bool hover = tile.Contains(_mousePoint);
+            Color rarityColor = SkinRarityColor(skin);
 
-            DrawUiPanel(g, tile, selected || hover, 10);
-            if (selected)
-                FillRound(g, new Rectangle(tile.X + 8, tile.Y + 8, 4, tile.Height - 16),
-                    2, ActiveTheme.Highlight);
+            using var fill = new SolidBrush(selected
+                ? Color.FromArgb(255, ActiveTheme.Grid)
+                : Color.FromArgb(255, ActiveTheme.Dark));
+            g.FillRectangle(fill, tile);
+            DrawPixelOutline(g, tile,
+                selected ? rarityColor : hover ? ActiveTheme.Highlight : ActiveTheme.Grid,
+                selected ? 3 : 2);
+            DrawPixelOutline(g, new Rectangle(tile.X + 5, tile.Y + 5,
+                tile.Width - 10, tile.Height - 10),
+                Color.FromArgb(42, ActiveTheme.Text), 1);
 
+            using var marker = new SolidBrush(rarityColor);
+            g.FillRectangle(marker, tile.X + 7, tile.Y + 10, 3, tile.Height - 20);
             DrawSkinSwatch(g, tile, skin);
-            using var nameBrush = new SolidBrush(skin.IsLegendary
-                ? ActiveTheme.Highlight
-                : selected ? ActiveTheme.Text : Color.FromArgb(210, ActiveTheme.Text));
-            using var infoBrush = new SolidBrush(Color.FromArgb(145, ActiveTheme.Text));
-            DrawLabel(g, SkinShortName(i), _buttonFont, nameBrush,
-                new Rectangle(tile.X + 82, tile.Y + 8, tile.Width - 92, 23), _leftFormat);
-            DrawLabel(g, skin.IsLegendary ? "RARE EDITION" :
-                SkinPatternName(skin.Pattern).ToUpperInvariant(),
-                _microFont, infoBrush,
-                new Rectangle(tile.X + 82, tile.Y + 30, tile.Width - 92, 17), _leftFormat);
+
+            Color nameColor = skin.IsLegendary || skin.IsEpic
+                ? rarityColor
+                : selected ? RetroWhite : Color.FromArgb(215, ActiveTheme.Text);
+            int textCenter = tile.X + 82 + (tile.Width - 94) / 2;
+            DrawPixelText(g, SkinShortName(i), textCenter, tile.Y + 12, 1, nameColor);
+
+            string info = SkinRarityLabel(skin) + " / " + SkinPatternShortName(skin.Pattern);
+            DrawPixelText(g, info, textCenter, tile.Y + 34, 1,
+                skin.IsLegendary || skin.IsEpic
+                    ? rarityColor : Color.FromArgb(145, ActiveTheme.Text));
         }
 
-        using var hintBrush = new SolidBrush(Color.FromArgb(165, ActiveTheme.Text));
-        DrawLabel(g, "21 DESIGNS  ·  SELECT A CARD TO EQUIP",
-            _microFont, hintBrush, new Rectangle(54, 628, 670, 20), _centerFormat);
+        DrawPixelText(g, "21 PIXEL SKINS  -  SELECT A CARD TO EQUIP",
+            389, 632, 1, Color.FromArgb(155, ActiveTheme.Text));
     }
 
-        private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
+    private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
     {
-        int cell = 13;
-        int y = tile.Y + 23;
-        DrawRetroSnakeBlock(g, tile.X + 22, y, cell, skin, 0, false);
-        DrawRetroSnakeBlock(g, tile.X + 35, y, cell, skin, 1, false);
-        DrawRetroSnakeBlock(g, tile.X + 48, y, cell, skin, 2, true);
+        Rectangle swatch = new(tile.X + 13, tile.Y + 10, 59, 38);
+        using var fill = new SolidBrush(Color.FromArgb(255, ActiveTheme.Dark));
+        g.FillRectangle(fill, swatch);
+        DrawPixelOutline(g, swatch, Color.FromArgb(125, skin.Outline), 1);
+
+        int cell = 14;
+        int y = swatch.Y + swatch.Height / 2;
+        DrawRetroSnakeBlock(g, swatch.X + 9, y, cell, skin, 3, false);
+        DrawRetroSnakeBlock(g, swatch.X + 23, y, cell, skin, 2, false);
+        DrawRetroSnakeBlock(g, swatch.X + 37, y, cell, skin, 1, false);
+        DrawRetroSnakeBlock(g, swatch.X + 51, y, cell, skin, 0, true);
     }
+
+    private static string SkinRarityLabel(SnakeSkin skin) =>
+        skin.IsLegendary ? "LEGENDARY" : skin.IsEpic ? "EPIC" : "STANDARD";
+
+    private Color SkinRarityColor(SnakeSkin skin) =>
+        skin.IsLegendary ? Color.FromArgb(255, 255, 214, 86) :
+        skin.IsEpic ? Color.FromArgb(255, 198, 145, 255) : RetroWhite;
+
+    private static string SkinPatternShortName(SkinPattern pattern) => pattern switch
+    {
+        SkinPattern.Plain => "PLAIN",
+        SkinPattern.Stripes => "STRIPES",
+        SkinPattern.Dots => "TOXIC",
+        SkinPattern.Waves => "WAVES",
+        SkinPattern.Lightning => "LIGHTNING",
+        SkinPattern.Scales => "SCALES",
+        SkinPattern.Flames => "FLAMES",
+        SkinPattern.Frost => "FROST",
+        SkinPattern.Circuit => "CIRCUIT",
+        SkinPattern.Galaxy => "GALAXY",
+        SkinPattern.Camo => "CAMO",
+        SkinPattern.Candy => "CANDY",
+        SkinPattern.Coral => "CORAL",
+        SkinPattern.Prism => "PRISM",
+        SkinPattern.Stars => "STARS",
+        SkinPattern.Honeycomb => "HONEYCOMB",
+        SkinPattern.Tiger => "TIGER",
+        SkinPattern.Zebra => "ZEBRA",
+        SkinPattern.Neon => "NEON",
+        SkinPattern.Royal => "ROYAL",
+        _ => "PHOENIX"
+    };
 
     private static string SkinShortName(int index) => index switch
     {
@@ -1133,10 +1187,10 @@ public sealed class GameForm : Form
     {
         const int cellSize = 26;
         int size = cellSize;
-        int firstColumn = area.X + 18 + cellSize / 2;
+        int firstColumn = area.X + (area.Width - cellSize * 7) / 2 + cellSize / 2;
         int secondColumn = firstColumn + cellSize;
         int thirdColumn = secondColumn + cellSize;
-        int upperRow = area.Y + 10 + cellSize * 6 + cellSize / 2;
+        int upperRow = area.Y + (area.Height - cellSize * 3) / 2 + cellSize / 2;
         int middleRow = upperRow + cellSize;
         int lowerRow = middleRow + cellSize;
 
@@ -1155,21 +1209,57 @@ public sealed class GameForm : Form
             new(thirdColumn + cellSize * 3, upperRow)
         ];
 
-        using (var grid = new Pen(Color.FromArgb(35, 190, 210, 130), 1))
+        GraphicsState previewState = g.Save();
+        g.SetClip(area);
+        using (var grid = new Pen(Color.FromArgb(38, ActiveTheme.Highlight), 1))
         {
-            for (int x = area.Left + 18; x < area.Right; x += 26)
-                g.DrawLine(grid, x, area.Top + 10, x, area.Bottom - 10);
-            for (int y = area.Top + 10; y < area.Bottom; y += 26)
-                g.DrawLine(grid, area.Left + 10, y, area.Right - 10, y);
+            for (int x = area.Left + 2; x < area.Right; x += cellSize)
+                g.DrawLine(grid, x, area.Top + 1, x, area.Bottom - 1);
+            for (int y = area.Top + 2; y < area.Bottom; y += cellSize)
+                g.DrawLine(grid, area.Left + 1, y, area.Right - 1, y);
+        }
+
+        using (var corner = new SolidBrush(Color.FromArgb(100, ActiveTheme.Accent)))
+        {
+            g.FillRectangle(corner, area.Left + 9, area.Top + 9, 4, 4);
+            g.FillRectangle(corner, area.Right - 13, area.Top + 9, 4, 4);
+            g.FillRectangle(corner, area.Left + 9, area.Bottom - 13, 4, 4);
+            g.FillRectangle(corner, area.Right - 13, area.Bottom - 13, 4, 4);
         }
 
         if (skin.IsLegendary)
             DrawRetroLegendaryAura(g, centers[0]);
+        else if (skin.IsEpic)
+            DrawRetroEpicAura(g, centers[0]);
 
         for (int i = centers.Length - 1; i >= 0; i--)
             DrawRetroSnakeBlock(g, centers[i].X, centers[i].Y, size,
                 skin, i, i == 0);
 
+        g.Restore(previewState);
+    }
+
+    private void DrawRetroEpicAura(Graphics g, Point center)
+    {
+        Color purple = Color.FromArgb(220, 190, 125, 255);
+        using var spark = new SolidBrush(purple);
+        using var soft = new SolidBrush(Color.FromArgb(85, purple));
+        int phase = (int)(Environment.TickCount64 / 260) % 4;
+        Point[] points =
+        [
+            new(center.X - 25, center.Y - 18),
+            new(center.X + 22, center.Y - 23),
+            new(center.X + 26, center.Y + 17),
+            new(center.X - 22, center.Y + 23)
+        ];
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            Point p = points[(i + phase) % points.Length];
+            g.FillRectangle(soft, p.X - 4, p.Y - 4, 9, 9);
+            g.FillRectangle(spark, p.X - 1, p.Y - 6, 3, 13);
+            g.FillRectangle(spark, p.X - 6, p.Y - 1, 13, 3);
+        }
     }
 
     private void DrawRetroLegendaryAura(Graphics g, Point center)
@@ -1203,9 +1293,10 @@ public sealed class GameForm : Form
         int y = centerY - size / 2;
         int pad = Math.Max(2, size / 7);
 
-        bool glow = skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+        bool glow = skin.IsEpic || skin.IsLegendary ||
+            skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
             SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
-            SkinPattern.Honeycomb or SkinPattern.Legendary;
+            SkinPattern.Honeycomb;
 
         if (glow)
         {
@@ -1221,6 +1312,10 @@ public sealed class GameForm : Form
         g.FillRectangle(outline, x, y, size, size);
         g.FillRectangle(body, x + pad, y + pad, size - pad * 2, size - pad * 2);
         g.FillRectangle(accent, x + pad, y + pad, size - pad * 2, Math.Max(2, pad / 2));
+        using (var shadow = new SolidBrush(Color.FromArgb(95, skin.Outline)))
+            g.FillRectangle(shadow, x + pad, y + size - pad - 2,
+                size - pad * 2, Math.Max(1, pad / 2));
+        g.FillRectangle(accent, x + pad, y + pad, Math.Max(2, size / 4), Math.Max(2, pad / 2));
 
         int mark = Math.Max(2, size / 6);
         switch (skin.Pattern)
@@ -2846,6 +2941,8 @@ private void DrawThemeSectionCard(Graphics g)
 
         if (skin.IsLegendary)
             DrawLegendaryAura(g, centers[0], centers, count);
+        else if (skin.IsEpic)
+            DrawEpicAura(g, centers[0]);
 
         DrawSnakeHead(g, centers[0], direction);
     }
@@ -3322,6 +3419,26 @@ private void DrawThemeSectionCard(Graphics g)
                     p.X + sparkle, p.Y);
                 g.DrawLine(_skinAccentPen, p.X, p.Y - sparkle,
                     p.X, p.Y + sparkle);
+            }
+        }
+    }
+
+    private void DrawEpicAura(Graphics g, PointF head)
+    {
+        float time = Environment.TickCount64 / 240f;
+        using var spark = new SolidBrush(Color.FromArgb(205, 194, 128, 255));
+
+        for (int i = 0; i < 4; i++)
+        {
+            float angle = time + i * MathF.PI / 2f;
+            float radius = 22 + MathF.Sin(time * 1.7f + i) * 3;
+            int x = (int)(head.X + MathF.Cos(angle) * radius);
+            int y = (int)(head.Y + MathF.Sin(angle) * radius);
+            g.FillRectangle(spark, x - 2, y - 2, 4, 4);
+            if (i % 2 == 0)
+            {
+                g.FillRectangle(spark, x - 5, y, 10, 2);
+                g.FillRectangle(spark, x, y - 5, 2, 10);
             }
         }
     }

@@ -9,11 +9,32 @@ namespace SnakeGame;
 public sealed class GameForm : Form
 {
     private enum GameState { Ready, Playing, Paused, GameOver }
-    private enum AppView { Home, Play, Skins, Achievements, Settings }
+    private enum AppView { Home, Play, Skins, TileThemes, Achievements, Settings }
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
     private enum GameMode { Classic, Wrap, Rush }
     private enum ThemeSeason { Spring, Summer, Autumn, Winter }
+    private enum TilePattern { Classic, Circuit, Molten }
+
+    private sealed record BoardTileTheme(
+        string Name, string Description, Color Floor, Color TileA, Color TileB,
+        Color Grid, Color Accent, TilePattern Pattern);
+
+    private static readonly BoardTileTheme[] BoardTileThemes =
+    [
+        new("ARCADE CLASSIC", "THE ORIGINAL ARCADE FLOOR",
+            Color.FromArgb(7, 16, 20), Color.FromArgb(16, 31, 34),
+            Color.FromArgb(11, 24, 28), Color.FromArgb(45, 75, 68),
+            Color.FromArgb(104, 193, 132), TilePattern.Classic),
+        new("CYBER CIRCUIT", "GLOWING CYAN CIRCUIT PATHS",
+            Color.FromArgb(4, 11, 27), Color.FromArgb(8, 29, 48),
+            Color.FromArgb(7, 21, 39), Color.FromArgb(25, 107, 145),
+            Color.FromArgb(49, 220, 255), TilePattern.Circuit),
+        new("MAGMA FORGE", "DARK STONE WITH HOT LAVA CRACKS",
+            Color.FromArgb(19, 7, 12), Color.FromArgb(45, 13, 20),
+            Color.FromArgb(30, 9, 16), Color.FromArgb(119, 35, 43),
+            Color.FromArgb(255, 91, 48), TilePattern.Molten)
+    ];
 
     private enum SkinPattern
     {
@@ -122,6 +143,7 @@ public sealed class GameForm : Form
     private static readonly Color Gold = Color.FromArgb(255, 194, 83);
     private static readonly Rectangle ThemeGridViewport = new(40, 150, 1080, 540);
     private int _selectedTheme;
+    private int _selectedTileTheme;
     private int _themeMenuLevel;
     private int _themeScrollOffset;
     private ArcadeTheme ActiveTheme => Themes[_selectedTheme];
@@ -200,6 +222,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _resetBestButton = new(832, 634, 266, 30);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(980, 95, 128, 36);
+    private readonly Rectangle _snakeSkinsTab = new(350, 124, 190, 32);
+    private readonly Rectangle _tileThemesTab = new(550, 124, 210, 32);
     private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
     private readonly Rectangle _retroSkinsButton = new(350, 575, 220, 48);
     private readonly Rectangle _retroSettingsButton = new(590, 575, 220, 48);
@@ -361,6 +385,7 @@ public sealed class GameForm : Form
         LoadPlayerStats();
         UpdateViewTransform();
         _selectedTheme = LoadSelectedTheme();
+        _selectedTileTheme = LoadSelectedTileTheme();
         BackColor = RetroBackground;
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
@@ -481,6 +506,9 @@ public sealed class GameForm : Form
                 break;
             case AppView.Skins:
                 DrawSkinsPage(g);
+                break;
+            case AppView.TileThemes:
+                DrawTileThemesPage(g);
                 break;
             case AppView.Settings:
                 DrawSettingsPage(g);
@@ -691,7 +719,7 @@ public sealed class GameForm : Form
             7, FontStyle.Bold, Muted);
 
         DrawNavigationButton(g, _playNavButton, "PLAY", _view == AppView.Play);
-        DrawNavigationButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawNavigationButton(g, _skinsNavButton, "SKINS", _view is AppView.Skins or AppView.TileThemes);
         DrawNavigationButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawNavigationButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
     }
@@ -798,7 +826,7 @@ public sealed class GameForm : Form
 
         DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
-        DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view is AppView.Skins or AppView.TileThemes);
         DrawRetroNavButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
     }
@@ -1031,6 +1059,7 @@ public sealed class GameForm : Form
     private void DrawSkinsPage(Graphics g)
     {
         DrawPixelText(g, "SNAKE SKINS", 310, 88, 4, RetroWhite);
+        DrawSkinSectionTabs(g, false);
         DrawRetroButton(g, _skinPickerClose, "BACK", 2,
             _skinPickerClose.Contains(_mousePoint));
 
@@ -1059,6 +1088,141 @@ public sealed class GameForm : Form
         DrawPixelText(g, SkinRarityLabel(skin), 954, 550, 2, rarityColor);
         DrawPixelText(g, SkinPatternShortName(skin.Pattern), 954, 584, 1,
             Color.FromArgb(190, ActiveTheme.Text));
+    }
+
+    private void DrawSkinSectionTabs(Graphics g, bool tileThemesSelected)
+    {
+        DrawRetroButton(g, _snakeSkinsTab, "SNAKE SKINS", 1,
+            _snakeSkinsTab.Contains(_mousePoint), !tileThemesSelected);
+        DrawRetroButton(g, _tileThemesTab, "TILE THEMES", 1,
+            _tileThemesTab.Contains(_mousePoint), tileThemesSelected);
+    }
+
+    private void DrawTileThemesPage(Graphics g)
+    {
+        DrawPixelText(g, "TILE THEMES", 310, 88, 4, RetroWhite);
+        DrawSkinSectionTabs(g, true);
+        DrawRetroButton(g, _skinPickerClose, "BACK", 2,
+            _skinPickerClose.Contains(_mousePoint));
+
+        for (int i = 0; i < BoardTileThemes.Length; i++)
+            DrawTileThemeCard(g, i);
+    }
+
+    private void DrawTileThemeCard(Graphics g, int index)
+    {
+        BoardTileTheme theme = BoardTileThemes[index];
+        Rectangle card = TileThemeCardRect(index);
+        bool selected = index == _selectedTileTheme;
+        bool hover = card.Contains(_mousePoint);
+
+        DrawPixelPanel(g, card, selected);
+        using var edge = new Pen(selected ? theme.Accent :
+            hover ? ActiveTheme.Highlight : theme.Grid, selected ? 3 : 2);
+        g.DrawRectangle(edge, card.X + 7, card.Y + 7,
+            card.Width - 14, card.Height - 14);
+
+        DrawPixelText(g, theme.Name, card.X + card.Width / 2,
+            card.Y + 31, 2, theme.Accent);
+
+        Rectangle preview = new(card.X + 22, card.Y + 58,
+            card.Width - 44, 218);
+        DrawTileSurface(g, preview, theme, 30);
+        DrawPixelOutline(g, preview, theme.Accent, 2);
+
+        DrawPixelText(g, theme.Description, card.X + card.Width / 2,
+            card.Y + 307, 1, RetroWhite);
+
+        Rectangle action = new(card.X + 42, card.Bottom - 74,
+            card.Width - 84, 42);
+        if (selected)
+            DrawRetroButton(g, action, "EQUIPPED", 2, false, true);
+        else
+            DrawRetroButton(g, action, "SELECT THEME", 1, hover);
+    }
+
+    private static Rectangle TileThemeCardRect(int index) =>
+        new(34 + index * 368, 184, 350, 438);
+
+    private void DrawTileSurface(Graphics g, Rectangle area,
+        BoardTileTheme theme, int cellSize)
+    {
+        GraphicsState state = g.Save();
+        g.SetClip(area);
+
+        using var floor = new SolidBrush(theme.Floor);
+        using var tileA = new SolidBrush(theme.TileA);
+        using var tileB = new SolidBrush(theme.TileB);
+        using var grid = new Pen(Color.FromArgb(150, theme.Grid), 1);
+        using var detail = new Pen(Color.FromArgb(165, theme.Accent), 1.3f);
+        using var glow = new SolidBrush(Color.FromArgb(55, theme.Accent));
+
+        g.FillRectangle(floor, area);
+
+        int columns = (area.Width + cellSize - 1) / cellSize;
+        int rows = (area.Height + cellSize - 1) / cellSize;
+
+        for (int row = 0; row < rows; row++)
+        for (int column = 0; column < columns; column++)
+        {
+            int x = area.X + column * cellSize;
+            int y = area.Y + row * cellSize;
+            Rectangle tile = new(x, y, cellSize, cellSize);
+            g.FillRectangle(((row + column) & 1) == 0 ? tileA : tileB, tile);
+
+            if (theme.Pattern == TilePattern.Classic)
+            {
+                if ((row % 3 == 0) && (column % 3 == 0))
+                    g.FillRectangle(glow, x + cellSize / 2, y + cellSize / 2, 3, 3);
+            }
+            else if (theme.Pattern == TilePattern.Circuit)
+            {
+                int selector = (row * 7 + column * 3) % 5;
+                if (selector == 0)
+                {
+                    int middleY = y + cellSize / 2;
+                    int startX = x + 5;
+                    int endX = x + cellSize - 5;
+                    g.DrawLine(detail, startX, middleY, endX, middleY);
+                    g.FillRectangle(glow, endX - 2, middleY - 2, 5, 5);
+                    g.FillRectangle(glow, startX - 2, middleY - 2, 4, 4);
+                }
+                else if (selector == 2)
+                {
+                    g.DrawLine(detail, x + cellSize / 2, y + 5,
+                        x + cellSize / 2, y + cellSize - 5);
+                    g.FillRectangle(glow, x + cellSize / 2 - 2,
+                        y + cellSize / 2 - 2, 4, 4);
+                }
+            }
+            else
+            {
+                int selector = (row * 5 + column * 2) % 4;
+                if (selector == 0)
+                {
+                    g.DrawLine(detail, x + 5, y + 5,
+                        x + cellSize / 2, y + cellSize / 2);
+                    g.DrawLine(detail, x + cellSize / 2, y + cellSize / 2,
+                        x + cellSize - 5, y + cellSize - 6);
+                    g.FillRectangle(glow, x + cellSize / 2 - 2,
+                        y + cellSize / 2 - 2, 5, 5);
+                }
+                else if (selector == 2)
+                {
+                    g.DrawLine(detail, x + 5, y + cellSize - 6,
+                        x + cellSize / 2, y + cellSize / 2);
+                    g.DrawLine(detail, x + cellSize / 2, y + cellSize / 2,
+                        x + cellSize - 5, y + 5);
+                }
+            }
+        }
+
+        for (int x = area.Left; x <= area.Right; x += cellSize)
+            g.DrawLine(grid, x, area.Top, x, area.Bottom);
+        for (int y = area.Top; y <= area.Bottom; y += cellSize)
+            g.DrawLine(grid, area.Left, y, area.Right, y);
+
+        g.Restore(state);
     }
 
     private void DrawSkinPicker(Graphics g)
@@ -2525,7 +2689,7 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawRetroNavigation(Graphics g)
     {
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
-        DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view is AppView.Skins or AppView.TileThemes);
         DrawRetroNavButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
     }
@@ -2573,28 +2737,7 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _difficultyArea, true);
         DrawPixelPanel(g, _actionArea, true);
 
-        using var boardFill = new SolidBrush(RetroDark);
-        using var tileShade = new SolidBrush(Color.FromArgb(13, ActiveTheme.Highlight));
-        using var tileLight = new SolidBrush(Color.FromArgb(8, ActiveTheme.Text));
-        g.FillRectangle(boardFill, _field);
-
-        // Soft checker tiles add depth while keeping the moving snake easy to read.
-        for (int row = 0; row < Rows; row++)
-        for (int column = 0; column < Columns; column++)
-        {
-            int x = _field.Left + column * CellSize + 1;
-            int y = _field.Top + row * CellSize + 1;
-            if (((row + column) & 1) == 0)
-                g.FillRectangle(tileShade, x, y, CellSize - 2, CellSize - 2);
-            else if (row % 4 == 0 && column % 4 == 0)
-                g.FillRectangle(tileLight, x + 7, y + 7, 2, 2);
-        }
-
-        using var grid = new Pen(Color.FromArgb(48, ActiveTheme.Grid), 1);
-        for (int x = _field.Left; x <= _field.Right; x += CellSize)
-            g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
-        for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
-            g.DrawLine(grid, _field.Left, y, _field.Right, y);
+        DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
 
         DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
             Color.FromArgb(38, ActiveTheme.Highlight), 1);
@@ -3338,6 +3481,47 @@ private void DrawThemeSectionCard(Graphics g)
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SnakeGame",
             "selected-skin.txt");
+
+    private static string TileThemePath() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnakeGame",
+            "selected-tile-theme.txt");
+
+    private static int LoadSelectedTileTheme()
+    {
+        try
+        {
+            return File.Exists(TileThemePath()) &&
+                   int.TryParse(File.ReadAllText(TileThemePath()).Trim(),
+                       NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                ? Math.Clamp(index, 0, BoardTileThemes.Length - 1)
+                : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private void SelectTileTheme(int index)
+    {
+        _selectedTileTheme = Math.Clamp(index, 0, BoardTileThemes.Length - 1);
+
+        try
+        {
+            string path = TileThemePath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path,
+                _selectedTileTheme.ToString(CultureInfo.InvariantCulture));
+        }
+        catch
+        {
+            // Keep the selected tile theme active for this session.
+        }
+
+        Invalidate();
+    }
 
     private static string ThemePath() =>
         Path.Combine(
@@ -4331,6 +4515,32 @@ private void DrawThemeSectionCard(Graphics g)
             return;
         }
 
+        if (_view == AppView.TileThemes)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Left:
+                case Keys.A:
+                    SelectTileTheme((_selectedTileTheme + BoardTileThemes.Length - 1) % BoardTileThemes.Length);
+                    e.Handled = true;
+                    break;
+                case Keys.Right:
+                case Keys.D:
+                    SelectTileTheme((_selectedTileTheme + 1) % BoardTileThemes.Length);
+                    e.Handled = true;
+                    break;
+                case Keys.Escape:
+                    NavigateTo(AppView.Skins);
+                    e.Handled = true;
+                    break;
+                case Keys.F11:
+                    ToggleFullscreen();
+                    e.Handled = true;
+                    break;
+            }
+            return;
+        }
+
         if (_view != AppView.Play)
         {
             if (e.KeyCode == Keys.F11 || (e.KeyCode == Keys.Enter && e.Alt))
@@ -4469,8 +4679,20 @@ private void DrawThemeSectionCard(Graphics g)
         if (_view == AppView.Skins)
         {
             if (_skinPickerClose.Contains(point)) return 16;
+            if (_snakeSkinsTab.Contains(point)) return 33;
+            if (_tileThemesTab.Contains(point)) return 34;
             for (int i = 0; i < SkinDisplayOrder.Length; i++)
                 if (SkinTileRect(i).Contains(point)) return 100 + i;
+            return 0;
+        }
+
+        if (_view == AppView.TileThemes)
+        {
+            if (_skinPickerClose.Contains(point)) return 16;
+            if (_snakeSkinsTab.Contains(point)) return 33;
+            if (_tileThemesTab.Contains(point)) return 34;
+            for (int i = 0; i < BoardTileThemes.Length; i++)
+                if (TileThemeCardRect(i).Contains(point)) return 300 + i;
             return 0;
         }
 
@@ -4523,6 +4745,8 @@ private void DrawThemeSectionCard(Graphics g)
             return SkinTileRect(id - 100);
         if (id >= 200 && id < 200 + Themes.Length)
             return ThemeTileRect(id - 200);
+        if (id >= 300 && id < 300 + BoardTileThemes.Length)
+            return TileThemeCardRect(id - 300);
 
         return id switch
         {
@@ -4557,6 +4781,8 @@ private void DrawThemeSectionCard(Graphics g)
             30 => _seasonBackButton,
             31 => _seasonCategoryTile,
             32 => _achievementsNavButton,
+            33 => _snakeSkinsTab,
+            34 => _tileThemesTab,
             _ => Rectangle.Empty
         };
     }
@@ -4619,9 +4845,15 @@ private void DrawThemeSectionCard(Graphics g)
                 CycleDifficulty(1);
             return;
         }
-
         if (_view == AppView.Skins)
         {
+            if (_snakeSkinsTab.Contains(point))
+                return;
+            if (_tileThemesTab.Contains(point))
+            {
+                NavigateTo(AppView.TileThemes);
+                return;
+            }
             if (_skinPickerClose.Contains(point))
             {
                 NavigateTo(AppView.Home);
@@ -4637,6 +4869,32 @@ private void DrawThemeSectionCard(Graphics g)
                 SaveSelectedSkin();
                 Invalidate();
                 return;
+            }
+            return;
+        }
+
+        if (_view == AppView.TileThemes)
+        {
+            if (_snakeSkinsTab.Contains(point))
+            {
+                NavigateTo(AppView.Skins);
+                return;
+            }
+            if (_tileThemesTab.Contains(point))
+                return;
+            if (_skinPickerClose.Contains(point))
+            {
+                NavigateTo(AppView.Home);
+                return;
+            }
+
+            for (int i = 0; i < BoardTileThemes.Length; i++)
+            {
+                if (TileThemeCardRect(i).Contains(point))
+                {
+                    SelectTileTheme(i);
+                    return;
+                }
             }
             return;
         }

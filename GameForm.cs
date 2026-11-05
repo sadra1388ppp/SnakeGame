@@ -137,8 +137,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(48, 84, 112, 36);
     private readonly Rectangle _retroStartButton = new(250, 574, 660, 62);
-    private readonly Rectangle _retroSkinsButton = new(285, 650, 250, 48);
-    private readonly Rectangle _retroSettingsButton = new(625, 650, 260, 48);
+    private readonly Rectangle _retroSkinsButton = new(230, 646, 350, 52);
+    private readonly Rectangle _retroSettingsButton = new(600, 646, 400, 52);
     private readonly Rectangle _retroDifficultyLeft = new(430, 456, 64, 86);
     private readonly Rectangle _retroDifficultyRight = new(805, 456, 64, 86);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
@@ -671,17 +671,11 @@ public sealed class GameForm : Form
 
     private void DrawRetroMenuSnake(Graphics g, int x, int y)
     {
-        using var body = new SolidBrush(Color.FromArgb(67, 196, 36));
-        using var head = new SolidBrush(Color.FromArgb(122, 231, 48));
-        using var dark = new SolidBrush(RetroDark);
-        using var eye = new SolidBrush(Color.FromArgb(255, 45, 25));
-
-        g.FillRectangle(body, x, y + 6, 10, 10);
-        g.FillRectangle(body, x + 10, y, 10, 10);
-        g.FillRectangle(body, x + 20, y + 6, 10, 10);
-        g.FillRectangle(head, x + 30, y + 6, 12, 12);
-        g.FillRectangle(dark, x + 36, y + 8, 3, 3);
-        g.FillRectangle(eye, x + 42, y + 11, 5, 3);
+        SnakeSkin skin = Skins[_selectedSkin];
+        DrawRetroSnakeBlock(g, x + 6, y + 11, 12, skin, 3, false);
+        DrawRetroSnakeBlock(g, x + 18, y + 11, 12, skin, 2, false);
+        DrawRetroSnakeBlock(g, x + 30, y + 11, 12, skin, 1, false);
+        DrawRetroSnakeBlock(g, x + 42, y + 11, 12, skin, 0, true);
     }
 
     private void DrawPixelApple(Graphics g, int x, int y, int pixel)

@@ -24,7 +24,8 @@ public sealed class GameForm : Form
 
     private sealed record SnakeSkin(
         string Name, Color Body, Color Head, Color Outline,
-        Color Highlight, Color PatternColor, SkinPattern Pattern, bool IsLegendary = false);
+        Color Highlight, Color PatternColor, SkinPattern Pattern,
+        bool IsLegendary = false, bool IsEpic = false);
 
     private sealed record ArcadeTheme(
         string Season, string TimeOfDay, ThemeSeason SeasonType, bool IsNight,
@@ -82,21 +83,21 @@ public sealed class GameForm : Form
         new("Ocean Wave", Color.FromArgb(38,139,191), Color.FromArgb(103,211,245), Color.FromArgb(16,70,111), Color.FromArgb(180,233,255), Color.FromArgb(145,232,255), SkinPattern.Waves),
         new("Arctic Frost", Color.FromArgb(142,207,224), Color.FromArgb(218,249,255), Color.FromArgb(61,120,151), Color.FromArgb(255,255,255), Color.FromArgb(236,255,255), SkinPattern.Frost),
         new("Solar Gold", Color.FromArgb(218,157,41), Color.FromArgb(255,220,105), Color.FromArgb(117,74,18), Color.FromArgb(255,244,177), Color.FromArgb(255,231,142), SkinPattern.Stars),
-        new("Cyber Neon", Color.FromArgb(32,205,178), Color.FromArgb(115,255,224), Color.FromArgb(7,91,90), Color.FromArgb(190,255,245), Color.FromArgb(77,255,226), SkinPattern.Neon),
+        new("Cyber Neon", Color.FromArgb(32,205,178), Color.FromArgb(115,255,224), Color.FromArgb(7,91,90), Color.FromArgb(190,255,245), Color.FromArgb(77,255,226), SkinPattern.Neon, IsEpic: true),
         new("Toxic Slime", Color.FromArgb(115,190,43), Color.FromArgb(193,255,75), Color.FromArgb(45,91,22), Color.FromArgb(228,255,146), Color.FromArgb(211,255,74), SkinPattern.Dots),
-        new("Purple Haze", Color.FromArgb(131,86,190), Color.FromArgb(193,139,255), Color.FromArgb(61,38,111), Color.FromArgb(230,204,255), Color.FromArgb(213,161,255), SkinPattern.Royal),
+        new("Purple Haze", Color.FromArgb(131,86,190), Color.FromArgb(193,139,255), Color.FromArgb(61,38,111), Color.FromArgb(230,204,255), Color.FromArgb(213,161,255), SkinPattern.Royal, IsEpic: true),
         new("Sunset Blaze", Color.FromArgb(224,91,52), Color.FromArgb(255,166,81), Color.FromArgb(117,43,38), Color.FromArgb(255,211,148), Color.FromArgb(255,194,104), SkinPattern.Flames),
-        new("Tiger Rush", Color.FromArgb(221,133,37), Color.FromArgb(255,190,76), Color.FromArgb(82,48,26), Color.FromArgb(255,229,160), Color.FromArgb(39,28,26), SkinPattern.Tiger),
+        new("Tiger Rush", Color.FromArgb(221,133,37), Color.FromArgb(255,190,76), Color.FromArgb(82,48,26), Color.FromArgb(255,229,160), Color.FromArgb(39,28,26), SkinPattern.Tiger, IsEpic: true),
         new("Zebra Stripe", Color.FromArgb(218,224,229), Color.FromArgb(255,255,255), Color.FromArgb(55,62,72), Color.FromArgb(255,255,255), Color.FromArgb(54,63,76), SkinPattern.Zebra),
         new("Mint Chip", Color.FromArgb(77,177,145), Color.FromArgb(154,238,195), Color.FromArgb(26,93,75), Color.FromArgb(218,255,228), Color.FromArgb(222,255,233), SkinPattern.Scales),
-        new("Candy Pop", Color.FromArgb(231,99,164), Color.FromArgb(255,174,213), Color.FromArgb(124,42,94), Color.FromArgb(255,223,241), Color.FromArgb(255,244,255), SkinPattern.Candy),
-        new("Lava Core", Color.FromArgb(184,58,35), Color.FromArgb(255,118,49), Color.FromArgb(75,25,24), Color.FromArgb(255,194,104), Color.FromArgb(255,224,93), SkinPattern.Honeycomb),
-        new("Galaxy Dust", Color.FromArgb(72,70,153), Color.FromArgb(154,137,255), Color.FromArgb(34,28,93), Color.FromArgb(226,217,255), Color.FromArgb(255,221,135), SkinPattern.Galaxy),
-        new("Volt Strike", Color.FromArgb(62,120,217), Color.FromArgb(144,210,255), Color.FromArgb(26,52,122), Color.FromArgb(221,244,255), Color.FromArgb(255,237,99), SkinPattern.Lightning),
+        new("Candy Pop", Color.FromArgb(231,99,164), Color.FromArgb(255,174,213), Color.FromArgb(124,42,94), Color.FromArgb(255,223,241), Color.FromArgb(255,244,255), SkinPattern.Candy, IsEpic: true),
+        new("Lava Core", Color.FromArgb(184,58,35), Color.FromArgb(255,118,49), Color.FromArgb(75,25,24), Color.FromArgb(255,194,104), Color.FromArgb(255,224,93), SkinPattern.Honeycomb, IsEpic: true),
+        new("Galaxy Dust", Color.FromArgb(72,70,153), Color.FromArgb(154,137,255), Color.FromArgb(34,28,93), Color.FromArgb(226,217,255), Color.FromArgb(255,221,135), SkinPattern.Galaxy, IsEpic: true),
+        new("Volt Strike", Color.FromArgb(62,120,217), Color.FromArgb(144,210,255), Color.FromArgb(26,52,122), Color.FromArgb(221,244,255), Color.FromArgb(255,237,99), SkinPattern.Lightning, IsEpic: true),
         new("Jungle Camo", Color.FromArgb(91,119,57), Color.FromArgb(166,187,91), Color.FromArgb(39,65,36), Color.FromArgb(202,222,143), Color.FromArgb(44,69,40), SkinPattern.Camo),
         new("Rose Quartz", Color.FromArgb(203,110,142), Color.FromArgb(255,188,206), Color.FromArgb(104,48,78), Color.FromArgb(255,229,238), Color.FromArgb(255,226,239), SkinPattern.Coral),
-        new("Diamond Skin", Color.FromArgb(100,183,205), Color.FromArgb(208,251,255), Color.FromArgb(42,103,133), Color.FromArgb(255,255,255), Color.FromArgb(225,255,255), SkinPattern.Prism),
-        new("Shadow Ops", Color.FromArgb(66,79,91), Color.FromArgb(142,160,173), Color.FromArgb(22,29,39), Color.FromArgb(185,205,216), Color.FromArgb(114,235,203), SkinPattern.Circuit),
+        new("Diamond Skin", Color.FromArgb(100,183,205), Color.FromArgb(208,251,255), Color.FromArgb(42,103,133), Color.FromArgb(255,255,255), Color.FromArgb(225,255,255), SkinPattern.Prism, IsEpic: true),
+        new("Shadow Ops", Color.FromArgb(66,79,91), Color.FromArgb(142,160,173), Color.FromArgb(22,29,39), Color.FromArgb(185,205,216), Color.FromArgb(114,235,203), SkinPattern.Circuit, IsEpic: true),
         new("LEGENDARY PHOENIX", Color.FromArgb(151,74,205), Color.FromArgb(255,202,91), Color.FromArgb(74,31,130), Color.FromArgb(255,238,174), Color.FromArgb(255,178,63), SkinPattern.Legendary, true)
     ];
 
@@ -210,10 +211,10 @@ public sealed class GameForm : Form
     private readonly Rectangle _normalButton = new(924, 426, 82, 38);
     private readonly Rectangle _hardButton = new(1016, 426, 82, 38);
     private readonly Rectangle _modeTimerRect = new(1040, 270, 58, 20);
-    private readonly Rectangle _homeNavButton = new(398, 18, 76, 36);
-    private readonly Rectangle _playNavButton = new(482, 18, 76, 36);
-    private readonly Rectangle _skinsNavButton = new(566, 18, 82, 36);
-    private readonly Rectangle _settingsNavButton = new(656, 18, 104, 36);
+    private readonly Rectangle _homeNavButton = new(32, 12, 226, 56);
+    private readonly Rectangle _playNavButton = new(390, 18, 82, 36);
+    private readonly Rectangle _skinsNavButton = new(482, 18, 88, 36);
+    private readonly Rectangle _settingsNavButton = new(580, 18, 108, 36);
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
@@ -778,7 +779,7 @@ public sealed class GameForm : Form
         using var seam = new Pen(Color.FromArgb(125, ActiveTheme.Highlight), 1);
         g.DrawLine(seam, 34, 61, 1126, 61);
 
-        // Pixel logo and compact cabinet branding.
+        // The logo remains the home shortcut; the HOME navigation tab is removed.
         using var logo = new SolidBrush(ActiveTheme.Accent);
         g.FillRectangle(logo, 40, 21, 36, 36);
         DrawPixelOutline(g, new Rectangle(40, 21, 36, 36), ActiveTheme.Highlight, 2);
@@ -786,8 +787,6 @@ public sealed class GameForm : Form
         DrawPixelText(g, "SNAKE", 132, 24, 2, ActiveTheme.Text);
         DrawPixelText(g, "ARCADE EDITION", 132, 45, 1, ActiveTheme.Highlight);
 
-        // Navigation keeps the original click areas but now uses the same pixel language as the game.
-        DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
@@ -866,8 +865,8 @@ public sealed class GameForm : Form
         DrawRetroButton(g, _retroSettingsButton, "SETTINGS", 3,
             _retroSettingsButton.Contains(_mousePoint));
 
-        DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
-            DesignWidth / 2, 704, 2, RetroWhite);
+        DrawPixelText(g, "CREATED BY SADRA TEAM",
+            DesignWidth / 2, 715, 1, Color.FromArgb(150, RetroWhite));
     }
 
     private void DrawRetroButton(Graphics g, Rectangle rect, string label,
@@ -2279,7 +2278,6 @@ private void DrawThemeSectionCard(Graphics g)
 
     private void DrawRetroNavigation(Graphics g)
     {
-        DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
@@ -2389,7 +2387,7 @@ private void DrawThemeSectionCard(Graphics g)
 
         DrawRetroButton(g, _easyButton, "EASY", 2,
             _difficulty == Difficulty.Easy, _difficulty == Difficulty.Easy);
-        DrawRetroButton(g, _normalButton, "NORMAL", 1,
+        DrawRetroButton(g, _normalButton, "MEDIUM", 1,
             _difficulty == Difficulty.Normal, _difficulty == Difficulty.Normal);
         DrawRetroButton(g, _hardButton, "HARD", 2,
             _difficulty == Difficulty.Hard, _difficulty == Difficulty.Hard);
@@ -2419,7 +2417,7 @@ private void DrawThemeSectionCard(Graphics g)
     {
         Difficulty.Easy => "Easy",
         Difficulty.Hard => "Hard",
-        _ => "Normal"
+        _ => "Medium"
     };
 
     private void DrawDashboard(Graphics g)
@@ -2435,7 +2433,7 @@ private void DrawThemeSectionCard(Graphics g)
         DrawChoice(g, _rushButton, "RUSH", _mode == GameMode.Rush);
 
         DrawChoice(g, _easyButton, "EASY", _difficulty == Difficulty.Easy);
-        DrawChoice(g, _normalButton, "NORMAL", _difficulty == Difficulty.Normal);
+        DrawChoice(g, _normalButton, "MEDIUM", _difficulty == Difficulty.Normal);
         DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
 
         string mainText = _state switch

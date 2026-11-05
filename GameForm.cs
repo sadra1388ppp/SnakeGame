@@ -724,7 +724,7 @@ public sealed class GameForm : Form
         g.FillRectangle(fill, rect);
 
         DrawPixelOutline(g, rect,
-            hover ? Color.FromArgb(255, 239, 177) : RetroGold,
+            hover ? ActiveTheme.Highlight : RetroGold,
             primary ? 4 : 3);
 
         int textHeight = pixelSize * 7;
@@ -926,8 +926,8 @@ public sealed class GameForm : Form
             DrawSkinSwatch(g, tile, skin);
             DrawPixelText(g, SkinShortName(i), tile.X + 151,
                 tile.Y + 23, 2, skin.IsLegendary
-                    ? Color.FromArgb(255, 224, 95)
-                    : selected ? Color.FromArgb(200, 255, 135) : RetroWhite);
+                    ? ActiveTheme.Highlight
+                    : selected ? ActiveTheme.Text : RetroWhite);
         }
 
         DrawPixelText(g, "ARROWS TO SELECT  -  ENTER TO RETURN",
@@ -1213,7 +1213,7 @@ public sealed class GameForm : Form
         DrawPixelText(g, "PAUSE: SPACE", 260, 612, 2, RetroGold);
 
         DrawPixelText(g, "SEASONAL THEMES", 825, 174, 3, RetroWhite);
-        DrawPixelText(g, "FOUR SEASONS  /  DAY & NIGHT",
+        DrawPixelText(g, "FOUR SEASONS - DAY AND NIGHT",
             825, 207, 2, RetroGold);
 
         for (int i = 0; i < Themes.Length; i++)
@@ -1641,13 +1641,13 @@ public sealed class GameForm : Form
                 panel.X + panel.Width / 2, 326, 2, RetroWhite);
             DrawPixelText(g, FormatScore(_score),
                 panel.X + panel.Width / 2, 351, 5,
-                _newRecord ? Color.FromArgb(255, 225, 104) : RetroWhite);
+                _newRecord ? ActiveTheme.Highlight : RetroWhite);
 
             string result = _scoreSaveFailed
                 ? "SCORE SAVE FAILED"
                 : _newRecord ? "NEW PERSONAL BEST" : "BEST  " + FormatScore(_bestScore);
             DrawPixelText(g, result, panel.X + panel.Width / 2, 411, 2,
-                _scoreSaveFailed || _newRecord ? RetroGold : Color.FromArgb(190, 255, 142));
+                _scoreSaveFailed || _newRecord ? RetroGold : ActiveTheme.Highlight);
         }
 
         DrawRetroButton(g, _overlayButton,

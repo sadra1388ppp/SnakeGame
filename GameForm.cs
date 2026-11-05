@@ -1101,7 +1101,7 @@ public sealed class GameForm : Form
             int textCenter = tile.X + 82 + (tile.Width - 94) / 2;
             DrawPixelText(g, SkinShortName(i), textCenter, tile.Y + 12, 1, nameColor);
 
-            string info = SkinRarityLabel(skin) + " / " + SkinPatternShortName(skin.Pattern);
+            string info = SkinRarityLabel(skin) + "  " + SkinPatternShortName(skin.Pattern);
             DrawPixelText(g, info, textCenter, tile.Y + 34, 1,
                 skin.IsLegendary || skin.IsEpic
                     ? rarityColor : Color.FromArgb(145, ActiveTheme.Text));
@@ -2422,13 +2422,39 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _actionArea, true);
 
         using var boardFill = new SolidBrush(RetroDark);
+        using var tileShade = new SolidBrush(Color.FromArgb(13, ActiveTheme.Highlight));
+        using var tileLight = new SolidBrush(Color.FromArgb(8, ActiveTheme.Text));
         g.FillRectangle(boardFill, _field);
-        using var grid = new Pen(Color.FromArgb(70, 185, 143, 17), 1);
+
+        // Soft checker tiles add depth while keeping the moving snake easy to read.
+        for (int row = 0; row < Rows; row++)
+        for (int column = 0; column < Columns; column++)
+        {
+            int x = _field.Left + column * CellSize + 1;
+            int y = _field.Top + row * CellSize + 1;
+            if (((row + column) & 1) == 0)
+                g.FillRectangle(tileShade, x, y, CellSize - 2, CellSize - 2);
+            else if (row % 4 == 0 && column % 4 == 0)
+                g.FillRectangle(tileLight, x + 7, y + 7, 2, 2);
+        }
+
+        using var grid = new Pen(Color.FromArgb(48, ActiveTheme.Grid), 1);
         for (int x = _field.Left; x <= _field.Right; x += CellSize)
             g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
         for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
             g.DrawLine(grid, _field.Left, y, _field.Right, y);
+
+        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
+            Color.FromArgb(38, ActiveTheme.Highlight), 1);
         DrawPixelOutline(g, _field, RetroGold, 3);
+
+        using var frameAccent = new SolidBrush(ActiveTheme.Highlight);
+        for (int i = 1; i < 6; i++)
+        {
+            int x = _field.Left + i * (_field.Width / 6);
+            g.FillRectangle(frameAccent, x, _field.Top - 5, 5, 2);
+            g.FillRectangle(frameAccent, x, _field.Bottom + 3, 5, 2);
+        }
 
         // Score card: two equal columns with generous space around the numbers.
         DrawPixelText(g, "SCORE", 890, 154, 2, RetroWhite);

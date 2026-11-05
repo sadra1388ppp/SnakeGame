@@ -2524,6 +2524,94 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
             panel.X + panel.Width / 2, 529, 1, RetroWhite);
     }
+    private Bitmap CreateAppleSprite(bool golden)
+    {
+        const int designSize = 96;
+        const int size = 30;
+        var bitmap = new Bitmap(size, size, PixelFormat.Format32bppPArgb);
+
+        using Graphics g = Graphics.FromImage(bitmap);
+        g.ScaleTransform(size / (float)designSize, size / (float)designSize);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.Clear(Color.Transparent);
+
+        using (var glow = new SolidBrush(golden
+                   ? Color.FromArgb(55, 255, 190, 66)
+                   : Color.FromArgb(48, 255, 75, 75)))
+            g.FillEllipse(glow, 5, 7, 86, 84);
+
+        const float width = 59f;
+        const float height = 60f;
+        const float left = 18.5f;
+        const float right = left + width;
+        const float top = 22f;
+        const float bottom = top + height;
+        const float cx = 48f;
+
+        using var applePath = new GraphicsPath();
+        applePath.StartFigure();
+        applePath.AddBezier(cx, top + height * 0.27f,
+            cx - width * 0.17f, top - height * 0.03f,
+            left + width * 0.03f, top + height * 0.04f,
+            left + width * 0.04f, top + height * 0.43f);
+        applePath.AddBezier(left + width * 0.04f, top + height * 0.43f,
+            left - width * 0.02f, bottom - height * 0.10f,
+            cx - width * 0.24f, bottom + height * 0.02f,
+            cx, bottom - height * 0.06f);
+        applePath.AddBezier(cx, bottom - height * 0.06f,
+            cx + width * 0.23f, bottom + height * 0.02f,
+            right + width * 0.02f, bottom - height * 0.10f,
+            right - width * 0.04f, top + height * 0.43f);
+        applePath.AddBezier(right - width * 0.04f, top + height * 0.43f,
+            right - width * 0.02f, top + height * 0.04f,
+            cx + width * 0.17f, top - height * 0.03f,
+            cx, top + height * 0.27f);
+        applePath.CloseFigure();
+
+        Color topColor = golden ? Color.FromArgb(255, 231, 126) : Color.FromArgb(255, 117, 111);
+        Color bottomColor = golden ? Color.FromArgb(214, 132, 31) : Color.FromArgb(174, 31, 48);
+
+        using (var appleBrush = new LinearGradientBrush(
+                   new RectangleF(left, top, width, height), topColor, bottomColor, 48f))
+            g.FillPath(appleBrush, applePath);
+
+        using (var outline = new Pen(golden ? Color.FromArgb(190, 156, 91, 26) :
+                   Color.FromArgb(205, 119, 31, 43), 2.2f))
+            g.DrawPath(outline, applePath);
+
+        using (var stem = new Pen(Color.FromArgb(132, 83, 43), 4f)
+               { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            g.DrawBezier(stem, cx, top + height * 0.28f,
+                cx + 0.5f, top + height * 0.05f,
+                cx + width * 0.16f, top - height * 0.02f,
+                cx + width * 0.20f, top + height * 0.09f);
+
+        using var leafPath = new GraphicsPath();
+        leafPath.AddBezier(cx + width * 0.08f, top + height * 0.17f,
+            cx + width * 0.25f, top - height * 0.08f,
+            cx + width * 0.53f, top - height * 0.03f,
+            cx + width * 0.48f, top + height * 0.20f);
+        leafPath.AddBezier(cx + width * 0.48f, top + height * 0.20f,
+            cx + width * 0.30f, top + height * 0.27f,
+            cx + width * 0.18f, top + height * 0.23f,
+            cx + width * 0.08f, top + height * 0.17f);
+
+        using (var leafBrush = new LinearGradientBrush(
+                   new RectangleF(cx + 2, top - 2, width * 0.5f, height * 0.35f),
+                   Color.FromArgb(181, 231, 115), Color.FromArgb(43, 128, 70), 45f))
+            g.FillPath(leafBrush, leafPath);
+
+        using (var leafPen = new Pen(Color.FromArgb(170, 42, 111, 57), 1.3f))
+            g.DrawPath(leafPen, leafPath);
+
+        using (var shine = new SolidBrush(Color.FromArgb(95, 255, 232, 220)))
+            g.FillEllipse(shine, left + width * 0.20f, top + height * 0.34f,
+                width * 0.17f, height * 0.27f);
+
+        return bitmap;
+    }
+
     private void DrawFood(Graphics g)
     {
         DrawApple(g, _food, false);

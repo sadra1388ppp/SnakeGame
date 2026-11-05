@@ -660,9 +660,9 @@ public sealed class GameForm : Form
 
         bool skinsHover = _retroSkinsButton.Contains(_mousePoint);
         bool settingsHover = _retroSettingsButton.Contains(_mousePoint);
-        DrawPixelText(g, "S FOR SKINS", 420, 662, 5,
+        DrawPixelText(g, "S FOR SKINS", 420, 662, 4,
             skinsHover ? Color.FromArgb(255, 224, 105) : RetroWhite);
-        DrawPixelText(g, "T FOR SETTINGS", 770, 662, 5,
+        DrawPixelText(g, "T FOR SETTINGS", 770, 662, 4,
             settingsHover ? Color.FromArgb(255, 224, 105) : RetroWhite);
 
         DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
@@ -822,7 +822,7 @@ public sealed class GameForm : Form
                 ? Color.FromArgb(255, 226, 125)
                 : RetroWhite);
         DrawPixelText(g, "SKINS", DesignWidth / 2, 66, 15, RetroWhite);
-        DrawPixelText(g, "CHOOSE YOUR SNAKE", DesignWidth / 2, 128, 5, RetroWhite);
+        DrawPixelText(g, "CHOOSE YOUR SNAKE", 390, 128, 4, RetroWhite);
 
         DrawSkinPicker(g);
 

@@ -2388,8 +2388,9 @@ private void DrawThemeSectionCard(Graphics g)
             _state != GameState.GameOver);
         DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
             _soundButton.Contains(_mousePoint));
-        DrawRetroButton(g, _restartButton, "RESET", 1,
-            _restartButton.Contains(_mousePoint));
+        DrawRetroButton(g, _restartButton,
+            _state == GameState.GameOver ? "LOCKED" : "RESET", 1,
+            _state != GameState.GameOver && _restartButton.Contains(_mousePoint));
         DrawRetroButton(g, _skinButton, "SKINS", 2,
             _skinButton.Contains(_mousePoint));
         DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
@@ -2502,7 +2503,6 @@ private void DrawThemeSectionCard(Graphics g)
         g.PixelOffsetMode = PixelOffsetMode.None;
 
         bool paused = _state == GameState.Paused;
-        bool gameOver = !paused;
         Color accent = paused
             ? RetroGold
             : _won ? Color.FromArgb(255, 89, 210, 190)
@@ -4315,12 +4315,10 @@ private void DrawThemeSectionCard(Graphics g)
             return;
         }
 
-        // On the Game Over screen, only the dedicated PLAY AGAIN button
-        // is allowed to begin another run.
-        if (_state == GameState.GameOver)
+        // The Game Over overlay is the only control that can start the next run.
+        if (_state == GameState.GameOver && _overlayButton.Contains(point))
         {
-            if (_overlayButton.Contains(point))
-                StartGame();
+            StartGame();
             return;
         }
 
@@ -4351,12 +4349,15 @@ private void DrawThemeSectionCard(Graphics g)
 
         if (_restartButton.Contains(point))
         {
-            StartGame();
+            if (_state != GameState.GameOver)
+                StartGame();
             return;
         }
 
         if (_mainButton.Contains(point) || _overlayButton.Contains(point))
         {
+            if (_state == GameState.GameOver)
+                return;
             if (_state == GameState.Playing)
                 TogglePause();
             else if (_state == GameState.Paused)

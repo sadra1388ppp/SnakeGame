@@ -2286,65 +2286,70 @@ private void DrawThemeSectionCard(Graphics g)
     }
 
 
+    private void DrawRetroGamePanel(Graphics g, Rectangle rect, bool highlighted = false)
+    {
+        using var fill = new SolidBrush(Color.FromArgb(235, RetroDark));
+        using var edge = new Pen(highlighted ? RetroGold : Color.FromArgb(150, RetroGold), 2);
+        using var inner = new Pen(Color.FromArgb(95, RetroGold), 1);
+        g.FillRectangle(fill, rect);
+        g.DrawRectangle(edge, rect);
+        g.DrawRectangle(inner, rect.X + 5, rect.Y + 5, rect.Width - 10, rect.Height - 10);
+        using var corner = new SolidBrush(RetroGold);
+        g.FillRectangle(corner, rect.X - 2, rect.Y + 12, 4, 18);
+        g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
+    }
+
     private void DrawRetroPlayChrome(Graphics g)
     {
-        DrawUiPanel(g, _boardCard, true, 20);
-        DrawUiPanel(g, _rightPanel, false, 20);
-
-        DrawUiPanel(g, new Rectangle(814, 110, 302, 130), false, 14);
-        DrawUiPanel(g, new Rectangle(814, 246, 302, 120), false, 14);
-        DrawUiPanel(g, new Rectangle(814, 372, 302, 122), false, 14);
-        DrawUiPanel(g, new Rectangle(814, 500, 302, 188), false, 14);
+        DrawRetroGamePanel(g, _boardCard, true);
+        DrawRetroGamePanel(g, _rightPanel);
+        DrawRetroGamePanel(g, new Rectangle(814, 110, 302, 130));
+        DrawRetroGamePanel(g, new Rectangle(814, 246, 302, 120));
+        DrawRetroGamePanel(g, new Rectangle(814, 372, 302, 122));
+        DrawRetroGamePanel(g, new Rectangle(814, 500, 302, 188));
 
         using var boardFill = new SolidBrush(Color.FromArgb(235, RetroDark));
-        FillRound(g, _field, 9, boardFill);
+        g.FillRectangle(boardFill, _field);
 
         GraphicsState state = g.Save();
-        using (GraphicsPath clip = RoundPath(_field, 9))
-            g.SetClip(clip);
-        using (var grid = new Pen(Color.FromArgb(70, ActiveTheme.Grid), 1))
+        g.SetClip(_field);
+        using (var grid = new Pen(Color.FromArgb(65, RetroGold), 1))
         {
             for (int x = _field.Left; x <= _field.Right; x += CellSize)
                 g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
             for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
                 g.DrawLine(grid, _field.Left, y, _field.Right, y);
         }
-        // Keep the playfield clear in every season. Seasonal particles such as
-        // leaves, rain, snow, and petals must never cross the playable board.
+        // Keep the original clean pixel playfield free of seasonal decorations.
         g.Restore(state);
-        StrokeRound(g, _field, 9, Color.FromArgb(175, ActiveTheme.Highlight));
+        using var border = new Pen(RetroGold, 2);
+        g.DrawRectangle(border, _field);
 
-        using var labelBrush = new SolidBrush(Color.FromArgb(190, ActiveTheme.Text));
-        using var accentBrush = new SolidBrush(ActiveTheme.Highlight);
-        DrawLabel(g, "SCORE", _microFont, labelBrush,
-            new Rectangle(836, 122, 115, 22), _leftFormat);
-        DrawLabel(g, "BEST", _microFont, accentBrush,
-            new Rectangle(1000, 122, 100, 22), _leftFormat);
-        DrawLabel(g, "GAME MODE", _microFont, labelBrush,
-            new Rectangle(838, 257, 260, 23), _leftFormat);
-        DrawLabel(g, "DIFFICULTY", _microFont, labelBrush,
-            new Rectangle(838, 383, 260, 23), _leftFormat);
-        DrawLabel(g, "YOUR SESSION", _microFont, accentBrush,
-            new Rectangle(838, 509, 260, 23), _leftFormat);
+        DrawPixelText(g, "SCORE", 888, 122, 2, RetroWhite);
+        DrawPixelText(g, "BEST", 1048, 122, 2, RetroGold);
+        DrawPixelText(g, "GAME MODE", 960, 257, 2, RetroWhite);
+        DrawPixelText(g, "DIFFICULTY", 960, 383, 2, RetroWhite);
+        DrawPixelText(g, "YOUR SESSION", 960, 509, 2, RetroGold);
     }
 
-    
     private void DrawRetroPlayDashboard(Graphics g)
     {
-        using var scoreBrush = new SolidBrush(ActiveTheme.Text);
-        using var bestBrush = new SolidBrush(ActiveTheme.Highlight);
-        DrawLabel(g, FormatScore(_score), _scoreFont, scoreBrush,
-            new Rectangle(836, 150, 130, 54), _leftFormat);
-        DrawLabel(g, FormatScore(_bestScore), _scoreFont, bestBrush,
-            new Rectangle(1000, 150, 100, 54), _leftFormat);
+        DrawPixelText(g, FormatScore(_score), 900, 157, 4, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1050, 157, 4, RetroGold);
 
-        DrawUiButton(g, _classicButton, "CLASSIC", false, _mode == GameMode.Classic);
-        DrawUiButton(g, _wrapButton, "WRAP", false, _mode == GameMode.Wrap);
-        DrawUiButton(g, _rushButton, "RUSH", false, _mode == GameMode.Rush);
+        DrawRetroButton(g, _classicButton, "CLASSIC", 1,
+            _classicButton.Contains(_mousePoint), _mode == GameMode.Classic);
+        DrawRetroButton(g, _wrapButton, "WRAP", 1,
+            _wrapButton.Contains(_mousePoint), _mode == GameMode.Wrap);
+        DrawRetroButton(g, _rushButton, "RUSH", 1,
+            _rushButton.Contains(_mousePoint), _mode == GameMode.Rush);
 
-        DrawUiButton(g, _easyButton, "EASY", false, _difficulty == Difficulty.Easy);
-        DrawUiButton(g, _normalButton, "NORMAL", false, _difficulty == Difficulty.Normal);
-        DrawUiButton(g, _hardButton, "HARD", false, _difficulty == Difficulty.Hard);
+        DrawRetroButton(g, _easyButton, "EASY", 1,
+            _easyButton.Contains(_mousePoint), _difficulty == Difficulty.Easy);
+        DrawRetroButton(g, _normalButton, "NORMAL", 1,
+            _normalButton.Contains(_mousePoint), _difficulty == Difficulty.Normal);
+        DrawRetroButton(g, _hardButton, "HARD", 1,
+            _hardButton.Contains(_mousePoint), _difficulty == Difficulty.Hard);
 
         string action = _state switch
         {
@@ -2352,11 +2357,16 @@ private void DrawThemeSectionCard(Graphics g)
             GameState.Paused => "RESUME",
             _ => "START"
         };
-        DrawUiButton(g, _mainButton, action, true);
-        DrawUiButton(g, _soundButton, _soundEnabled ? "♪" : "×");
-        DrawUiButton(g, _restartButton, "↻");
-        DrawUiButton(g, _skinButton, "CHANGE SKIN");
-        DrawUiButton(g, _resetBestButton, "RESET BEST", false, false, true);
+        DrawRetroButton(g, _mainButton, action, 2,
+            _mainButton.Contains(_mousePoint), true);
+        DrawRetroButton(g, _soundButton, _soundEnabled ? "S" : "X", 1,
+            _soundButton.Contains(_mousePoint));
+        DrawRetroButton(g, _restartButton, "R", 1,
+            _restartButton.Contains(_mousePoint));
+        DrawRetroButton(g, _skinButton, "CHANGE SKIN", 1,
+            _skinButton.Contains(_mousePoint));
+        DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
+            _resetBestButton.Contains(_mousePoint));
     }
 
         private static string ModeName(GameMode mode) => mode switch

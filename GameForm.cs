@@ -189,12 +189,12 @@ public sealed class GameForm : Form
     private readonly Rectangle _resetBestButton = new(838, 646, 266, 26);
     private readonly Rectangle _skinPickerPanel = new(78, 164, 658, 460);
     private readonly Rectangle _skinPickerClose = new(48, 84, 112, 36);
-    private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
-    private readonly Rectangle _retroSkinsButton = new(350, 575, 220, 48);
-    private readonly Rectangle _retroSettingsButton = new(590, 575, 220, 48);
-    private readonly Rectangle _retroDifficultyLeft = new(455, 378, 44, 48);
-    private readonly Rectangle _retroDifficultyText = new(500, 378, 160, 48);
-    private readonly Rectangle _retroDifficultyRight = new(661, 378, 44, 48);
+    private readonly Rectangle _retroStartButton = new(112, 478, 404, 62);
+    private readonly Rectangle _retroSkinsButton = new(112, 558, 194, 48);
+    private readonly Rectangle _retroSettingsButton = new(322, 558, 194, 48);
+    private readonly Rectangle _retroDifficultyLeft = new(112, 394, 52, 48);
+    private readonly Rectangle _retroDifficultyText = new(170, 394, 290, 48);
+    private readonly Rectangle _retroDifficultyRight = new(466, 394, 50, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -235,6 +235,11 @@ public sealed class GameForm : Form
     private readonly Font _effectFont = new("Segoe UI", 13, FontStyle.Bold);
     private readonly Font _buttonFont = new("Segoe UI", 8.5f, FontStyle.Bold);
     private readonly Font _iconFont = new("Segoe UI Symbol", 17, FontStyle.Regular);
+    private readonly Font _displayFont = new("Segoe UI", 48, FontStyle.Bold);
+    private readonly Font _pageTitleFont = new("Segoe UI", 25, FontStyle.Bold);
+    private readonly Font _sectionFont = new("Segoe UI", 10.5f, FontStyle.Bold);
+    private readonly Font _bodyFont = new("Segoe UI", 9, FontStyle.Regular);
+    private readonly Font _microFont = new("Segoe UI", 7.5f, FontStyle.Bold);
 
     private readonly SolidBrush _whiteBrush = new(White);
     private readonly SolidBrush _darkBrush = new(Color.FromArgb(12, 23, 17));
@@ -439,17 +444,16 @@ public sealed class GameForm : Form
                 break;
             case AppView.Settings:
                 DrawSettingsPage(g);
-                DrawRetroNavigation(g);
                 break;
             case AppView.Play:
                 DrawRetroPlayChrome(g);
                 DrawBoardDynamic(g);
                 DrawRetroPlayDashboard(g);
-                DrawRetroNavigation(g);
                 break;
         }
 
-        DrawRetroWindowControls(g);
+        DrawUiHeader(g);
+        DrawUiWindowControls(g);
     }
 
     private void UpdateViewTransform()
@@ -676,49 +680,202 @@ public sealed class GameForm : Form
     }
 
 
-    private void DrawHomePage(Graphics g)
+
+    private void DrawUiPanel(Graphics g, Rectangle rect, bool highlighted = false,
+        int radius = 18)
     {
-        using var trail = new SolidBrush(RetroGold);
+        Rectangle shadowRect = new(rect.X + 2, rect.Y + 5, rect.Width, rect.Height);
+        using (var shadow = new SolidBrush(Color.FromArgb(54, 0, 0, 0)))
+            FillRound(g, shadowRect, radius, shadow);
 
-        // Thin angular accents frame the title instead of crossing the text.
-        g.FillRectangle(trail, 792, 128, 112, 10);
-        g.FillRectangle(trail, 894, 128, 10, 108);
-        g.FillRectangle(trail, 760, 226, 144, 10);
-        g.FillRectangle(trail, 254, 275, 10, 96);
-        g.FillRectangle(trail, 254, 361, 150, 10);
+        Color top = Color.FromArgb(244, ActiveTheme.Dark);
+        Color bottom = Color.FromArgb(235, ActiveTheme.Background);
+        using (var fill = new LinearGradientBrush(rect, top, bottom, 90f))
+            FillRound(g, rect, radius, fill);
 
-        DrawPixelText(g, "RETRO ARCADE", DesignWidth / 2, 76, 3, RetroGold);
+        Color edge = highlighted
+            ? Color.FromArgb(145, ActiveTheme.Highlight)
+            : Color.FromArgb(105, ActiveTheme.Grid);
+        StrokeRound(g, rect, radius, edge);
 
-        DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
-        DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
-
-        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
-            RetroWhite);
-
-        DrawRetroMenuSnake(g, 345, 385);
-        DrawPixelApple(g, 410, 378, 5);
-
-        Color leftArrowColor = _hoverId == 26 ? ActiveTheme.Highlight : RetroWhite;
-        Color difficultyColor = _hoverId == 28 ? ActiveTheme.Highlight : RetroWhite;
-        Color rightArrowColor = _hoverId == 27 ? ActiveTheme.Highlight : RetroWhite;
-
-        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
-        DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            DesignWidth / 2, 394, 4, difficultyColor);
-        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
-
-        DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
-            3, _retroStartButton.Contains(_mousePoint), true);
-        DrawRetroButton(g, _retroSkinsButton, "SKINS", 3,
-            _retroSkinsButton.Contains(_mousePoint));
-        DrawRetroButton(g, _retroSettingsButton, "SETTINGS", 3,
-            _retroSettingsButton.Contains(_mousePoint));
-
-        DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
-            DesignWidth / 2, 704, 2, RetroWhite);
+        using var shine = new Pen(Color.FromArgb(28, 255, 255, 255), 1);
+        g.DrawLine(shine, rect.X + radius, rect.Y + 1,
+            rect.Right - radius, rect.Y + 1);
     }
 
-    private void DrawRetroButton(Graphics g, Rectangle rect, string label,
+    private void DrawUiButton(Graphics g, Rectangle rect, string label,
+        bool primary = false, bool selected = false, bool warning = false)
+    {
+        bool hover = rect.Contains(_mousePoint);
+        Color fill = primary
+            ? Color.FromArgb(255, ActiveTheme.Accent)
+            : selected
+                ? Color.FromArgb(235, ActiveTheme.Grid)
+                : hover
+                    ? Color.FromArgb(225, ActiveTheme.Background)
+                    : Color.FromArgb(225, ActiveTheme.Dark);
+
+        FillRound(g, rect, 10, fill);
+        Color edge = primary
+            ? ActiveTheme.Highlight
+            : warning
+                ? Color.FromArgb(170, 190, 105, 91)
+                : selected || hover
+                    ? ActiveTheme.Highlight
+                    : Color.FromArgb(125, ActiveTheme.Grid);
+        StrokeRound(g, rect, 10, edge);
+
+        Color textColor = primary ? ActiveTheme.Dark :
+            warning && !hover ? Color.FromArgb(215, 185, 145, 140) :
+            selected || hover ? ActiveTheme.Text : ActiveTheme.Text;
+        using var textBrush = new SolidBrush(textColor);
+        DrawLabel(g, label, _buttonFont, textBrush, rect, _centerFormat);
+
+        if (primary)
+        {
+            using var accent = new Pen(Color.FromArgb(105, 255, 255, 255), 1);
+            g.DrawLine(accent, rect.X + 14, rect.Y + 2,
+                rect.Right - 14, rect.Y + 2);
+        }
+    }
+
+    private void DrawUiNavButton(Graphics g, Rectangle rect, string label, bool active)
+    {
+        bool hover = rect.Contains(_mousePoint);
+        if (active || hover)
+        {
+            FillRound(g, rect, 9, Color.FromArgb(active ? 220 : 125,
+                active ? ActiveTheme.Grid : ActiveTheme.Background));
+            StrokeRound(g, rect, 9, Color.FromArgb(active ? 190 : 120,
+                active ? ActiveTheme.Highlight : ActiveTheme.Grid));
+        }
+
+        using var brush = new SolidBrush(active
+            ? ActiveTheme.Highlight
+            : hover ? ActiveTheme.Text : Color.FromArgb(190, ActiveTheme.Text));
+        DrawLabel(g, label, _buttonFont, brush, rect, _centerFormat);
+    }
+
+    private void DrawUiHeader(Graphics g)
+    {
+        DrawUiPanel(g, new Rectangle(24, 12, 1112, 56), false, 14);
+
+        FillRound(g, new Rectangle(40, 23, 34, 34), 10, ActiveTheme.Accent);
+        using (var logoBrush = new SolidBrush(ActiveTheme.Dark))
+            DrawLabel(g, "S", _heroFont, logoBrush,
+                new Rectangle(40, 20, 34, 38), _centerFormat);
+
+        using (var titleBrush = new SolidBrush(ActiveTheme.Text))
+            DrawLabel(g, "SNAKE", _sectionFont, titleBrush,
+                new Rectangle(84, 20, 95, 19), _leftFormat);
+        using (var subBrush = new SolidBrush(Color.FromArgb(175, ActiveTheme.Text)))
+            DrawLabel(g, "ARCADE EDITION", _microFont, subBrush,
+                new Rectangle(84, 38, 110, 17), _leftFormat);
+
+        DrawUiNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
+        DrawUiNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
+        DrawUiNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawUiNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
+
+        FillRound(g, new Rectangle(832, 36, 7, 7), 4, ActiveTheme.Highlight);
+        using (var status = new SolidBrush(Color.FromArgb(185, ActiveTheme.Text)))
+            DrawLabel(g, "READY TO PLAY", _microFont, status,
+                new Rectangle(846, 25, 115, 25), _leftFormat);
+    }
+
+    private void DrawUiWindowControls(Graphics g)
+    {
+        DrawWindowButton(g, _minimizeButton, "−", _minimizeButton.Contains(_mousePoint));
+        DrawWindowButton(g, _fullscreenButton, "□", _fullscreenButton.Contains(_mousePoint));
+        DrawWindowButton(g, _closeButton, "×", _closeButton.Contains(_mousePoint));
+    }
+
+    private void DrawUiPageTitle(Graphics g, string title, string subtitle)
+    {
+        using var titleBrush = new SolidBrush(ActiveTheme.Text);
+        using var subBrush = new SolidBrush(Color.FromArgb(190, ActiveTheme.Text));
+        DrawLabel(g, title, _pageTitleFont, titleBrush,
+            new Rectangle(62, 91, 760, 42), _leftFormat);
+        DrawLabel(g, subtitle, _bodyFont, subBrush,
+            new Rectangle(64, 132, 800, 24), _leftFormat);
+        using var line = new Pen(Color.FromArgb(105, ActiveTheme.Accent), 2);
+        g.DrawLine(line, 64, 160, 124, 160);
+    }
+
+
+    private void DrawHomePage(Graphics g)
+    {
+        DrawUiPanel(g, new Rectangle(52, 94, 1056, 610), true, 24);
+
+        using var eyebrow = new SolidBrush(ActiveTheme.Highlight);
+        using var titleBrush = new SolidBrush(ActiveTheme.Text);
+        using var subtitleBrush = new SolidBrush(Color.FromArgb(205, ActiveTheme.Text));
+        using var labelBrush = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
+
+        FillRound(g, new Rectangle(104, 154, 110, 27), 8,
+            Color.FromArgb(90, ActiveTheme.Accent));
+        DrawLabel(g, "ARCADE CLASSIC", _microFont, eyebrow,
+            new Rectangle(104, 154, 110, 27), _centerFormat);
+
+        DrawLabel(g, "SNAKE", _displayFont, titleBrush,
+            new Rectangle(104, 194, 470, 76), _leftFormat);
+        DrawLabel(g, "A fresh run. A new high score.", _pageTitleFont,
+            titleBrush, new Rectangle(108, 270, 470, 42), _leftFormat);
+        DrawLabel(g, "Choose your pace, pick your look and take the field.",
+            _bodyFont, subtitleBrush, new Rectangle(110, 318, 460, 28), _leftFormat);
+
+        DrawUiPanel(g, new Rectangle(610, 145, 444, 330), false, 20);
+        using (var glow = new SolidBrush(Color.FromArgb(30, ActiveTheme.Highlight)))
+            g.FillEllipse(glow, 690, 190, 280, 220);
+        DrawSnakePreview(g, new Rectangle(650, 164, 365, 286), Skins[_selectedSkin]);
+        using (var tagFill = new SolidBrush(Color.FromArgb(205, ActiveTheme.Dark)))
+            FillRound(g, new Rectangle(632, 420, 190, 32), 9, tagFill);
+        DrawLabel(g, $"EQUIPPED  ·  {SkinShortName(_selectedSkin)}",
+            _microFont, eyebrow, new Rectangle(642, 420, 180, 32), _centerFormat);
+
+        DrawLabel(g, "SELECT DIFFICULTY", _sectionFont, titleBrush,
+            new Rectangle(112, 366, 260, 24), _leftFormat);
+        DrawUiPanel(g, new Rectangle(104, 391, 424, 56), false, 12);
+        FillRound(g, _retroDifficultyLeft, 9,
+            Color.FromArgb(215, ActiveTheme.Dark));
+        StrokeRound(g, _retroDifficultyLeft, 9,
+            _hoverId == 26 ? ActiveTheme.Highlight : ActiveTheme.Grid);
+        FillRound(g, _retroDifficultyRight, 9,
+            Color.FromArgb(215, ActiveTheme.Dark));
+        StrokeRound(g, _retroDifficultyRight, 9,
+            _hoverId == 27 ? ActiveTheme.Highlight : ActiveTheme.Grid);
+        using (var arrowBrush = new SolidBrush(ActiveTheme.Text))
+        {
+            DrawLabel(g, "‹", _iconFont, arrowBrush, _retroDifficultyLeft, _centerFormat);
+            DrawLabel(g, "›", _iconFont, arrowBrush, _retroDifficultyRight, _centerFormat);
+        }
+        using (var difficultyBrush = new SolidBrush(ActiveTheme.Highlight))
+            DrawLabel(g, DifficultyName(_difficulty).ToUpperInvariant(),
+                _sectionFont, difficultyBrush, _retroDifficultyText, _centerFormat);
+
+        DrawUiButton(g, _retroStartButton, "START GAME   →", true);
+        DrawUiButton(g, _retroSkinsButton, "CHANGE SKIN");
+        DrawUiButton(g, _retroSettingsButton, "SETTINGS");
+
+        DrawUiPanel(g, new Rectangle(610, 500, 444, 112), false, 16);
+        DrawLabel(g, "PERSONAL BEST", _microFont, labelBrush,
+            new Rectangle(642, 518, 160, 20), _leftFormat);
+        DrawLabel(g, FormatScore(_bestScore), _scoreFont, titleBrush,
+            new Rectangle(640, 535, 185, 54), _leftFormat);
+        using (var divider = new Pen(Color.FromArgb(95, ActiveTheme.Grid), 1))
+            g.DrawLine(divider, 845, 520, 845, 590);
+        DrawLabel(g, ActiveTheme.Season + "  ·  " + ActiveTheme.TimeOfDay,
+            _sectionFont, eyebrow, new Rectangle(865, 528, 165, 22), _leftFormat);
+        DrawLabel(g, "THEME ACTIVE", _microFont, labelBrush,
+            new Rectangle(865, 552, 165, 20), _leftFormat);
+        DrawLabel(g, "21 UNIQUE SNAKE SKINS", _microFont, labelBrush,
+            new Rectangle(865, 576, 165, 20), _leftFormat);
+
+        DrawLabel(g, "WASD / ARROWS  ·  SPACE TO PAUSE",
+            _microFont, labelBrush, new Rectangle(108, 644, 410, 22), _leftFormat);
+    }
+
+        private void DrawRetroButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool primary = false)
     {
         using var fill = new SolidBrush(hover
@@ -882,33 +1039,36 @@ public sealed class GameForm : Form
             new Rectangle(rect.X + 16, rect.Y + 79, rect.Width - 30, 18), _leftFormat);
     }
 
+
     private void DrawSkinsPage(Graphics g)
     {
-        DrawPixelText(g, "BACK", 104, 75, 3,
-            _skinPickerClose.Contains(_mousePoint) ? ActiveTheme.Highlight : RetroWhite);
-        DrawPixelText(g, "SKINS", DesignWidth / 2, 48, 8, RetroWhite);
+        DrawUiPageTitle(g, "SNAKE SKINS", "Choose a look for your next run.");
+        DrawUiButton(g, _skinPickerClose, "←  BACK");
+
+        DrawUiPanel(g, new Rectangle(32, 145, 714, 505), false, 18);
         DrawSkinPicker(g);
 
+        DrawUiPanel(g, new Rectangle(780, 145, 348, 330), true, 20);
+        using (var previewGlow = new SolidBrush(Color.FromArgb(28, ActiveTheme.Highlight)))
+            g.FillEllipse(previewGlow, 835, 188, 240, 205);
+        DrawSnakePreview(g, new Rectangle(804, 160, 300, 285), Skins[_selectedSkin]);
+
+        DrawUiPanel(g, new Rectangle(780, 490, 348, 160), false, 18);
         SnakeSkin skin = Skins[_selectedSkin];
-        Rectangle previewArea = new(790, 145, 328, 320);
-        DrawPixelPanel(g, previewArea, true);
-        DrawRetroSnakePreview(g, previewArea, skin);
-
-        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 490, 4,
-            skin.IsLegendary ? ActiveTheme.Highlight : RetroWhite);
-        DrawPixelText(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
-            954, 535, 2, RetroWhite);
-
-        DrawPixelText(g, skin.IsLegendary
-                ? "SPECIAL AURA AND SPARKS"
-                : "UNIQUE PIXEL DESIGN",
-            954, 574, 2,
-            skin.IsLegendary ? ActiveTheme.Accent : RetroWhite);
-
-        DrawPixelText(g, "CLICK A SKIN TO EQUIP",
-            954, 620, 2, RetroWhite);
+        using var titleBrush = new SolidBrush(skin.IsLegendary
+            ? ActiveTheme.Highlight : ActiveTheme.Text);
+        using var subBrush = new SolidBrush(Color.FromArgb(185, ActiveTheme.Text));
+        DrawLabel(g, SkinShortName(_selectedSkin), _sectionFont, titleBrush,
+            new Rectangle(802, 508, 300, 24), _centerFormat);
+        DrawLabel(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
+            _microFont, subBrush, new Rectangle(802, 535, 300, 20), _centerFormat);
+        DrawLabel(g, skin.IsLegendary ? "LEGENDARY SPECIAL EFFECTS" : "CUSTOM PIXEL DESIGN",
+            _microFont, titleBrush, new Rectangle(802, 560, 300, 20), _centerFormat);
+        DrawLabel(g, "CLICK ANY CARD TO EQUIP",
+            _microFont, subBrush, new Rectangle(802, 600, 300, 20), _centerFormat);
     }
 
+    
     private void DrawSkinPicker(Graphics g)
     {
         for (int i = 0; i < Skins.Length; i++)
@@ -918,26 +1078,30 @@ public sealed class GameForm : Form
             bool selected = i == _selectedSkin;
             bool hover = tile.Contains(_mousePoint);
 
-            using var fill = new SolidBrush(selected
-                ? Color.FromArgb(255, ActiveTheme.Grid)
-                : hover ? Color.FromArgb(255, ActiveTheme.Background) : RetroDark);
-            g.FillRectangle(fill, tile);
-            DrawPixelOutline(g, tile,
-                selected ? ActiveTheme.Highlight : RetroGold,
-                selected ? 3 : 2);
+            DrawUiPanel(g, tile, selected || hover, 10);
+            if (selected)
+                FillRound(g, new Rectangle(tile.X + 8, tile.Y + 8, 4, tile.Height - 16),
+                    2, ActiveTheme.Highlight);
 
             DrawSkinSwatch(g, tile, skin);
-            DrawPixelText(g, SkinShortName(i), tile.X + 151,
-                tile.Y + 23, 2, skin.IsLegendary
-                    ? ActiveTheme.Highlight
-                    : selected ? ActiveTheme.Text : RetroWhite);
+            using var nameBrush = new SolidBrush(skin.IsLegendary
+                ? ActiveTheme.Highlight
+                : selected ? ActiveTheme.Text : Color.FromArgb(210, ActiveTheme.Text));
+            using var infoBrush = new SolidBrush(Color.FromArgb(145, ActiveTheme.Text));
+            DrawLabel(g, SkinShortName(i), _buttonFont, nameBrush,
+                new Rectangle(tile.X + 82, tile.Y + 8, tile.Width - 92, 23), _leftFormat);
+            DrawLabel(g, skin.IsLegendary ? "RARE EDITION" :
+                SkinPatternName(skin.Pattern).ToUpperInvariant(),
+                _microFont, infoBrush,
+                new Rectangle(tile.X + 82, tile.Y + 30, tile.Width - 92, 17), _leftFormat);
         }
 
-        DrawPixelText(g, "ARROWS TO SELECT  -  ENTER TO RETURN",
-            390, 628, 2, RetroWhite);
+        using var hintBrush = new SolidBrush(Color.FromArgb(165, ActiveTheme.Text));
+        DrawLabel(g, "21 DESIGNS  ·  SELECT A CARD TO EQUIP",
+            _microFont, hintBrush, new Rectangle(54, 610, 670, 24), _centerFormat);
     }
 
-    private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
+        private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
     {
         int cell = 13;
         int y = tile.Y + 23;
@@ -1186,49 +1350,65 @@ public sealed class GameForm : Form
         _ => "Legendary phoenix aura"
     };
 
+
     private void DrawSettingsPage(Graphics g)
     {
-        DrawPixelText(g, "SETTINGS", DesignWidth / 2, 76, 6, RetroWhite);
+        DrawUiPageTitle(g, "SETTINGS", "Tune the arcade experience and choose your world.");
 
-        Rectangle soundPanel = new(70, 178, 425, 128);
-        Rectangle scorePanel = new(70, 326, 425, 145);
-        Rectangle controlsPanel = new(70, 491, 425, 158);
-        Rectangle themePanel = new(520, 145, 610, 510);
+        Rectangle soundPanel = new(56, 178, 425, 128);
+        Rectangle scorePanel = new(56, 326, 425, 145);
+        Rectangle controlsPanel = new(56, 491, 425, 158);
+        Rectangle themePanel = new(510, 145, 620, 510);
 
-        DrawPixelPanel(g, soundPanel, true);
-        DrawPixelPanel(g, scorePanel, true);
-        DrawPixelPanel(g, controlsPanel, true);
-        DrawPixelPanel(g, themePanel, true);
+        DrawUiPanel(g, soundPanel, false, 16);
+        DrawUiPanel(g, scorePanel, false, 16);
+        DrawUiPanel(g, controlsPanel, false, 16);
+        DrawUiPanel(g, themePanel, true, 18);
 
-        DrawPixelText(g, "SOUND", 190, 214, 3, RetroWhite);
-        DrawPixelText(g, "GAME EFFECTS", 190, 258, 2, RetroGold);
-        DrawRetroButton(g, _settingsSoundButton,
-            _soundEnabled ? "SOUND ON" : "SOUND OFF", 2,
-            _settingsSoundButton.Contains(_mousePoint));
+        using var heading = new SolidBrush(ActiveTheme.Text);
+        using var description = new SolidBrush(Color.FromArgb(170, ActiveTheme.Text));
+        using var accent = new SolidBrush(ActiveTheme.Highlight);
 
-        DrawPixelText(g, "PERSONAL BEST", 190, 355, 3, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 190, 407, 4, RetroGold);
-        DrawRetroButton(g, _settingsResetButton, "RESET SCORE", 2,
-            _settingsResetButton.Contains(_mousePoint));
+        DrawLabel(g, "SOUND", _sectionFont, heading,
+            new Rectangle(82, 198, 170, 24), _leftFormat);
+        DrawLabel(g, "Game effects and arcade feedback",
+            _bodyFont, description, new Rectangle(82, 226, 230, 24), _leftFormat);
+        DrawUiButton(g, _settingsSoundButton,
+            _soundEnabled ? "SOUND ON" : "SOUND OFF", false, _soundEnabled);
 
-        DrawPixelText(g, "KEYBOARD", 190, 525, 3, RetroWhite);
-        DrawPixelText(g, "MOVE: WASD / ARROWS", 270, 570, 2, RetroWhite);
-        DrawPixelText(g, "PAUSE: SPACE", 260, 612, 2, RetroGold);
+        DrawLabel(g, "PERSONAL BEST", _sectionFont, heading,
+            new Rectangle(82, 346, 190, 24), _leftFormat);
+        DrawLabel(g, FormatScore(_bestScore), _scoreFont, accent,
+            new Rectangle(82, 374, 190, 48), _leftFormat);
+        DrawUiButton(g, _settingsResetButton, "RESET SCORE", false, false, true);
 
-        DrawPixelText(g, "SEASONAL THEMES", 825, 174, 3, RetroWhite);
-        DrawPixelText(g, "FOUR SEASONS - DAY AND NIGHT",
-            825, 207, 2, RetroGold);
+        DrawLabel(g, "KEYBOARD CONTROLS", _sectionFont, heading,
+            new Rectangle(82, 510, 240, 24), _leftFormat);
+        DrawLabel(g, "MOVE", _microFont, accent,
+            new Rectangle(82, 547, 65, 20), _leftFormat);
+        DrawLabel(g, "WASD  /  ARROW KEYS", _bodyFont, heading,
+            new Rectangle(162, 545, 270, 24), _leftFormat);
+        DrawLabel(g, "PAUSE", _microFont, accent,
+            new Rectangle(82, 585, 65, 20), _leftFormat);
+        DrawLabel(g, "SPACE", _bodyFont, heading,
+            new Rectangle(162, 583, 270, 24), _leftFormat);
+
+        DrawLabel(g, "SEASONAL WORLDS", _sectionFont, heading,
+            new Rectangle(536, 164, 300, 25), _leftFormat);
+        DrawLabel(g, "Four seasons, each with a day and night atmosphere.",
+            _bodyFont, description, new Rectangle(536, 190, 560, 24), _leftFormat);
 
         for (int i = 0; i < Themes.Length; i++)
             DrawThemeCard(g, i);
     }
 
-    private static Rectangle ThemeTileRect(int index)
+        private static Rectangle ThemeTileRect(int index)
     {
         int column = index % 4;
         int row = index / 4;
         return new Rectangle(540 + column * 144, 238 + row * 190, 136, 180);
     }
+
 
     private void DrawThemeCard(Graphics g, int index)
     {
@@ -1237,28 +1417,46 @@ public sealed class GameForm : Form
         bool selected = index == _selectedTheme;
         bool hover = tile.Contains(_mousePoint);
 
-        using var fill = new SolidBrush(theme.Dark);
-        g.FillRectangle(fill, tile);
-        DrawPixelOutline(g, tile,
-            selected ? theme.Highlight : hover ? theme.Text : theme.Accent,
-            selected ? 4 : 2);
+        using (var shadow = new SolidBrush(Color.FromArgb(45, 0, 0, 0)))
+            FillRound(g, new Rectangle(tile.X + 2, tile.Y + 4, tile.Width, tile.Height),
+                12, shadow);
+        using (var fill = new LinearGradientBrush(tile, theme.Dark, theme.Background, 90f))
+            FillRound(g, tile, 12, fill);
+        StrokeRound(g, tile, 12, selected ? theme.Highlight :
+            hover ? theme.Text : Color.FromArgb(115, theme.Grid));
 
         Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 78);
         using (var artFill = new SolidBrush(theme.Background))
-            g.FillRectangle(artFill, art);
+            FillRound(g, art, 7, artFill);
+        GraphicsState state = g.Save();
+        using (GraphicsPath clip = RoundPath(art, 7))
+            g.SetClip(clip);
         DrawThemeThumbnail(g, art, theme);
+        g.Restore(state);
 
-        DrawPixelText(g, theme.Season, tile.X + tile.Width / 2,
-            tile.Y + 101, 2, theme.Text);
-        DrawPixelText(g, theme.TimeOfDay, tile.X + tile.Width / 2,
-            tile.Y + 128, 2, theme.Accent);
+        using var titleBrush = new SolidBrush(theme.Text);
+        using var accentBrush = new SolidBrush(theme.Accent);
+        using var infoBrush = new SolidBrush(Color.FromArgb(175, theme.Text));
+        DrawLabel(g, theme.Season, _sectionFont, titleBrush,
+            new Rectangle(tile.X + 8, tile.Y + 96, tile.Width - 16, 23), _centerFormat);
+        DrawLabel(g, theme.TimeOfDay, _microFont, accentBrush,
+            new Rectangle(tile.X + 8, tile.Y + 120, tile.Width - 16, 20), _centerFormat);
 
         if (selected)
-            DrawPixelText(g, "SELECTED", tile.X + tile.Width / 2,
-                tile.Y + 154, 1, theme.Highlight);
+        {
+            FillRound(g, new Rectangle(tile.X + 34, tile.Y + 151, tile.Width - 68, 20),
+                7, Color.FromArgb(80, theme.Highlight));
+            DrawLabel(g, "ACTIVE", _microFont, accentBrush,
+                new Rectangle(tile.X + 34, tile.Y + 151, tile.Width - 68, 20), _centerFormat);
+        }
+        else if (hover)
+        {
+            DrawLabel(g, "PREVIEW", _microFont, infoBrush,
+                new Rectangle(tile.X + 8, tile.Y + 151, tile.Width - 16, 20), _centerFormat);
+        }
     }
 
-    private void DrawThemeThumbnail(Graphics g, Rectangle area, ArcadeTheme theme)
+        private void DrawThemeThumbnail(Graphics g, Rectangle area, ArcadeTheme theme)
     {
         using var ground = new SolidBrush(theme.Dark);
         g.FillRectangle(ground, area.X, area.Bottom - 18, area.Width, 18);
@@ -1404,30 +1602,30 @@ public sealed class GameForm : Form
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
-                DrawBlossomTree(g, 22, 716, 0.88f, theme);
-                DrawBlossomTree(g, 1138, 716, 0.78f, theme);
+                DrawBlossomTree(g, 86, 724, 0.92f, theme);
+                DrawBlossomTree(g, 1075, 724, 0.86f, theme);
                 DrawFlowerMeadow(g, tick, theme);
                 DrawFallingPetals(g, tick, theme, 22);
                 break;
 
             case ThemeSeason.Summer:
-                DrawPalmTree(g, 22, 716, 0.88f, theme);
-                DrawPalmTree(g, 1138, 716, 0.78f, theme);
+                DrawPalmTree(g, 86, 724, 0.92f, theme);
+                DrawPalmTree(g, 1075, 724, 0.86f, theme);
                 DrawWarmHaze(g, tick, theme);
                 DrawSummerGlints(g, tick, theme, 20);
                 break;
 
             case ThemeSeason.Autumn:
-                DrawBareTree(g, 22, 716, 0.92f, theme);
-                DrawBareTree(g, 1138, 716, 0.84f, theme);
+                DrawBareTree(g, 86, 724, 0.94f, theme);
+                DrawBareTree(g, 1075, 724, 0.88f, theme);
                 DrawAutumnGround(g, theme);
                 DrawFallingLeaves(g, tick, theme, 30);
                 DrawRain(g, tick, theme, 76);
                 break;
 
             case ThemeSeason.Winter:
-                DrawPineTree(g, 22, 716, 0.92f, theme);
-                DrawPineTree(g, 1138, 716, 0.84f, theme);
+                DrawPineTree(g, 86, 724, 0.94f, theme);
+                DrawPineTree(g, 1075, 724, 0.88f, theme);
                 DrawSnowGround(g, theme);
                 DrawSnowfall(g, tick, theme, 64);
                 break;
@@ -1463,131 +1661,334 @@ public sealed class GameForm : Form
         g.Restore(state);
     }
 
+
+    private static void DrawTreeBranch(Graphics g, PointF start, PointF control1,
+        PointF control2, PointF end, float width, Color color)
+    {
+        using var pen = new Pen(color, width)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+        g.DrawBezier(pen, start, control1, control2, end);
+    }
+
+    private static void DrawTreeRoots(Graphics g, float x, float groundY,
+        float scale, Color color)
+    {
+        DrawTreeBranch(g, new PointF(x, groundY - 2 * scale),
+            new PointF(x - 12 * scale, groundY + 2 * scale),
+            new PointF(x - 28 * scale, groundY + 4 * scale),
+            new PointF(x - 43 * scale, groundY + 1 * scale), 5 * scale, color);
+        DrawTreeBranch(g, new PointF(x + 1 * scale, groundY - 2 * scale),
+            new PointF(x + 14 * scale, groundY + 2 * scale),
+            new PointF(x + 30 * scale, groundY + 4 * scale),
+            new PointF(x + 47 * scale, groundY), 5 * scale, color);
+    }
+
+    private static void DrawBlossomMass(Graphics g, float x, float y,
+        float radius, ArcadeTheme theme, int seed)
+    {
+        using var shadow = new SolidBrush(Color.FromArgb(100, 94, 54, 87));
+        using var deep = new SolidBrush(Color.FromArgb(205, 210, 119, 157));
+        using var mid = new SolidBrush(Color.FromArgb(225, theme.Effect));
+        using var light = new SolidBrush(Color.FromArgb(220, 255, 222, 231));
+        using var center = new SolidBrush(Color.FromArgb(235, 255, 231, 164));
+
+        g.FillEllipse(shadow, x - radius * 0.85f, y - radius * 0.45f,
+            radius * 1.8f, radius * 1.15f);
+
+        for (int i = 0; i < 9; i++)
+        {
+            double angle = (i * 40 + seed * 13) * Math.PI / 180;
+            float ox = (float)Math.Cos(angle) * radius * (0.42f + (i % 3) * 0.08f);
+            float oy = (float)Math.Sin(angle) * radius * 0.42f;
+            float size = radius * (0.62f + (i % 4) * 0.08f);
+            Brush brush = i % 4 == 0 ? deep : mid;
+            g.FillEllipse(brush, x + ox - size * 0.55f,
+                y + oy - size * 0.48f, size * 1.1f, size * 0.92f);
+        }
+
+        for (int i = 0; i < 7; i++)
+        {
+            float px = x + (float)Math.Sin(i * 2.7f + seed) * radius * 0.62f;
+            float py = y + (float)Math.Cos(i * 1.9f + seed) * radius * 0.42f;
+            float size = Math.Max(3, radius * 0.12f);
+            g.FillEllipse(light, px - size, py - size, size * 2, size * 1.8f);
+            g.FillEllipse(center, px - size * 0.22f, py - size * 0.22f,
+                size * 0.44f, size * 0.44f);
+        }
+    }
+
     private static void DrawBlossomTree(Graphics g, int x, int groundY,
         float scale, ArcadeTheme theme)
     {
-        using var trunk = new Pen(Color.FromArgb(225, 91, 61, 48), 10 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        using var branch = new Pen(Color.FromArgb(225, 112, 76, 59), 5 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        Color bark = Color.FromArgb(230, 83, 53, 48);
+        Color branch = Color.FromArgb(225, 105, 69, 58);
+        float topY = groundY - 245 * scale;
 
-        int top = groundY - (int)(128 * scale);
-        g.DrawLine(trunk, x, groundY, x + (int)(5 * scale), top);
-        g.DrawLine(branch, x, groundY - 55 * scale, x - 34 * scale, groundY - 91 * scale);
-        g.DrawLine(branch, x + 1 * scale, groundY - 76 * scale, x + 37 * scale, groundY - 111 * scale);
-        g.DrawLine(branch, x - 17 * scale, groundY - 75 * scale, x - 28 * scale, groundY - 119 * scale);
-        g.DrawLine(branch, x + 20 * scale, groundY - 94 * scale, x + 20 * scale, groundY - 132 * scale);
+        DrawTreeBranch(g, new PointF(x, groundY),
+            new PointF(x - 19 * scale, groundY - 72 * scale),
+            new PointF(x + 24 * scale, groundY - 166 * scale),
+            new PointF(x + 4 * scale, topY), 19 * scale, Color.FromArgb(120, 40, 25, 28));
+        DrawTreeBranch(g, new PointF(x, groundY),
+            new PointF(x - 19 * scale, groundY - 72 * scale),
+            new PointF(x + 24 * scale, groundY - 166 * scale),
+            new PointF(x + 4 * scale, topY), 14 * scale, bark);
+        DrawTreeBranch(g, new PointF(x - 4 * scale, groundY - 38 * scale),
+            new PointF(x - 54 * scale, groundY - 88 * scale),
+            new PointF(x - 67 * scale, groundY - 138 * scale),
+            new PointF(x - 110 * scale, groundY - 174 * scale), 8 * scale, branch);
+        DrawTreeBranch(g, new PointF(x - 34 * scale, groundY - 87 * scale),
+            new PointF(x - 76 * scale, groundY - 104 * scale),
+            new PointF(x - 90 * scale, groundY - 148 * scale),
+            new PointF(x - 94 * scale, groundY - 190 * scale), 4 * scale, branch);
+        DrawTreeBranch(g, new PointF(x - 74 * scale, groundY - 142 * scale),
+            new PointF(x - 112 * scale, groundY - 150 * scale),
+            new PointF(x - 125 * scale, groundY - 174 * scale),
+            new PointF(x - 142 * scale, groundY - 187 * scale), 3 * scale, branch);
 
-        using var blossomPink = new SolidBrush(Color.FromArgb(230, theme.Effect));
-        using var blossomLight = new SolidBrush(Color.FromArgb(225, theme.Highlight));
-        PointF[] clusters =
-        [
-            new(x - 31 * scale, groundY - 113 * scale),
-            new(x - 6 * scale, groundY - 139 * scale),
-            new(x + 24 * scale, groundY - 145 * scale),
-            new(x + 42 * scale, groundY - 111 * scale),
-            new(x - 2 * scale, groundY - 105 * scale)
-        ];
+        DrawTreeBranch(g, new PointF(x + 5 * scale, groundY - 82 * scale),
+            new PointF(x + 53 * scale, groundY - 102 * scale),
+            new PointF(x + 72 * scale, groundY - 146 * scale),
+            new PointF(x + 112 * scale, groundY - 180 * scale), 8 * scale, branch);
+        DrawTreeBranch(g, new PointF(x + 53 * scale, groundY - 111 * scale),
+            new PointF(x + 75 * scale, groundY - 129 * scale),
+            new PointF(x + 91 * scale, groundY - 174 * scale),
+            new PointF(x + 91 * scale, groundY - 205 * scale), 4 * scale, branch);
+        DrawTreeBranch(g, new PointF(x + 82 * scale, groundY - 147 * scale),
+            new PointF(x + 112 * scale, groundY - 151 * scale),
+            new PointF(x + 128 * scale, groundY - 174 * scale),
+            new PointF(x + 145 * scale, groundY - 180 * scale), 3 * scale, branch);
+        DrawTreeBranch(g, new PointF(x + 2 * scale, groundY - 142 * scale),
+            new PointF(x - 25 * scale, groundY - 174 * scale),
+            new PointF(x - 23 * scale, groundY - 211 * scale),
+            new PointF(x - 39 * scale, groundY - 227 * scale), 5 * scale, branch);
 
-        for (int i = 0; i < clusters.Length; i++)
-        {
-            PointF p = clusters[i];
-            Brush petals = i % 2 == 0 ? blossomPink : blossomLight;
-            float radius = 19 * scale;
-            g.FillEllipse(petals, p.X - radius, p.Y - radius, radius * 2, radius * 2);
-            DrawPixelFlower(g, (int)p.X, (int)p.Y, blossomLight, theme.Accent);
-        }
+        DrawTreeRoots(g, x, groundY, scale, bark);
+
+        DrawBlossomMass(g, x - 107 * scale, groundY - 188 * scale,
+            40 * scale, theme, 1);
+        DrawBlossomMass(g, x - 49 * scale, groundY - 231 * scale,
+            49 * scale, theme, 2);
+        DrawBlossomMass(g, x + 14 * scale, groundY - 249 * scale,
+            53 * scale, theme, 3);
+        DrawBlossomMass(g, x + 85 * scale, groundY - 217 * scale,
+            47 * scale, theme, 4);
+        DrawBlossomMass(g, x + 126 * scale, groundY - 181 * scale,
+            35 * scale, theme, 5);
+        DrawBlossomMass(g, x - 2 * scale, groundY - 173 * scale,
+            43 * scale, theme, 6);
     }
 
     private static void DrawPalmTree(Graphics g, int x, int groundY,
         float scale, ArcadeTheme theme)
     {
-        using var trunk = new Pen(Color.FromArgb(235, 135, 83, 44), 11 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        g.DrawBezier(trunk, x, groundY, x - 12 * scale, groundY - 42 * scale,
-            x + 13 * scale, groundY - 91 * scale, x + 2 * scale, groundY - 130 * scale);
+        PointF crown = new(x + 13 * scale, groundY - 250 * scale);
+        DrawTreeBranch(g, new PointF(x, groundY),
+            new PointF(x - 21 * scale, groundY - 70 * scale),
+            new PointF(x + 35 * scale, groundY - 166 * scale),
+            crown, 17 * scale, Color.FromArgb(105, 61, 36, 22));
+        DrawTreeBranch(g, new PointF(x, groundY),
+            new PointF(x - 21 * scale, groundY - 70 * scale),
+            new PointF(x + 35 * scale, groundY - 166 * scale),
+            crown, 12 * scale, Color.FromArgb(235, 139, 86, 48));
 
-        PointF crown = new(x + 2 * scale, groundY - 130 * scale);
-        using var leaves = new Pen(Color.FromArgb(245, 56, 154, 91), 7 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        using var leafLight = new Pen(Color.FromArgb(235, theme.Highlight), 3 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-
-        PointF[][] fronds =
-        [
-            [crown, new(x - 27 * scale, crown.Y - 30 * scale), new(x - 57 * scale, crown.Y - 18 * scale)],
-            [crown, new(x - 32 * scale, crown.Y - 5 * scale), new(x - 63 * scale, crown.Y + 10 * scale)],
-            [crown, new(x + 27 * scale, crown.Y - 31 * scale), new(x + 58 * scale, crown.Y - 18 * scale)],
-            [crown, new(x + 32 * scale, crown.Y - 6 * scale), new(x + 64 * scale, crown.Y + 10 * scale)],
-            [crown, new(x - 10 * scale, crown.Y - 39 * scale), new(x - 20 * scale, crown.Y - 69 * scale)],
-            [crown, new(x + 12 * scale, crown.Y - 39 * scale), new(x + 25 * scale, crown.Y - 68 * scale)]
-        ];
-
-        foreach (PointF[] frond in fronds)
+        using var ringPen = new Pen(Color.FromArgb(125, 86, 50, 29), 2 * scale);
+        for (int i = 0; i < 9; i++)
         {
-            g.DrawCurve(leaves, frond);
-            g.DrawCurve(leafLight, frond);
+            float t = 0.18f + i * 0.075f;
+            float px = x - 18 * scale * (1 - t) + 10 * scale * t;
+            float py = groundY - 245 * scale * t;
+            g.DrawArc(ringPen, px - 6 * scale, py - 4 * scale,
+                13 * scale, 8 * scale, 10, 155);
         }
 
-        using var coconuts = new SolidBrush(Color.FromArgb(255, 111, 71, 36));
-        g.FillEllipse(coconuts, crown.X - 6 * scale, crown.Y - 2 * scale, 8 * scale, 8 * scale);
-        g.FillEllipse(coconuts, crown.X + 2 * scale, crown.Y - 1 * scale, 8 * scale, 8 * scale);
+        Color leafDark = Color.FromArgb(235, 27, 91, 55);
+        Color leafMid = Color.FromArgb(245, 48, 142, 77);
+        using var rib = new Pen(Color.FromArgb(220, 170, 208, 113), 2 * scale);
+        for (int frond = 0; frond < 8; frond++)
+        {
+            double angle = (-168 + frond * 32) * Math.PI / 180;
+            float length = (112 + frond % 3 * 12) * scale;
+            PointF end = new(
+                crown.X + (float)Math.Cos(angle) * length,
+                crown.Y + (float)Math.Sin(angle) * length * 0.70f + 16 * scale);
+
+            PointF c1 = new(crown.X + (end.X - crown.X) * 0.34f,
+                crown.Y + (end.Y - crown.Y) * 0.20f - 22 * scale);
+            PointF c2 = new(crown.X + (end.X - crown.X) * 0.72f,
+                crown.Y + (end.Y - crown.Y) * 0.75f + 25 * scale);
+            using var spine = new Pen(leafDark, 6 * scale)
+                { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawBezier(spine, crown, c1, c2, end);
+            g.DrawBezier(rib, crown, c1, c2, end);
+
+            for (int j = 1; j <= 11; j++)
+            {
+                float t = j / 12f;
+                float bx = crown.X + (end.X - crown.X) * t;
+                float by = crown.Y + (end.Y - crown.Y) * t +
+                    MathF.Sin(t * MathF.PI) * 12 * scale;
+                float leafLen = (22 - t * 9) * scale;
+                float nx = -(end.Y - crown.Y) / Math.Max(1, length) * leafLen;
+                float ny = (end.X - crown.X) / Math.Max(1, length) * leafLen;
+                using var leaflet = new Pen(j % 3 == 0 ? leafDark : leafMid,
+                    3.2f * scale) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                g.DrawLine(leaflet, bx, by, bx + nx, by + ny);
+                g.DrawLine(leaflet, bx, by, bx - nx * 0.78f, by - ny * 0.78f);
+            }
+        }
+
+        using var coconuts = new SolidBrush(Color.FromArgb(255, 113, 70, 36));
+        g.FillEllipse(coconuts, crown.X - 8 * scale, crown.Y - 1 * scale,
+            13 * scale, 13 * scale);
+        g.FillEllipse(coconuts, crown.X + 3 * scale, crown.Y + 2 * scale,
+            12 * scale, 12 * scale);
+        g.FillEllipse(coconuts, crown.X - 2 * scale, crown.Y + 8 * scale,
+            10 * scale, 10 * scale);
+        DrawTreeRoots(g, x, groundY, scale, Color.FromArgb(195, 112, 67, 39));
     }
 
     private static void DrawBareTree(Graphics g, int x, int groundY,
         float scale, ArcadeTheme theme)
     {
-        using var trunk = new Pen(Color.FromArgb(245, 83, 50, 32), 12 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        using var branches = new Pen(Color.FromArgb(240, 105, 65, 40), 5 * scale)
-            { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        Color trunk = Color.FromArgb(235, 84, 52, 35);
+        Color branch = Color.FromArgb(220, 113, 71, 47);
+        PointF root = new(x, groundY);
+        PointF crown = new(x + 4 * scale, groundY - 255 * scale);
 
-        float crownY = groundY - 150 * scale;
-        g.DrawLine(trunk, x, groundY, x - 3 * scale, crownY);
-        g.DrawLine(branches, x - 1 * scale, groundY - 45 * scale, x - 43 * scale, groundY - 95 * scale);
-        g.DrawLine(branches, x - 22 * scale, groundY - 72 * scale, x - 48 * scale, groundY - 75 * scale);
-        g.DrawLine(branches, x - 31 * scale, groundY - 82 * scale, x - 35 * scale, groundY - 113 * scale);
-        g.DrawLine(branches, x - 3 * scale, groundY - 80 * scale, x + 40 * scale, groundY - 121 * scale);
-        g.DrawLine(branches, x + 18 * scale, groundY - 103 * scale, x + 48 * scale, groundY - 108 * scale);
-        g.DrawLine(branches, x + 29 * scale, groundY - 111 * scale, x + 30 * scale, groundY - 139 * scale);
-        g.DrawLine(branches, x - 3 * scale, groundY - 121 * scale, x - 8 * scale, groundY - 162 * scale);
-        g.DrawLine(branches, x - 8 * scale, groundY - 146 * scale, x - 27 * scale, groundY - 161 * scale);
+        DrawTreeBranch(g, root,
+            new PointF(x - 15 * scale, groundY - 75 * scale),
+            new PointF(x + 20 * scale, groundY - 168 * scale),
+            crown, 20 * scale, Color.FromArgb(110, 45, 27, 20));
+        DrawTreeBranch(g, root,
+            new PointF(x - 15 * scale, groundY - 75 * scale),
+            new PointF(x + 20 * scale, groundY - 168 * scale),
+            crown, 14 * scale, trunk);
+
+        // Main limbs split into thinner, upward-curving branches instead of straight spokes.
+        DrawTreeBranch(g, new PointF(x - 3 * scale, groundY - 77 * scale),
+            new PointF(x - 55 * scale, groundY - 112 * scale),
+            new PointF(x - 80 * scale, groundY - 163 * scale),
+            new PointF(x - 127 * scale, groundY - 184 * scale), 8 * scale, branch);
+        DrawTreeBranch(g, new PointF(x - 71 * scale, groundY - 145 * scale),
+            new PointF(x - 104 * scale, groundY - 151 * scale),
+            new PointF(x - 112 * scale, groundY - 193 * scale),
+            new PointF(x - 124 * scale, groundY - 217 * scale), 4 * scale, branch);
+        DrawTreeBranch(g, new PointF(x - 105 * scale, groundY - 170 * scale),
+            new PointF(x - 130 * scale, groundY - 176 * scale),
+            new PointF(x - 141 * scale, groundY - 201 * scale),
+            new PointF(x - 154 * scale, groundY - 206 * scale), 2.5f * scale, branch);
+        DrawTreeBranch(g, new PointF(x - 39 * scale, groundY - 124 * scale),
+            new PointF(x - 52 * scale, groundY - 155 * scale),
+            new PointF(x - 49 * scale, groundY - 193 * scale),
+            new PointF(x - 62 * scale, groundY - 218 * scale), 4 * scale, branch);
+
+        DrawTreeBranch(g, new PointF(x + 4 * scale, groundY - 105 * scale),
+            new PointF(x + 54 * scale, groundY - 133 * scale),
+            new PointF(x + 83 * scale, groundY - 171 * scale),
+            new PointF(x + 129 * scale, groundY - 192 * scale), 8 * scale, branch);
+        DrawTreeBranch(g, new PointF(x + 72 * scale, groundY - 158 * scale),
+            new PointF(x + 109 * scale, groundY - 167 * scale),
+            new PointF(x + 118 * scale, groundY - 201 * scale),
+            new PointF(x + 135 * scale, groundY - 222 * scale), 4 * scale, branch);
+        DrawTreeBranch(g, new PointF(x + 39 * scale, groundY - 127 * scale),
+            new PointF(x + 49 * scale, groundY - 164 * scale),
+            new PointF(x + 42 * scale, groundY - 198 * scale),
+            new PointF(x + 54 * scale, groundY - 228 * scale), 3.5f * scale, branch);
+        DrawTreeBranch(g, new PointF(x + 4 * scale, groundY - 173 * scale),
+            new PointF(x - 12 * scale, groundY - 207 * scale),
+            new PointF(x - 4 * scale, groundY - 233 * scale),
+            new PointF(x - 17 * scale, groundY - 249 * scale), 4 * scale, branch);
+
+        using var barkLine = new Pen(Color.FromArgb(100, 214, 157, 112), 1.4f * scale);
+        g.DrawBezier(barkLine, x - 2 * scale, groundY - 25 * scale,
+            x - 7 * scale, groundY - 90 * scale, x + 25 * scale,
+            groundY - 170 * scale, x + 3 * scale, groundY - 244 * scale);
+
+        // A few leaves remain near the outer twigs.
+        using var leafBrush = new SolidBrush(Color.FromArgb(210, theme.Effect));
+        for (int i = 0; i < 13; i++)
+        {
+            float lx = x + (float)Math.Sin(i * 2.2f) * (72 + i % 4 * 16) * scale;
+            float ly = groundY - (170 + (i % 4) * 17) * scale;
+            float size = (5 + i % 4) * scale;
+            g.FillEllipse(leafBrush, lx - size, ly - size * 0.45f,
+                size * 2, size);
+        }
 
         using var leafPile = new SolidBrush(Color.FromArgb(220, theme.Effect));
-        g.FillEllipse(leafPile, x - 33 * scale, groundY - 7 * scale, 31 * scale, 8 * scale);
-        g.FillEllipse(leafPile, x + 5 * scale, groundY - 5 * scale, 29 * scale, 7 * scale);
+        g.FillEllipse(leafPile, x - 43 * scale, groundY - 8 * scale,
+            43 * scale, 11 * scale);
+        g.FillEllipse(leafPile, x + 4 * scale, groundY - 7 * scale,
+            48 * scale, 10 * scale);
+        DrawTreeRoots(g, x, groundY, scale, trunk);
     }
 
     private static void DrawPineTree(Graphics g, int x, int groundY,
         float scale, ArcadeTheme theme)
     {
-        using var trunk = new SolidBrush(Color.FromArgb(235, 89, 65, 54));
-        g.FillRectangle(trunk, x - 5 * scale, groundY - 46 * scale, 10 * scale, 48 * scale);
+        using var trunk = new SolidBrush(Color.FromArgb(235, 86, 62, 51));
+        g.FillRoundRectangle(trunk, x - 7 * scale, groundY - 250 * scale,
+            14 * scale, 253 * scale, 5 * scale);
 
-        using var pine = new SolidBrush(Color.FromArgb(245, 22, 79, 91));
-        using var snow = new SolidBrush(Color.FromArgb(245, theme.Highlight));
-        for (int tier = 0; tier < 3; tier++)
+        using var pineShadow = new SolidBrush(Color.FromArgb(235, 10, 48, 59));
+        using var pine = new SolidBrush(Color.FromArgb(245, 20, 83, 83));
+        using var snow = new SolidBrush(Color.FromArgb(242, theme.Highlight));
+
+        for (int tier = 0; tier < 5; tier++)
         {
-            float y = groundY - (125 - tier * 34) * scale;
-            float width = (54 - tier * 7) * scale;
+            float y = groundY - (75 + tier * 39) * scale;
+            float half = (70 - tier * 8) * scale;
             PointF[] points =
             [
-                new(x, y - 44 * scale),
-                new(x - width, y + 20 * scale),
-                new(x + width, y + 20 * scale)
+                new(x + 1 * scale, y - 73 * scale),
+                new(x - half * 0.28f, y - 28 * scale),
+                new(x - half * 0.88f, y + 8 * scale),
+                new(x - half * 0.52f, y + 6 * scale),
+                new(x - half * 0.63f, y + 22 * scale),
+                new(x, y + 13 * scale),
+                new(x + half * 0.62f, y + 23 * scale),
+                new(x + half * 0.52f, y + 6 * scale),
+                new(x + half * 0.90f, y + 8 * scale),
+                new(x + half * 0.25f, y - 31 * scale)
             ];
-            g.FillPolygon(pine, points);
-            using var snowLine = new Pen(Color.FromArgb(235, theme.Highlight), 4 * scale);
-            g.DrawLine(snowLine, x - width * 0.55f, y + 8 * scale,
-                x, y - 37 * scale);
-            g.DrawLine(snowLine, x, y - 37 * scale,
-                x + width * 0.55f, y + 8 * scale);
+            g.FillPolygon(pineShadow, points);
+            using var edge = new Pen(Color.FromArgb(130, 5, 35, 45), 2 * scale);
+            g.DrawPolygon(edge, points);
+
+            PointF[] inner =
+            [
+                new(x + 1 * scale, y - 67 * scale),
+                new(x - half * 0.28f, y - 27 * scale),
+                new(x - half * 0.78f, y + 5 * scale),
+                new(x - half * 0.42f, y + 4 * scale),
+                new(x, y + 13 * scale),
+                new(x + half * 0.75f, y + 6 * scale),
+                new(x + half * 0.24f, y - 28 * scale)
+            ];
+            g.FillPolygon(pine, inner);
+
+            using var snowEdge = new Pen(Color.FromArgb(238, theme.Highlight), 5 * scale)
+                { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+            g.DrawLine(snowEdge, x - half * 0.52f, y + 5 * scale,
+                x - half * 0.28f, y - 27 * scale);
+            g.DrawLine(snowEdge, x - half * 0.28f, y - 27 * scale,
+                x + 1 * scale, y - 67 * scale);
+            g.DrawLine(snowEdge, x + 1 * scale, y - 67 * scale,
+                x + half * 0.24f, y - 28 * scale);
+            g.FillEllipse(snow, x - half * 0.65f, y + 1 * scale,
+                half * 0.56f, 8 * scale);
         }
 
-        g.FillEllipse(snow, x - 8 * scale, groundY - 9 * scale, 16 * scale, 8 * scale);
+        g.FillEllipse(snow, x - 21 * scale, groundY - 8 * scale,
+            42 * scale, 14 * scale);
+        DrawTreeRoots(g, x, groundY, scale, Color.FromArgb(190, 86, 62, 51));
     }
 
-    private static void DrawFlowerMeadow(Graphics g, long tick, ArcadeTheme theme)
+        private static void DrawFlowerMeadow(Graphics g, long tick, ArcadeTheme theme)
     {
         using var stem = new Pen(Color.FromArgb(190, 80, 150, 73), 2);
         using var petals = new SolidBrush(Color.FromArgb(220, theme.Effect));
@@ -1799,72 +2200,80 @@ public sealed class GameForm : Form
             textSize, textColor);
     }
 
+
     private void DrawRetroPlayChrome(Graphics g)
     {
-        DrawPixelPanel(g, _boardCard, true);
-        DrawPixelPanel(g, _rightPanel, true);
+        DrawUiPanel(g, _boardCard, true, 20);
+        DrawUiPanel(g, _rightPanel, false, 20);
 
-        // Give each dashboard group its own panel and consistent spacing.
-        DrawPixelPanel(g, new Rectangle(814, 110, 302, 130), true);
-        DrawPixelPanel(g, new Rectangle(814, 246, 302, 120), true);
-        DrawPixelPanel(g, new Rectangle(814, 372, 302, 122), true);
-        DrawPixelPanel(g, new Rectangle(814, 500, 302, 188), true);
+        DrawUiPanel(g, new Rectangle(814, 110, 302, 130), false, 14);
+        DrawUiPanel(g, new Rectangle(814, 246, 302, 120), false, 14);
+        DrawUiPanel(g, new Rectangle(814, 372, 302, 122), false, 14);
+        DrawUiPanel(g, new Rectangle(814, 500, 302, 188), false, 14);
 
-        using var boardFill = new SolidBrush(RetroDark);
-        g.FillRectangle(boardFill, _field);
-        using var grid = new Pen(Color.FromArgb(75, ActiveTheme.Grid), 1);
-        for (int x = _field.Left; x <= _field.Right; x += CellSize)
-            g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
-        for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
-            g.DrawLine(grid, _field.Left, y, _field.Right, y);
-        DrawPixelOutline(g, _field, RetroGold, 3);
+        using var boardFill = new SolidBrush(Color.FromArgb(235, RetroDark));
+        FillRound(g, _field, 9, boardFill);
+
+        GraphicsState state = g.Save();
+        using (GraphicsPath clip = RoundPath(_field, 9))
+            g.SetClip(clip);
+        using (var grid = new Pen(Color.FromArgb(70, ActiveTheme.Grid), 1))
+        {
+            for (int x = _field.Left; x <= _field.Right; x += CellSize)
+                g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
+            for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
+                g.DrawLine(grid, _field.Left, y, _field.Right, y);
+        }
         DrawSeasonalPlayfieldEffects(g);
+        g.Restore(state);
+        StrokeRound(g, _field, 9, Color.FromArgb(175, ActiveTheme.Highlight));
 
-        DrawPixelText(g, "SCORE", 881, 125, 2, RetroWhite);
-        DrawPixelText(g, "BEST", 1046, 125, 2, RetroGold);
-        DrawPixelText(g, "MODE", 960, 265, 2, RetroWhite);
-        DrawPixelText(g, "DIFFICULTY", 960, 385, 2, RetroWhite);
-        DrawPixelText(g, "ACTIONS", 960, 516, 2, RetroGold);
+        using var labelBrush = new SolidBrush(Color.FromArgb(190, ActiveTheme.Text));
+        using var accentBrush = new SolidBrush(ActiveTheme.Highlight);
+        DrawLabel(g, "SCORE", _microFont, labelBrush,
+            new Rectangle(836, 122, 115, 22), _leftFormat);
+        DrawLabel(g, "BEST", _microFont, accentBrush,
+            new Rectangle(1000, 122, 100, 22), _leftFormat);
+        DrawLabel(g, "GAME MODE", _microFont, labelBrush,
+            new Rectangle(838, 257, 260, 23), _leftFormat);
+        DrawLabel(g, "DIFFICULTY", _microFont, labelBrush,
+            new Rectangle(838, 383, 260, 23), _leftFormat);
+        DrawLabel(g, "YOUR SESSION", _microFont, accentBrush,
+            new Rectangle(838, 509, 260, 23), _leftFormat);
     }
 
+    
     private void DrawRetroPlayDashboard(Graphics g)
     {
-        DrawPixelText(g, FormatScore(_score), 881, 160, 4, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 1046, 160, 4, RetroGold);
+        using var scoreBrush = new SolidBrush(ActiveTheme.Text);
+        using var bestBrush = new SolidBrush(ActiveTheme.Highlight);
+        DrawLabel(g, FormatScore(_score), _scoreFont, scoreBrush,
+            new Rectangle(836, 150, 130, 54), _leftFormat);
+        DrawLabel(g, FormatScore(_bestScore), _scoreFont, bestBrush,
+            new Rectangle(1000, 150, 100, 54), _leftFormat);
 
-        DrawRetroButton(g, _classicButton, "CLASSIC", 1,
-            _mode == GameMode.Classic, _mode == GameMode.Classic);
-        DrawRetroButton(g, _wrapButton, "WRAP", 2,
-            _mode == GameMode.Wrap, _mode == GameMode.Wrap);
-        DrawRetroButton(g, _rushButton, "RUSH", 2,
-            _mode == GameMode.Rush, _mode == GameMode.Rush);
+        DrawUiButton(g, _classicButton, "CLASSIC", false, _mode == GameMode.Classic);
+        DrawUiButton(g, _wrapButton, "WRAP", false, _mode == GameMode.Wrap);
+        DrawUiButton(g, _rushButton, "RUSH", false, _mode == GameMode.Rush);
 
-        DrawRetroButton(g, _easyButton, "EASY", 2,
-            _difficulty == Difficulty.Easy, _difficulty == Difficulty.Easy);
-        DrawRetroButton(g, _normalButton, "NORMAL", 1,
-            _difficulty == Difficulty.Normal, _difficulty == Difficulty.Normal);
-        DrawRetroButton(g, _hardButton, "HARD", 2,
-            _difficulty == Difficulty.Hard, _difficulty == Difficulty.Hard);
+        DrawUiButton(g, _easyButton, "EASY", false, _difficulty == Difficulty.Easy);
+        DrawUiButton(g, _normalButton, "NORMAL", false, _difficulty == Difficulty.Normal);
+        DrawUiButton(g, _hardButton, "HARD", false, _difficulty == Difficulty.Hard);
 
         string action = _state switch
         {
             GameState.Playing => "PAUSE",
             GameState.Paused => "RESUME",
-            _ => "PLAY"
+            _ => "START"
         };
-        DrawRetroButton(g, _mainButton, action, 2, true, true);
-        DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
-            _soundButton.Contains(_mousePoint));
-        DrawRetroButton(g, _restartButton, "RESET", 1,
-            _restartButton.Contains(_mousePoint));
-        DrawRetroButton(g, _skinButton, "SKINS", 2,
-            _skinButton.Contains(_mousePoint));
-        DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
-            _resetBestButton.Contains(_mousePoint));
-
+        DrawUiButton(g, _mainButton, action, true);
+        DrawUiButton(g, _soundButton, _soundEnabled ? "♪" : "×");
+        DrawUiButton(g, _restartButton, "↻");
+        DrawUiButton(g, _skinButton, "CHANGE SKIN");
+        DrawUiButton(g, _resetBestButton, "RESET BEST", false, false, true);
     }
 
-    private static string ModeName(GameMode mode) => mode switch
+        private static string ModeName(GameMode mode) => mode switch
     {
         GameMode.Classic => "Classic",
         GameMode.Wrap => "Wrap",
@@ -1943,88 +2352,84 @@ public sealed class GameForm : Form
         g.Restore(state);
     }
 
+
     private void DrawWelcomeScreen(Graphics g)
     {
-        g.FillRectangle(_overlayBrush, _field);
-        g.FillPath(_cardBrush, _overlayPath);
-
-        using (var accent = new LinearGradientBrush(
-                   new Rectangle(185, 239, 445, 4),
-                   Color.FromArgb(40, Green), Green, 0f))
-            g.FillRectangle(accent, 185, 239, 445, 3);
-
-        DrawLabel(g, "WELCOME TO THE ARCADE", _labelFont, _greenBrush,
-            new Rectangle(190, 264, 434, 22), _centerFormat);
-        DrawLabel(g, "SNAKE", _welcomeFont, _whiteBrush,
-            new Rectangle(190, 294, 434, 58), _centerFormat);
-        DrawLabel(g, "A simple classic. A fresh challenge every run.",
-            _welcomeSmallFont, _mutedBrush,
-            new Rectangle(180, 353, 454, 28), _centerFormat);
-
-        DrawLabel(g, "YOUR BEST SCORE", _labelFont, _mutedBrush,
-            new Rectangle(230, 392, 170, 24), _rightFormat);
-        DrawLabel(g, FormatScore(_bestScore), _numberFont, _greenBrush,
-            new Rectangle(412, 383, 150, 42), _leftFormat);
-
-        DrawActionButton(g, _overlayButton, "START GAME", true);
-        DrawLabel(g, "WASD  /  ARROW KEYS     •     SPACE TO PAUSE",
-            _labelFont, _mutedBrush,
-            new Rectangle(180, 523, 454, 20), _centerFormat);
-    }
-
-    private void DrawPauseOrGameOver(Graphics g)
-    {
-        g.SmoothingMode = SmoothingMode.None;
-        g.PixelOffsetMode = PixelOffsetMode.None;
-
-        using var shade = new SolidBrush(Color.FromArgb(225, ActiveTheme.Dark));
-        g.FillRectangle(shade, _field);
+        using var shade = new SolidBrush(Color.FromArgb(160, ActiveTheme.Dark));
+        FillRound(g, _field, 10, shade);
 
         Rectangle panel = new(138, 220, 538, 334);
-        DrawPixelPanel(g, panel, true);
+        DrawUiPanel(g, panel, true, 22);
 
-        using (var accent = new SolidBrush(RetroGold))
-            g.FillRectangle(accent, panel.X + 24, panel.Y + 23,
-                panel.Width - 48, 3);
+        using var eyebrow = new SolidBrush(ActiveTheme.Highlight);
+        using var title = new SolidBrush(ActiveTheme.Text);
+        using var muted = new SolidBrush(Color.FromArgb(180, ActiveTheme.Text));
+        DrawLabel(g, "WELCOME TO THE ARCADE", _microFont, eyebrow,
+            new Rectangle(175, 258, 465, 24), _centerFormat);
+        DrawLabel(g, "SNAKE", _welcomeFont, title,
+            new Rectangle(175, 286, 465, 60), _centerFormat);
+        DrawLabel(g, "A simple classic. A fresh challenge every run.",
+            _bodyFont, muted, new Rectangle(175, 350, 465, 28), _centerFormat);
+        DrawLabel(g, "YOUR BEST SCORE", _microFont, muted,
+            new Rectangle(220, 393, 160, 22), _rightFormat);
+        DrawLabel(g, FormatScore(_bestScore), _numberFont, eyebrow,
+            new Rectangle(395, 383, 160, 42), _leftFormat);
+        DrawUiButton(g, _overlayButton, "START GAME", true);
+        DrawLabel(g, "WASD / ARROWS TO MOVE     ·     SPACE TO PAUSE",
+            _microFont, muted, new Rectangle(175, 523, 465, 22), _centerFormat);
+    }
+
+    
+    private void DrawPauseOrGameOver(Graphics g)
+    {
+        GraphicsState state = g.Save();
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        using var shade = new SolidBrush(Color.FromArgb(225, ActiveTheme.Dark));
+        FillRound(g, _field, 10, shade);
+
+        Rectangle panel = new(138, 220, 538, 334);
+        DrawUiPanel(g, panel, true, 22);
 
         bool paused = _state == GameState.Paused;
         string title = paused ? "PAUSED" : _won ? "PERFECT RUN" : "GAME OVER";
-        DrawPixelText(g, title, panel.X + panel.Width / 2, 263, 4,
-            paused ? RetroWhite : ActiveTheme.Highlight);
+        using var titleBrush = new SolidBrush(paused ? ActiveTheme.Text : ActiveTheme.Highlight);
+        using var mutedBrush = new SolidBrush(Color.FromArgb(180, ActiveTheme.Text));
+        using var scoreBrush = new SolidBrush(ActiveTheme.Text);
+        DrawLabel(g, title, _pageTitleFont, titleBrush,
+            new Rectangle(170, 252, 475, 42), _centerFormat);
 
         if (paused)
         {
-            DrawPixelText(g, "CURRENT SCORE",
-                panel.X + panel.Width / 2, 350, 2, RetroWhite);
-            DrawPixelText(g, FormatScore(_score),
-                panel.X + panel.Width / 2, 378, 5, ActiveTheme.Highlight);
-            DrawPixelText(g, "PERSONAL BEST  " + FormatScore(_bestScore),
-                panel.X + panel.Width / 2, 427, 2, RetroGold);
+            DrawLabel(g, "CURRENT SCORE", _microFont, mutedBrush,
+                new Rectangle(205, 324, 400, 22), _centerFormat);
+            DrawLabel(g, FormatScore(_score), _scoreFont, scoreBrush,
+                new Rectangle(205, 348, 400, 54), _centerFormat);
+            DrawLabel(g, "PERSONAL BEST  " + FormatScore(_bestScore),
+                _bodyFont, mutedBrush, new Rectangle(205, 408, 400, 26), _centerFormat);
         }
         else
         {
-            DrawPixelText(g, "FINAL SCORE",
-                panel.X + panel.Width / 2, 326, 2, RetroWhite);
-            DrawPixelText(g, FormatScore(_score),
-                panel.X + panel.Width / 2, 351, 5,
-                _newRecord ? ActiveTheme.Highlight : RetroWhite);
-
+            DrawLabel(g, "FINAL SCORE", _microFont, mutedBrush,
+                new Rectangle(205, 315, 400, 22), _centerFormat);
+            DrawLabel(g, FormatScore(_score), _scoreFont,
+                _newRecord ? titleBrush : scoreBrush,
+                new Rectangle(205, 337, 400, 56), _centerFormat);
             string result = _scoreSaveFailed
                 ? "SCORE SAVE FAILED"
                 : _newRecord ? "NEW PERSONAL BEST" : "BEST  " + FormatScore(_bestScore);
-            DrawPixelText(g, result, panel.X + panel.Width / 2, 411, 2,
-                _scoreSaveFailed || _newRecord ? RetroGold : ActiveTheme.Highlight);
+            DrawLabel(g, result, _sectionFont,
+                _scoreSaveFailed ? mutedBrush : titleBrush,
+                new Rectangle(205, 400, 400, 26), _centerFormat);
         }
 
-        DrawRetroButton(g, _overlayButton,
-            paused ? "RESUME" : "PLAY AGAIN", 2,
-            _overlayButton.Contains(_mousePoint), true);
-
-        DrawPixelText(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
-            panel.X + panel.Width / 2, 529, 1, RetroWhite);
+        DrawUiButton(g, _overlayButton,
+            paused ? "RESUME GAME" : "PLAY AGAIN", true);
+        DrawLabel(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
+            _microFont, mutedBrush, new Rectangle(185, 523, 445, 20), _centerFormat);
+        g.Restore(state);
     }
 
-    private Bitmap CreateAppleSprite(bool golden)
+        private Bitmap CreateAppleSprite(bool golden)
     {
         const int designSize = 96;
         const int size = 30;
@@ -3416,13 +3821,10 @@ public sealed class GameForm : Form
         if (_minimizeButton.Contains(point)) return 1;
         if (_fullscreenButton.Contains(point)) return 13;
 
-        if (_view is not (AppView.Home or AppView.Skins))
-        {
-            if (_homeNavButton.Contains(point)) return 17;
-            if (_playNavButton.Contains(point)) return 18;
-            if (_skinsNavButton.Contains(point)) return 19;
-            if (_settingsNavButton.Contains(point)) return 20;
-        }
+        if (_homeNavButton.Contains(point)) return 17;
+        if (_playNavButton.Contains(point)) return 18;
+        if (_skinsNavButton.Contains(point)) return 19;
+        if (_settingsNavButton.Contains(point)) return 20;
 
         if (_view == AppView.Home)
         {
@@ -3516,10 +3918,9 @@ public sealed class GameForm : Form
         Point point = ClientToDesign(e.Location);
         if (e.Button == MouseButtons.Left && point.Y < 70 && !_isFullscreen &&
             !_closeButton.Contains(point) && !_minimizeButton.Contains(point) &&
-            !_fullscreenButton.Contains(point) &&
-            (_view is AppView.Home or AppView.Skins ||
-             (!_homeNavButton.Contains(point) && !_playNavButton.Contains(point) &&
-              !_skinsNavButton.Contains(point) && !_settingsNavButton.Contains(point))))
+            !_fullscreenButton.Contains(point) && !_homeNavButton.Contains(point) &&
+            !_playNavButton.Contains(point) && !_skinsNavButton.Contains(point) &&
+            !_settingsNavButton.Contains(point))
         {
             _dragging = true;
             _dragOffset = e.Location;
@@ -3546,13 +3947,10 @@ public sealed class GameForm : Form
             return;
         }
 
-        if (_view is not (AppView.Home or AppView.Skins))
-        {
-            if (_homeNavButton.Contains(point)) { NavigateTo(AppView.Home); return; }
-            if (_playNavButton.Contains(point)) { NavigateTo(AppView.Play); return; }
-            if (_skinsNavButton.Contains(point)) { NavigateTo(AppView.Skins); return; }
-            if (_settingsNavButton.Contains(point)) { NavigateTo(AppView.Settings); return; }
-        }
+        if (_homeNavButton.Contains(point)) { NavigateTo(AppView.Home); return; }
+        if (_playNavButton.Contains(point)) { NavigateTo(AppView.Play); return; }
+        if (_skinsNavButton.Contains(point)) { NavigateTo(AppView.Skins); return; }
+        if (_settingsNavButton.Contains(point)) { NavigateTo(AppView.Settings); return; }
 
         if (_view == AppView.Home)
         {
@@ -3756,6 +4154,11 @@ public sealed class GameForm : Form
         _effectFont.Dispose();
         _buttonFont.Dispose();
         _iconFont.Dispose();
+        _displayFont.Dispose();
+        _pageTitleFont.Dispose();
+        _sectionFont.Dispose();
+        _bodyFont.Dispose();
+        _microFont.Dispose();
 
         _whiteBrush.Dispose();
         _darkBrush.Dispose();

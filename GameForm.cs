@@ -1045,15 +1045,15 @@ public sealed class GameForm : Form
         DrawUiPageTitle(g, "SNAKE SKINS", "Choose a look for your next run.");
         DrawUiButton(g, _skinPickerClose, "←  BACK");
 
-        DrawUiPanel(g, new Rectangle(32, 145, 714, 505), false, 18);
+        DrawUiPanel(g, new Rectangle(32, 166, 714, 484), false, 18);
         DrawSkinPicker(g);
 
-        DrawUiPanel(g, new Rectangle(780, 145, 348, 330), true, 20);
+        DrawUiPanel(g, new Rectangle(780, 166, 348, 309), true, 20);
         using (var previewGlow = new SolidBrush(Color.FromArgb(28, ActiveTheme.Highlight)))
             g.FillEllipse(previewGlow, 835, 188, 240, 205);
-        DrawSnakePreview(g, new Rectangle(804, 160, 300, 285), Skins[_selectedSkin]);
+        DrawSnakePreview(g, new Rectangle(804, 176, 300, 270), Skins[_selectedSkin]);
 
-        DrawUiPanel(g, new Rectangle(780, 490, 348, 160), false, 18);
+        DrawUiPanel(g, new Rectangle(780, 488, 348, 162), false, 18);
         SnakeSkin skin = Skins[_selectedSkin];
         using var titleBrush = new SolidBrush(skin.IsLegendary
             ? ActiveTheme.Highlight : ActiveTheme.Text);
@@ -1098,7 +1098,7 @@ public sealed class GameForm : Form
 
         using var hintBrush = new SolidBrush(Color.FromArgb(165, ActiveTheme.Text));
         DrawLabel(g, "21 DESIGNS  ·  SELECT A CARD TO EQUIP",
-            _microFont, hintBrush, new Rectangle(54, 610, 670, 24), _centerFormat);
+            _microFont, hintBrush, new Rectangle(54, 628, 670, 20), _centerFormat);
     }
 
         private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
@@ -1358,7 +1358,7 @@ public sealed class GameForm : Form
         Rectangle soundPanel = new(56, 178, 425, 128);
         Rectangle scorePanel = new(56, 326, 425, 145);
         Rectangle controlsPanel = new(56, 491, 425, 158);
-        Rectangle themePanel = new(510, 145, 620, 510);
+        Rectangle themePanel = new(510, 166, 620, 489);
 
         DrawUiPanel(g, soundPanel, false, 16);
         DrawUiPanel(g, scorePanel, false, 16);
@@ -1931,8 +1931,10 @@ public sealed class GameForm : Form
         float scale, ArcadeTheme theme)
     {
         using var trunk = new SolidBrush(Color.FromArgb(235, 86, 62, 51));
-        FillRound(g, new RectangleF(x - 7 * scale, groundY - 250 * scale,
-            14 * scale, 253 * scale), 5 * scale, trunk);
+        FillRound(g, new Rectangle(
+            (int)(x - 7 * scale), (int)(groundY - 250 * scale),
+            Math.Max(1, (int)(14 * scale)), Math.Max(1, (int)(253 * scale))),
+            Math.Max(2, (int)(5 * scale)), trunk);
 
         using var pineShadow = new SolidBrush(Color.FromArgb(235, 10, 48, 59));
         using var pine = new SolidBrush(Color.FromArgb(245, 20, 83, 83));
@@ -2828,7 +2830,7 @@ public sealed class GameForm : Form
     {
         int column = index % 3;
         int row = index / 3;
-        return new Rectangle(42 + column * 236, 145 + row * 66, 224, 58);
+        return new Rectangle(42 + column * 236, 170 + row * 66, 224, 58);
     }
 
     private void DrawSecondaryButton(Graphics g, Rectangle rect, string label, bool warning = false)

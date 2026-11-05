@@ -1187,7 +1187,7 @@ public sealed class GameForm : Form
     {
         const int cellSize = 26;
         int size = cellSize;
-        int firstColumn = area.X + (area.Width - cellSize * 7) / 2 + cellSize / 2;
+        int firstColumn = area.X + (area.Width - cellSize * 6) / 2 + cellSize / 2;
         int secondColumn = firstColumn + cellSize;
         int thirdColumn = secondColumn + cellSize;
         int upperRow = area.Y + (area.Height - cellSize * 3) / 2 + cellSize / 2;

@@ -2305,10 +2305,10 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _rightPanel, true);
 
         // Keep each dashboard section inside its own pixel-style box.
-        DrawPixelPanel(g, _scoreArea);
-        DrawPixelPanel(g, _modeArea);
-        DrawPixelPanel(g, _difficultyArea);
-        DrawPixelPanel(g, _actionArea);
+        DrawPixelPanel(g, _scoreArea, true);
+        DrawPixelPanel(g, _modeArea, true);
+        DrawPixelPanel(g, _difficultyArea, true);
+        DrawPixelPanel(g, _actionArea, true);
 
         using var boardFill = new SolidBrush(RetroDark);
         g.FillRectangle(boardFill, _field);

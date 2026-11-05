@@ -96,7 +96,6 @@ public sealed class GameForm : Form
     private bool _soundEnabled = true;
     private bool _won;
     private bool _newRecord;
-    private bool _wrappedThisStep;
     private bool _scoreSaveFailed;
     private bool _isFullscreen;
     private int _selectedSkin;
@@ -1185,6 +1184,12 @@ public sealed class GameForm : Form
         DrawPixelPanel(g, _boardCard, true);
         DrawPixelPanel(g, _rightPanel, true);
 
+        // Give each dashboard group its own panel and consistent spacing.
+        DrawPixelPanel(g, new Rectangle(814, 110, 302, 130), true);
+        DrawPixelPanel(g, new Rectangle(814, 246, 302, 120), true);
+        DrawPixelPanel(g, new Rectangle(814, 372, 302, 122), true);
+        DrawPixelPanel(g, new Rectangle(814, 500, 302, 188), true);
+
         using var boardFill = new SolidBrush(RetroDark);
         g.FillRectangle(boardFill, _field);
         using var grid = new Pen(Color.FromArgb(70, 185, 143, 17), 1);
@@ -1198,6 +1203,7 @@ public sealed class GameForm : Form
         DrawPixelText(g, "BEST", 1040, 125, 2, RetroGold);
         DrawPixelText(g, "MODE", 960, 265, 2, RetroWhite);
         DrawPixelText(g, "DIFFICULTY", 960, 385, 2, RetroWhite);
+        DrawPixelText(g, "ACTIONS", 960, 516, 2, RetroGold);
     }
 
     private void DrawRetroPlayDashboard(Graphics g)
@@ -1524,10 +1530,17 @@ public sealed class GameForm : Form
             Point from = i < _previousSnakeCount ? _previousSnake[i] : _snake[i];
             Point to = _snake[i];
 
-            float cellX = _wrappedThisStep && i == 0
+            // A segment crossing a wrap edge must jump to its destination cell.
+            // Interpolating the large coordinate delta would send it through the
+            // middle of the board for one animation step.
+            bool crossedWrapEdge =
+                Math.Abs(to.X - from.X) > 1 ||
+                Math.Abs(to.Y - from.Y) > 1;
+
+            float cellX = crossedWrapEdge
                 ? to.X
                 : from.X + (to.X - from.X) * progress;
-            float cellY = _wrappedThisStep && i == 0
+            float cellY = crossedWrapEdge
                 ? to.Y
                 : from.Y + (to.Y - from.Y) * progress;
 
@@ -1923,6 +1936,13 @@ public sealed class GameForm : Form
             PointF before = centers[i - 1];
             PointF after = centers[i + 1];
 
+            // Do not build a skin pattern across the visual gap at a wrap seam.
+            if (Math.Abs(p.X - before.X) > CellSize * 1.5f ||
+                Math.Abs(p.Y - before.Y) > CellSize * 1.5f ||
+                Math.Abs(after.X - p.X) > CellSize * 1.5f ||
+                Math.Abs(after.Y - p.Y) > CellSize * 1.5f)
+                continue;
+
             float dx = after.X - before.X;
             float dy = after.Y - before.Y;
             float length = Math.Max(1f, MathF.Sqrt(dx * dx + dy * dy));
@@ -2216,7 +2236,6 @@ public sealed class GameForm : Form
         _direction = Direction.Right;
         _nextDirection = Direction.Right;
         _foodEaten = 0;
-        _wrappedThisStep = false;
         _goldenFood = null;
         _goldenExpiresAt = null;
         PlaceFood();
@@ -2357,10 +2376,8 @@ public sealed class GameForm : Form
             _ => new Point(head.X + 1, head.Y)
         };
 
-        bool wrapped = false;
         if (_mode == GameMode.Wrap)
         {
-            wrapped = next.X < 0 || next.X >= Columns || next.Y < 0 || next.Y >= Rows;
             next.X = (next.X + Columns) % Columns;
             next.Y = (next.Y + Rows) % Rows;
         }
@@ -2384,7 +2401,6 @@ public sealed class GameForm : Form
             }
         }
 
-        _wrappedThisStep = wrapped;
         _snake.Insert(0, next);
 
         if (eatingRegular || eatingGolden)

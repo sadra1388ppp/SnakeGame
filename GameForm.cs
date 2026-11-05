@@ -192,7 +192,6 @@ public sealed class GameForm : Form
     private SolidBrush _headShadowBrush = new(Color.FromArgb(45, 138, 233, 104));
     private readonly SolidBrush _eyeWhiteBrush = new(Color.FromArgb(246, 255, 249, 230));
     private readonly SolidBrush _eyeBrush = new(Color.FromArgb(10, 25, 20));
-    private static readonly SolidBrush RetroWhiteBrush = new(RetroWhite);
     private readonly SolidBrush _foodBrush = new(Color.FromArgb(255, 103, 105));
     private readonly SolidBrush _foodGlowBrush = new(Color.FromArgb(38, 255, 103, 105));
     private readonly SolidBrush _goldGlowBrush = new(Color.FromArgb(42, 255, 194, 83));
@@ -838,7 +837,7 @@ public sealed class GameForm : Form
         DrawPixelPanel(g, previewArea, true);
         DrawRetroSnakePreview(g, previewArea, skin);
 
-        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 510, 7,
+        DrawPixelText(g, SkinShortName(_selectedSkin), 954, 510, 5,
             skin.IsLegendary ? Color.FromArgb(255, 225, 90) : RetroWhite);
         DrawPixelText(g, SkinPatternName(skin.Pattern).ToUpperInvariant(),
             954, 560, 3, RetroWhite);
@@ -846,16 +845,16 @@ public sealed class GameForm : Form
         if (skin.IsLegendary)
         {
             DrawPixelText(g, "SPECIAL AURA AND SPARKS",
-                954, 602, 3, Color.FromArgb(255, 224, 102));
+                954, 602, 2, Color.FromArgb(255, 224, 102));
         }
         else
         {
             DrawPixelText(g, "UNIQUE PIXEL DESIGN",
-                954, 602, 3, RetroWhite);
+                954, 602, 2, RetroWhite);
         }
 
         DrawPixelText(g, "CLICK A SKIN TO EQUIP",
-            954, 650, 3, RetroWhite);
+            954, 650, 2, RetroWhite);
     }
 
     private void DrawSkinPicker(Graphics g)
@@ -877,7 +876,7 @@ public sealed class GameForm : Form
 
             DrawSkinSwatch(g, tile, skin);
             DrawPixelText(g, SkinShortName(i), tile.X + 157,
-                tile.Y + 20, 3, skin.IsLegendary
+                tile.Y + 20, 2, skin.IsLegendary
                     ? Color.FromArgb(255, 224, 95)
                     : selected ? Color.FromArgb(200, 255, 135) : RetroWhite);
         }
@@ -1050,7 +1049,7 @@ public sealed class GameForm : Form
         if (head)
         {
             using var eye = new SolidBrush(Color.FromArgb(10, 35, 4));
-            g.FillRectangle(RetroWhiteBrush, x + size - pad * 2, y + pad * 2, mark, mark);
+            g.FillRectangle(_eyeWhiteBrush, x + size - pad * 2, y + pad * 2, mark, mark);
             g.FillRectangle(eye, x + size - pad * 2 + 1, y + pad * 2 + 1, Math.Max(1, mark / 2), Math.Max(1, mark / 2));
         }
     }
@@ -2599,6 +2598,13 @@ public sealed class GameForm : Form
     {
         if (_view == AppView.Home)
         {
+            if (e.Alt && e.KeyCode == Keys.Enter)
+            {
+                ToggleFullscreen();
+                e.Handled = true;
+                return;
+            }
+
             switch (e.KeyCode)
             {
                 case Keys.Enter:
@@ -2632,8 +2638,6 @@ public sealed class GameForm : Form
                     e.Handled = true;
                     break;
             }
-            if (e.Alt && e.KeyCode == Keys.Enter)
-                ToggleFullscreen();
             return;
         }
 

@@ -138,7 +138,9 @@ public sealed class GameForm : Form
     private readonly Rectangle _retroStartButton = new(350, 488, 460, 60);
     private readonly Rectangle _retroSkinsButton = new(350, 575, 220, 48);
     private readonly Rectangle _retroSettingsButton = new(590, 575, 220, 48);
-    private readonly Rectangle _retroDifficultySelector = new(430, 328, 300, 112);
+    private readonly Rectangle _retroDifficultyLeft = new(455, 378, 44, 48);
+    private readonly Rectangle _retroDifficultyText = new(500, 378, 160, 48);
+    private readonly Rectangle _retroDifficultyRight = new(661, 378, 44, 48);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
@@ -632,13 +634,17 @@ public sealed class GameForm : Form
         DrawRetroMenuSnake(g, 345, 385);
         DrawPixelApple(g, 410, 378, 5);
 
-        bool difficultyHover = _retroDifficultySelector.Contains(_mousePoint);
-        if (difficultyHover)
-            DrawPixelOutline(g, _retroDifficultySelector, RetroGold, 2);
+        Color leftArrowColor = _hoverId == 26
+            ? Color.FromArgb(255, 226, 132) : RetroWhite;
+        Color difficultyColor = _hoverId == 28
+            ? Color.FromArgb(255, 226, 132) : RetroWhite;
+        Color rightArrowColor = _hoverId == 27
+            ? Color.FromArgb(255, 226, 132) : RetroWhite;
 
+        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
         DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            DesignWidth / 2, 394, 4,
-            difficultyHover ? Color.FromArgb(255, 226, 132) : RetroWhite);
+            DesignWidth / 2, 394, 4, difficultyColor);
+        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
 
         DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
             3, _retroStartButton.Contains(_mousePoint), true);
@@ -2775,7 +2781,9 @@ public sealed class GameForm : Form
             if (_retroStartButton.Contains(point)) return 21;
             if (_retroSkinsButton.Contains(point)) return 22;
             if (_retroSettingsButton.Contains(point)) return 23;
-            if (_retroDifficultySelector.Contains(point)) return 26;
+            if (_retroDifficultyLeft.Contains(point)) return 26;
+            if (_retroDifficultyRight.Contains(point)) return 27;
+            if (_retroDifficultyText.Contains(point)) return 28;
             return 0;
         }
 
@@ -2842,7 +2850,9 @@ public sealed class GameForm : Form
             23 => _retroSettingsButton,
             24 => _settingsSoundButton,
             25 => _settingsResetButton,
-            26 => _retroDifficultySelector,
+            26 => _retroDifficultyLeft,
+            27 => _retroDifficultyRight,
+            28 => _retroDifficultyText,
             _ => Rectangle.Empty
         };
     }
@@ -2900,7 +2910,11 @@ public sealed class GameForm : Form
                 NavigateTo(AppView.Skins);
             else if (_retroSettingsButton.Contains(point))
                 NavigateTo(AppView.Settings);
-            else if (_retroDifficultySelector.Contains(point))
+            else if (_retroDifficultyLeft.Contains(point))
+                CycleDifficulty(-1);
+            else if (_retroDifficultyRight.Contains(point))
+                CycleDifficulty(1);
+            else if (_retroDifficultyText.Contains(point))
                 CycleDifficulty(1);
             return;
         }

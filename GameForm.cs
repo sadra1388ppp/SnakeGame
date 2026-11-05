@@ -67,7 +67,8 @@ public sealed class GameForm : Form
     private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 16 };
     private readonly Random _random = new();
     private readonly List<Point> _snake = [];
-    private Point[] _previousSnake = [];
+    private readonly Point[] _previousSnake = new Point[BoardCells];
+    private int _previousSnakeCount;
     private Point _food;
     private Point? _goldenFood;
 
@@ -132,6 +133,7 @@ public sealed class GameForm : Form
     private readonly Rectangle _skinPickerClose = new(686, 176, 34, 30);
     private readonly Rectangle _boardStatus = new(660, 119, 94, 24);
     private readonly Rectangle _overlayButton = new(287, 462, 240, 52);
+    private readonly Rectangle _lobbyStartButton = new(245, 500, 280, 58);
     private readonly Rectangle _mainButton = new(838, 552, 174, 48);
     private readonly Rectangle _soundButton = new(1020, 552, 38, 48);
     private readonly Rectangle _restartButton = new(1066, 552, 38, 48);
@@ -244,8 +246,8 @@ public sealed class GameForm : Form
     {
         Text = "SnakeGame";
         ClientSize = new Size(1160, 760);
-        MinimumSize = Size;
-        MaximumSize = Size;
+        MinimumSize = new Size(900, 600);
+        MaximumSize = Size.Empty;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Background;
@@ -275,6 +277,46 @@ public sealed class GameForm : Form
         MouseLeave += (_, _) => UpdateHover(new Point(-1, -1));
     }
 
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (_chrome is null || ClientSize.Width < 1 || ClientSize.Height < 1)
+            return;
+
+        UpdateViewTransform();
+        BuildChrome();
+        Invalidate();
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        const int WmNcHitTest = 0x84;
+        const int HtClient = 1;
+        const int grip = 8;
+
+        base.WndProc(ref m);
+        if (m.Msg != WmNcHitTest || _isFullscreen || (int)m.Result != HtClient)
+            return;
+
+        long packed = m.LParam.ToInt64();
+        Point point = PointToClient(new Point(unchecked((short)packed),
+            unchecked((short)(packed >> 16))));
+
+        bool left = point.X < grip;
+        bool right = point.X >= ClientSize.Width - grip;
+        bool top = point.Y < grip;
+        bool bottom = point.Y >= ClientSize.Height - grip;
+
+        int hit = top
+            ? left ? 13 : right ? 14 : 12
+            : bottom
+                ? left ? 16 : right ? 17 : 15
+                : left ? 10 : right ? 11 : HtClient;
+
+        if (hit != HtClient)
+            m.Result = (IntPtr)hit;
+    }
+
     protected override void OnPaintBackground(PaintEventArgs e)
     {
         // The static interface is rendered once into _chrome.
@@ -290,9 +332,18 @@ public sealed class GameForm : Form
         Graphics g = e.Graphics;
         g.Clear(Background);
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.Transform = _viewMatrix;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
         g.DrawImageUnscaled(_chrome, 0, 0);
+        g.Transform = _viewMatrix;
+
+        if (_state == GameState.Ready && !_showSkinPicker)
+        {
+            DrawLobby(g);
+            DrawWindowButton(g, _fullscreenButton, _isFullscreen ? "❐" : "□", _hoverId == 13);
+            DrawWindowButton(g, _minimizeButton, "–", _hoverId == 1);
+            DrawWindowButton(g, _closeButton, "×", _hoverId == 2);
+            return;
+        }
 
         Rectangle clip = ClientToDesign(e.ClipRectangle);
         if (clip.IntersectsWith(_field))
@@ -311,9 +362,8 @@ public sealed class GameForm : Form
 
     private void UpdateViewTransform()
     {
-        _viewScale = _isFullscreen
-            ? Math.Min(ClientSize.Width / (float)DesignWidth, ClientSize.Height / (float)DesignHeight)
-            : 1f;
+        _viewScale = Math.Min(ClientSize.Width / (float)DesignWidth,
+            ClientSize.Height / (float)DesignHeight);
         _viewOffsetX = (ClientSize.Width - DesignWidth * _viewScale) / 2f;
         _viewOffsetY = (ClientSize.Height - DesignHeight * _viewScale) / 2f;
         _viewMatrix.Dispose();
@@ -358,8 +408,8 @@ public sealed class GameForm : Form
         {
             _isFullscreen = false;
             Bounds = _windowedBounds;
-            MinimumSize = new Size(DesignWidth, DesignHeight);
-            MaximumSize = new Size(DesignWidth, DesignHeight);
+            MinimumSize = new Size(900, 600);
+            MaximumSize = Size.Empty;
         }
 
         UpdateViewTransform();
@@ -372,20 +422,21 @@ public sealed class GameForm : Form
         _chrome = new Bitmap(ClientSize.Width, ClientSize.Height, PixelFormat.Format32bppPArgb);
 
         using Graphics g = Graphics.FromImage(_chrome);
+        g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
         using (var background = new LinearGradientBrush(
-                   new Rectangle(0, 0, Width, Height),
+                   new Rectangle(0, 0, DesignWidth, DesignHeight),
                    Color.FromArgb(13, 21, 25), Background, 90f))
-            g.FillRectangle(background, ClientRectangle);
+            g.FillRectangle(background, new Rectangle(0, 0, DesignWidth, DesignHeight));
 
         using (var ambientGlow = new SolidBrush(Color.FromArgb(15, 132, 205, 105)))
             g.FillEllipse(ambientGlow, -210, 430, 500, 500);
 
         using (var topLine = new Pen(Border, 1))
         {
-            g.DrawLine(topLine, 0, 70, Width, 70);
+            g.DrawLine(topLine, 0, 70, DesignWidth, 70);
             g.DrawLine(topLine, 32, 724, 1128, 724);
         }
 
@@ -461,6 +512,84 @@ public sealed class GameForm : Form
             Color.FromArgb(95, 118, 118));
         StaticText(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
             Color.FromArgb(133, 115, 78));
+    }
+
+    private void DrawLobby(Graphics g)
+    {
+        using (var background = new LinearGradientBrush(
+                   new Rectangle(0, 0, DesignWidth, DesignHeight),
+                   Color.FromArgb(14, 25, 28), Background, 90f))
+            g.FillRectangle(background, 0, 0, DesignWidth, DesignHeight);
+
+        using (var glow = new SolidBrush(Color.FromArgb(22, 123, 210, 105)))
+            g.FillEllipse(glow, 20, 360, 620, 520);
+
+        using (var line = new Pen(Border, 1))
+        {
+            g.DrawLine(line, 0, 70, DesignWidth, 70);
+            g.DrawLine(line, 32, 724, 1128, 724);
+        }
+
+        FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
+        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
+            Background, StringAlignment.Center);
+        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
+        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
+        FillRound(g, new Rectangle(864, 24, 7, 7), 4, Green);
+        StaticText(g, "OFFLINE  ARCADE", new Rectangle(879, 17, 180, 20),
+            8, FontStyle.Bold, Muted);
+
+        DrawStaticPanel(g, new Rectangle(32, 100, 750, 600));
+        DrawStaticPanel(g, _rightPanel);
+        DrawLabel(g, "WELCOME BACK", _labelFont, _greenBrush,
+            new Rectangle(76, 150, 300, 24), _leftFormat);
+        DrawLabel(g, "THE SNAKE", _welcomeFont, _whiteBrush,
+            new Rectangle(72, 194, 600, 68), _leftFormat);
+        DrawLabel(g, "A classic arcade challenge, rebuilt for your next high score.",
+            _welcomeSmallFont, _mutedBrush, new Rectangle(78, 270, 610, 30), _leftFormat);
+
+        DrawStaticPanel(g, new Rectangle(78, 340, 190, 104), PanelLight);
+        DrawStaticPanel(g, new Rectangle(282, 340, 190, 104), PanelLight);
+        DrawStaticPanel(g, new Rectangle(486, 340, 238, 104), PanelLight);
+        DrawLabel(g, "PERSONAL BEST", _labelFont, _mutedBrush,
+            new Rectangle(96, 355, 160, 20), _leftFormat);
+        DrawLabel(g, _bestScore.ToString("0000"), _scoreFont, _greenBrush,
+            new Rectangle(96, 377, 155, 55), _leftFormat);
+        DrawLabel(g, "20 CUSTOM SKINS", _labelFont, _mutedBrush,
+            new Rectangle(300, 355, 160, 20), _leftFormat);
+        DrawLabel(g, Skins[_selectedSkin].Name, _buttonFont, _whiteBrush,
+            new Rectangle(300, 385, 160, 28), _leftFormat);
+        DrawLabel(g, "3 GAME MODES", _labelFont, _mutedBrush,
+            new Rectangle(504, 355, 190, 20), _leftFormat);
+        DrawLabel(g, "CLASSIC  ·  WRAP  ·  RUSH", _buttonFont, _whiteBrush,
+            new Rectangle(504, 385, 205, 28), _leftFormat);
+
+        DrawActionButton(g, _lobbyStartButton, "START GAME", true);
+        DrawLabel(g, "WASD / ARROWS  ·  SPACE TO PAUSE",
+            _labelFont, _mutedBrush, new Rectangle(78, 582, 420, 22), _leftFormat);
+
+        DrawLabel(g, "GAME SETUP", _labelFont, _mutedBrush,
+            new Rectangle(842, 124, 180, 20), _leftFormat);
+        DrawLabel(g, "GAME MODE", _labelFont, _mutedBrush,
+            new Rectangle(842, 164, 180, 18), _leftFormat);
+        DrawChoice(g, _classicButton, "CLASSIC", _mode == GameMode.Classic);
+        DrawChoice(g, _wrapButton, "WRAP", _mode == GameMode.Wrap);
+        DrawChoice(g, _rushButton, "RUSH", _mode == GameMode.Rush);
+
+        DrawLabel(g, "DIFFICULTY", _labelFont, _mutedBrush,
+            new Rectangle(842, 235, 180, 18), _leftFormat);
+        DrawChoice(g, _easyButton, "EASY", _difficulty == Difficulty.Easy);
+        DrawChoice(g, _normalButton, "NORMAL", _difficulty == Difficulty.Normal);
+        DrawChoice(g, _hardButton, "HARD", _difficulty == Difficulty.Hard);
+
+        DrawLabel(g, "PERSONALIZE", _labelFont, _mutedBrush,
+            new Rectangle(842, 300, 180, 18), _leftFormat);
+        DrawSecondaryButton(g, _skinButton, $"SKINS  ·  {Skins[_selectedSkin].Name}");
+        DrawSecondaryButton(g, _resetBestButton, "RESET BEST SCORE", true);
+        DrawSecondaryButton(g, new Rectangle(838, 552, 266, 42),
+            _soundEnabled ? "SOUND  ·  ON" : "SOUND  ·  OFF");
+        DrawLabel(g, "READY WHEN YOU ARE", _labelFont, _greenBrush,
+            new Rectangle(842, 620, 260, 24), _leftFormat);
     }
 
     private void DrawDashboard(Graphics g)
@@ -713,7 +842,7 @@ public sealed class GameForm : Form
 
         for (int i = 0; i < _snake.Count; i++)
         {
-            Point from = i < _previousSnake.Length ? _previousSnake[i] : _snake[i];
+            Point from = i < _previousSnakeCount ? _previousSnake[i] : _snake[i];
             Point to = _snake[i];
 
             float cellX = _wrappedThisStep && i == 0
@@ -1306,7 +1435,9 @@ public sealed class GameForm : Form
         _snake.Add(new Point(x - 2, y));
         _snake.Add(new Point(x - 3, y));
 
-        _previousSnake = _snake.ToArray();
+        _previousSnakeCount = _snake.Count;
+        for (int i = 0; i < _snake.Count; i++)
+            _previousSnake[i] = _snake[i];
         _direction = Direction.Right;
         _nextDirection = Direction.Right;
         _foodEaten = 0;
@@ -1436,7 +1567,9 @@ public sealed class GameForm : Form
 
     private bool MoveSnake(DateTime now)
     {
-        _previousSnake = _snake.ToArray();
+        _previousSnakeCount = _snake.Count;
+        for (int i = 0; i < _snake.Count; i++)
+            _previousSnake[i] = _snake[i];
         _direction = _nextDirection;
 
         Point head = _snake[0];
@@ -1732,6 +1865,7 @@ public sealed class GameForm : Form
         }
 
         if (_closeButton.Contains(point)) return 2;
+        if (_state == GameState.Ready && _lobbyStartButton.Contains(point)) return 6;
         if (_minimizeButton.Contains(point)) return 1;
         if (_fullscreenButton.Contains(point)) return 13;
         if (_skinButton.Contains(point)) return 14;
@@ -1761,7 +1895,7 @@ public sealed class GameForm : Form
             3 => _mainButton,
             4 => _soundButton,
             5 => _restartButton,
-            6 => _overlayButton,
+            6 => _state == GameState.Ready ? _lobbyStartButton : _overlayButton,
             7 => _classicButton,
             8 => _wrapButton,
             9 => _rushButton,
@@ -1872,7 +2006,8 @@ public sealed class GameForm : Form
             return;
         }
 
-        if (_mainButton.Contains(point) || _overlayButton.Contains(point))
+        if ((_state == GameState.Ready && _lobbyStartButton.Contains(point)) ||
+            _mainButton.Contains(point) || _overlayButton.Contains(point))
         {
             if (_state == GameState.Playing)
                 TogglePause();

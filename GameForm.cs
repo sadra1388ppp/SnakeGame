@@ -2299,100 +2299,80 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
     }
 
+    private void DrawRetroPlayChrome(Graphics g)
+    {
+        DrawPixelPanel(g, _boardCard, true);
+        DrawPixelPanel(g, _rightPanel, true);
+
+        using var boardFill = new SolidBrush(RetroDark);
+        g.FillRectangle(boardFill, _field);
+        using var grid = new Pen(Color.FromArgb(70, 185, 143, 17), 1);
+        for (int x = _field.Left; x <= _field.Right; x += CellSize)
+            g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
+        for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
+            g.DrawLine(grid, _field.Left, y, _field.Right, y);
+        DrawPixelOutline(g, _field, RetroGold, 3);
+
+        DrawPixelText(g, "SCORE", 875, 125, 2, RetroWhite);
+        DrawPixelText(g, "BEST", 1040, 125, 2, RetroGold);
+        DrawPixelText(g, "MODE", 960, 265, 2, RetroWhite);
+        DrawPixelText(g, "DIFFICULTY", 960, 385, 2, RetroWhite);
+    }
     private void DrawRetroPlayButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool selected = false)
     {
-        using var fill = new SolidBrush(selected
-            ? Color.FromArgb(24, 105, 8)
-            : hover ? Color.FromArgb(18, 91, 5) : RetroDark);
+        using var fill = new SolidBrush(hover
+            ? Color.FromArgb(20, 105, 5)
+            : selected ? Color.FromArgb(8, 62, 0) : RetroDark);
         g.FillRectangle(fill, rect);
         DrawPixelOutline(g, rect,
-            hover || selected ? Color.FromArgb(255, 224, 105) : RetroGold,
-            selected ? 3 : 2);
+            hover ? Color.FromArgb(255, 239, 177) : RetroGold,
+            selected ? 4 : 3);
 
         int textHeight = pixelSize * 7;
         int top = rect.Y + (rect.Height - textHeight) / 2;
-        DrawPixelText(g, label, rect.X + rect.Width / 2, top,
-            pixelSize, RetroWhite);
-    }
-
-    private void DrawRetroPlayChrome(Graphics g)
-    {
-        DrawRetroGamePanel(g, _boardCard, true);
-        DrawRetroGamePanel(g, _rightPanel);
-        DrawRetroGamePanel(g, new Rectangle(814, 110, 302, 130));
-        DrawRetroGamePanel(g, new Rectangle(814, 246, 302, 120));
-        DrawRetroGamePanel(g, new Rectangle(814, 372, 302, 122));
-        DrawRetroGamePanel(g, new Rectangle(814, 500, 302, 188));
-
-        using var boardFill = new SolidBrush(Color.FromArgb(235, RetroDark));
-        g.FillRectangle(boardFill, _field);
-
-        GraphicsState state = g.Save();
-        g.SetClip(_field);
-        using (var grid = new Pen(Color.FromArgb(65, RetroGold), 1))
-        {
-            for (int x = _field.Left; x <= _field.Right; x += CellSize)
-                g.DrawLine(grid, x, _field.Top, x, _field.Bottom);
-            for (int y = _field.Top; y <= _field.Bottom; y += CellSize)
-                g.DrawLine(grid, _field.Left, y, _field.Right, y);
-        }
-        // Keep the original clean pixel playfield free of seasonal decorations.
-        g.Restore(state);
-        using var border = new Pen(RetroGold, 2);
-        g.DrawRectangle(border, _field);
-
-        DrawPixelText(g, "SCORE", 888, 122, 2, RetroWhite);
-        DrawPixelText(g, "BEST", 1048, 122, 2, RetroGold);
-        DrawPixelText(g, "GAME MODE", 960, 257, 2, RetroWhite);
-        DrawPixelText(g, "DIFFICULTY", 960, 383, 2, RetroWhite);
-        DrawPixelText(g, "YOUR SESSION", 960, 509, 2, RetroGold);
+        DrawPixelText(g, label, rect.X + rect.Width / 2,
+            top, pixelSize, RetroWhite);
     }
 
     private void DrawRetroPlayDashboard(Graphics g)
     {
-        DrawPixelText(g, FormatScore(_score), 900, 157, 4, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 1050, 157, 4, RetroGold);
+        DrawPixelText(g, FormatScore(_score), 875, 160, 4, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1040, 160, 4, RetroGold);
 
-        DrawRetroPlayButton(g, _classicButton, "CLASSIC", 1,
-            _classicButton.Contains(_mousePoint), _mode == GameMode.Classic);
-        DrawRetroPlayButton(g, _wrapButton, "WRAP", 1,
-            _wrapButton.Contains(_mousePoint), _mode == GameMode.Wrap);
-        DrawRetroPlayButton(g, _rushButton, "RUSH", 1,
-            _rushButton.Contains(_mousePoint), _mode == GameMode.Rush);
+        DrawRetroButton(g, _classicButton, "CLASSIC", 1,
+            _mode == GameMode.Classic, _mode == GameMode.Classic);
+        DrawRetroButton(g, _wrapButton, "WRAP", 2,
+            _mode == GameMode.Wrap, _mode == GameMode.Wrap);
+        DrawRetroButton(g, _rushButton, "RUSH", 2,
+            _mode == GameMode.Rush, _mode == GameMode.Rush);
 
-        DrawRetroPlayButton(g, _easyButton, "EASY", 1,
-            _easyButton.Contains(_mousePoint), _difficulty == Difficulty.Easy);
-        DrawRetroPlayButton(g, _normalButton, "NORMAL", 1,
-            _normalButton.Contains(_mousePoint), _difficulty == Difficulty.Normal);
-        DrawRetroPlayButton(g, _hardButton, "HARD", 1,
-            _hardButton.Contains(_mousePoint), _difficulty == Difficulty.Hard);
+        DrawRetroButton(g, _easyButton, "EASY", 2,
+            _difficulty == Difficulty.Easy, _difficulty == Difficulty.Easy);
+        DrawRetroButton(g, _normalButton, "NORMAL", 1,
+            _difficulty == Difficulty.Normal, _difficulty == Difficulty.Normal);
+        DrawRetroButton(g, _hardButton, "HARD", 2,
+            _difficulty == Difficulty.Hard, _difficulty == Difficulty.Hard);
 
         string action = _state switch
         {
             GameState.Playing => "PAUSE",
             GameState.Paused => "RESUME",
-            _ => "START"
+            _ => "PLAY"
         };
-        DrawRetroPlayButton(g, _mainButton, action, 2,
-            _mainButton.Contains(_mousePoint), true);
-        DrawRetroPlayButton(g, _soundButton, _soundEnabled ? "S" : "X", 1,
+        DrawRetroButton(g, _mainButton, action, 2, true, true);
+        DrawRetroButton(g, _soundButton, _soundEnabled ? "SOUND" : "MUTE", 1,
             _soundButton.Contains(_mousePoint));
-        DrawRetroPlayButton(g, _restartButton, "R", 1,
+        DrawRetroButton(g, _restartButton, "RESET", 1,
             _restartButton.Contains(_mousePoint));
-        DrawRetroPlayButton(g, _skinButton, "CHANGE SKIN", 1,
+        DrawRetroButton(g, _skinButton, "SKINS", 2,
             _skinButton.Contains(_mousePoint));
-        DrawRetroPlayButton(g, _resetBestButton, "RESET BEST", 1,
+        DrawRetroButton(g, _resetBestButton, "RESET BEST", 1,
             _resetBestButton.Contains(_mousePoint));
+
+        DrawPixelText(g, _state.ToString().ToUpperInvariant(),
+            960, 690, 2, RetroGold);
     }
-
-        private static string ModeName(GameMode mode) => mode switch
-    {
-        GameMode.Classic => "Classic",
-        GameMode.Wrap => "Wrap",
-        _ => "Rush"
-    };
-
     private static string DifficultyName(Difficulty difficulty) => difficulty switch
     {
         Difficulty.Easy => "Easy",
@@ -2495,141 +2475,55 @@ private void DrawThemeSectionCard(Graphics g)
     
     private void DrawPauseOrGameOver(Graphics g)
     {
-        GraphicsState state = g.Save();
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        using var shade = new SolidBrush(Color.FromArgb(225, ActiveTheme.Dark));
-        FillRound(g, _field, 10, shade);
+        g.SmoothingMode = SmoothingMode.None;
+        g.PixelOffsetMode = PixelOffsetMode.None;
+
+        using var shade = new SolidBrush(Color.FromArgb(225, 3, 25, 0));
+        g.FillRectangle(shade, _field);
 
         Rectangle panel = new(138, 220, 538, 334);
-        DrawUiPanel(g, panel, true, 22);
+        DrawPixelPanel(g, panel, true);
+
+        using (var accent = new SolidBrush(RetroGold))
+            g.FillRectangle(accent, panel.X + 24, panel.Y + 23,
+                panel.Width - 48, 3);
 
         bool paused = _state == GameState.Paused;
         string title = paused ? "PAUSED" : _won ? "PERFECT RUN" : "GAME OVER";
-        using var titleBrush = new SolidBrush(paused ? ActiveTheme.Text : ActiveTheme.Highlight);
-        using var mutedBrush = new SolidBrush(Color.FromArgb(180, ActiveTheme.Text));
-        using var scoreBrush = new SolidBrush(ActiveTheme.Text);
-        DrawLabel(g, title, _pageTitleFont, titleBrush,
-            new Rectangle(170, 252, 475, 42), _centerFormat);
+        DrawPixelText(g, title, panel.X + panel.Width / 2, 263, 4,
+            paused ? RetroWhite : Color.FromArgb(255, 230, 139));
 
         if (paused)
         {
-            DrawLabel(g, "CURRENT SCORE", _microFont, mutedBrush,
-                new Rectangle(205, 324, 400, 22), _centerFormat);
-            DrawLabel(g, FormatScore(_score), _scoreFont, scoreBrush,
-                new Rectangle(205, 348, 400, 54), _centerFormat);
-            DrawLabel(g, "PERSONAL BEST  " + FormatScore(_bestScore),
-                _bodyFont, mutedBrush, new Rectangle(205, 408, 400, 26), _centerFormat);
+            DrawPixelText(g, "CURRENT SCORE",
+                panel.X + panel.Width / 2, 350, 2, RetroWhite);
+            DrawPixelText(g, FormatScore(_score),
+                panel.X + panel.Width / 2, 378, 5, Color.FromArgb(194, 255, 132));
+            DrawPixelText(g, "PERSONAL BEST  " + FormatScore(_bestScore),
+                panel.X + panel.Width / 2, 427, 2, RetroGold);
         }
         else
         {
-            DrawLabel(g, "FINAL SCORE", _microFont, mutedBrush,
-                new Rectangle(205, 315, 400, 22), _centerFormat);
-            DrawLabel(g, FormatScore(_score), _scoreFont,
-                _newRecord ? titleBrush : scoreBrush,
-                new Rectangle(205, 337, 400, 56), _centerFormat);
+            DrawPixelText(g, "FINAL SCORE",
+                panel.X + panel.Width / 2, 326, 2, RetroWhite);
+            DrawPixelText(g, FormatScore(_score),
+                panel.X + panel.Width / 2, 351, 5,
+                _newRecord ? Color.FromArgb(255, 225, 104) : RetroWhite);
+
             string result = _scoreSaveFailed
                 ? "SCORE SAVE FAILED"
                 : _newRecord ? "NEW PERSONAL BEST" : "BEST  " + FormatScore(_bestScore);
-            DrawLabel(g, result, _sectionFont,
-                _scoreSaveFailed ? mutedBrush : titleBrush,
-                new Rectangle(205, 400, 400, 26), _centerFormat);
+            DrawPixelText(g, result, panel.X + panel.Width / 2, 411, 2,
+                _scoreSaveFailed || _newRecord ? RetroGold : Color.FromArgb(190, 255, 142));
         }
 
-        DrawUiButton(g, _overlayButton,
-            paused ? "RESUME GAME" : "PLAY AGAIN", true);
-        DrawLabel(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
-            _microFont, mutedBrush, new Rectangle(185, 523, 445, 20), _centerFormat);
-        g.Restore(state);
+        DrawRetroButton(g, _overlayButton,
+            paused ? "RESUME" : "PLAY AGAIN", 2,
+            _overlayButton.Contains(_mousePoint), true);
+
+        DrawPixelText(g, paused ? "PRESS SPACE TO RESUME" : "PRESS SPACE TO RESTART",
+            panel.X + panel.Width / 2, 529, 1, RetroWhite);
     }
-
-        private Bitmap CreateAppleSprite(bool golden)
-    {
-        const int designSize = 96;
-        const int size = 30;
-        var bitmap = new Bitmap(size, size, PixelFormat.Format32bppPArgb);
-
-        using Graphics g = Graphics.FromImage(bitmap);
-        g.ScaleTransform(size / (float)designSize, size / (float)designSize);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.Clear(Color.Transparent);
-
-        using (var glow = new SolidBrush(golden
-                   ? Color.FromArgb(55, 255, 190, 66)
-                   : Color.FromArgb(48, 255, 75, 75)))
-            g.FillEllipse(glow, 5, 7, 86, 84);
-
-        const float width = 59f;
-        const float height = 60f;
-        const float left = 18.5f;
-        const float right = left + width;
-        const float top = 22f;
-        const float bottom = top + height;
-        const float cx = 48f;
-
-        using var applePath = new GraphicsPath();
-        applePath.StartFigure();
-        applePath.AddBezier(cx, top + height * 0.27f,
-            cx - width * 0.17f, top - height * 0.03f,
-            left + width * 0.03f, top + height * 0.04f,
-            left + width * 0.04f, top + height * 0.43f);
-        applePath.AddBezier(left + width * 0.04f, top + height * 0.43f,
-            left - width * 0.02f, bottom - height * 0.10f,
-            cx - width * 0.24f, bottom + height * 0.02f,
-            cx, bottom - height * 0.06f);
-        applePath.AddBezier(cx, bottom - height * 0.06f,
-            cx + width * 0.23f, bottom + height * 0.02f,
-            right + width * 0.02f, bottom - height * 0.10f,
-            right - width * 0.04f, top + height * 0.43f);
-        applePath.AddBezier(right - width * 0.04f, top + height * 0.43f,
-            right - width * 0.02f, top + height * 0.04f,
-            cx + width * 0.17f, top - height * 0.03f,
-            cx, top + height * 0.27f);
-        applePath.CloseFigure();
-
-        Color topColor = golden ? Color.FromArgb(255, 231, 126) : Color.FromArgb(255, 117, 111);
-        Color bottomColor = golden ? Color.FromArgb(214, 132, 31) : Color.FromArgb(174, 31, 48);
-
-        using (var appleBrush = new LinearGradientBrush(
-                   new RectangleF(left, top, width, height), topColor, bottomColor, 48f))
-            g.FillPath(appleBrush, applePath);
-
-        using (var outline = new Pen(golden ? Color.FromArgb(190, 156, 91, 26) :
-                   Color.FromArgb(205, 119, 31, 43), 2.2f))
-            g.DrawPath(outline, applePath);
-
-        using (var stem = new Pen(Color.FromArgb(132, 83, 43), 4f)
-               { StartCap = LineCap.Round, EndCap = LineCap.Round })
-            g.DrawBezier(stem, cx, top + height * 0.28f,
-                cx + 0.5f, top + height * 0.05f,
-                cx + width * 0.16f, top - height * 0.02f,
-                cx + width * 0.20f, top + height * 0.09f);
-
-        using var leafPath = new GraphicsPath();
-        leafPath.AddBezier(cx + width * 0.08f, top + height * 0.17f,
-            cx + width * 0.25f, top - height * 0.08f,
-            cx + width * 0.53f, top - height * 0.03f,
-            cx + width * 0.48f, top + height * 0.20f);
-        leafPath.AddBezier(cx + width * 0.48f, top + height * 0.20f,
-            cx + width * 0.30f, top + height * 0.27f,
-            cx + width * 0.18f, top + height * 0.23f,
-            cx + width * 0.08f, top + height * 0.17f);
-
-        using (var leafBrush = new LinearGradientBrush(
-                   new RectangleF(cx + 2, top - 2, width * 0.5f, height * 0.35f),
-                   Color.FromArgb(181, 231, 115), Color.FromArgb(43, 128, 70), 45f))
-            g.FillPath(leafBrush, leafPath);
-
-        using (var leafPen = new Pen(Color.FromArgb(170, 42, 111, 57), 1.3f))
-            g.DrawPath(leafPen, leafPath);
-
-        using (var shine = new SolidBrush(Color.FromArgb(95, 255, 232, 220)))
-            g.FillEllipse(shine, left + width * 0.20f, top + height * 0.34f,
-                width * 0.17f, height * 0.27f);
-
-        return bitmap;
-    }
-
     private void DrawFood(Graphics g)
     {
         DrawApple(g, _food, false);

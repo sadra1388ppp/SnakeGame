@@ -1308,21 +1308,29 @@ public sealed class GameForm : Form
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
-                DrawPixelFlower(g, area.X + 25, area.Bottom - 27, detail, theme.Accent);
-                DrawPixelFlower(g, area.X + 83, area.Bottom - 34, detail, theme.Accent);
+                DrawBlossomTree(g, area.X + 25, area.Bottom - 12, 0.20f, theme);
+                DrawPixelFlower(g, area.X + 78, area.Bottom - 25, detail, theme.Accent);
+                DrawPixelFlower(g, area.X + 95, area.Bottom - 31, detail, theme.Accent);
                 break;
             case ThemeSeason.Summer:
-                g.FillRectangle(detail, area.X + 11, area.Bottom - 25, 25, 3);
-                g.FillRectangle(detail, area.X + 42, area.Bottom - 30, 24, 3);
-                g.FillRectangle(detail, area.X + 69, area.Bottom - 24, 25, 3);
+                DrawPalmTree(g, area.X + 24, area.Bottom - 12, 0.20f, theme);
+                g.FillRectangle(detail, area.X + 48, area.Bottom - 25, 25, 3);
+                g.FillRectangle(detail, area.X + 70, area.Bottom - 30, 24, 3);
                 break;
             case ThemeSeason.Autumn:
-                DrawPixelLeaf(g, area.X + 25, area.Bottom - 31, detail, 8);
-                DrawPixelLeaf(g, area.X + 82, area.Bottom - 27, detail, 7);
+                DrawBareTree(g, area.X + 26, area.Bottom - 12, 0.20f, theme);
+                DrawPixelLeaf(g, area.X + 78, area.Bottom - 24, detail, 8);
+                DrawPixelLeaf(g, area.X + 96, area.Bottom - 28, detail, 7);
+                using (var rain = new Pen(Color.FromArgb(145, theme.Highlight), 1))
+                {
+                    g.DrawLine(rain, area.X + 60, area.Y + 9, area.X + 56, area.Y + 23);
+                    g.DrawLine(rain, area.X + 84, area.Y + 6, area.X + 80, area.Y + 20);
+                }
                 break;
             case ThemeSeason.Winter:
-                DrawPixelSnowflake(g, area.X + 27, area.Bottom - 30, detail, 5);
-                DrawPixelSnowflake(g, area.X + 83, area.Bottom - 31, detail, 5);
+                DrawPineTree(g, area.X + 26, area.Bottom - 12, 0.22f, theme);
+                DrawPixelSnowflake(g, area.X + 83, area.Bottom - 30, detail, 5);
+                DrawPixelSnowflake(g, area.X + 99, area.Bottom - 38, detail, 4);
                 break;
         }
     }
@@ -1647,9 +1655,24 @@ public sealed class GameForm : Form
         Rectangle bounds = area ?? new Rectangle(0, 0, DesignWidth, DesignHeight);
         for (int i = 0; i < count; i++)
         {
-            float y = bounds.Top + (i * 71 + tick / 24) % Math.Max(1, bounds.Height);
-            float sway = MathF.Sin(tick / 290f + i * 1.4f) * 25;
-            float x = bounds.Left + (i * 97 + sway + tick / 95f) % Math.Max(1, bounds.Width);
+            float y;
+            float x;
+
+            if (area is null)
+            {
+                // Leaves begin around the bare trees, then drift down with the wind.
+                y = 505 + (i * 43 + tick / 24) % 215;
+                float sway = MathF.Sin(tick / 290f + i * 1.4f) * 34;
+                float treeSide = i % 2 == 0 ? bounds.Left + 35 : bounds.Right - 35;
+                x = treeSide + sway + MathF.Sin(tick / 520f + i) * 18;
+            }
+            else
+            {
+                y = bounds.Top + (i * 71 + tick / 24) % Math.Max(1, bounds.Height);
+                float sway = MathF.Sin(tick / 290f + i * 1.4f) * 25;
+                x = bounds.Left + (i * 97 + sway + tick / 95f) % Math.Max(1, bounds.Width);
+            }
+
             Color color = i % 3 == 0 ? theme.Accent : theme.Effect;
             DrawFallingLeaf(g, x, y, color, 6 + i % 5, tick / 60f + i);
         }
@@ -1700,7 +1723,6 @@ public sealed class GameForm : Form
             new(1160, 760), new(0, 760)
         ];
         using var soil = new SolidBrush(Color.FromArgb(220, 75, 43, 25));
-        using var leaves = new SolidBrush(Color.FromArgb(245, theme.Effect));
         g.FillPolygon(soil, ground);
 
         for (int i = 0; i < 44; i++)

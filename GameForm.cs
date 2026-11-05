@@ -9,7 +9,7 @@ namespace SnakeGame;
 public sealed class GameForm : Form
 {
     private enum GameState { Ready, Playing, Paused, GameOver }
-    private enum AppView { Home, Play, Skins, Settings }
+    private enum AppView { Home, Play, Skins, Achievements, Settings }
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
     private enum GameMode { Classic, Wrap, Rush }
@@ -19,13 +19,13 @@ public sealed class GameForm : Form
     {
         Plain, Stripes, Dots, Waves, Lightning, Scales, Flames, Frost,
         Circuit, Galaxy, Camo, Candy, Coral, Prism, Stars, Honeycomb,
-        Tiger, Zebra, Neon, Royal, Legendary
+        Tiger, Zebra, Neon, Royal, Legendary, Mythic
     }
 
     private sealed record SnakeSkin(
         string Name, Color Body, Color Head, Color Outline,
         Color Highlight, Color PatternColor, SkinPattern Pattern,
-        bool IsLegendary = false, bool IsEpic = false);
+        bool IsLegendary = false, bool IsEpic = false, bool IsMythic = false);
 
     private sealed record ArcadeTheme(
         string Season, string TimeOfDay, ThemeSeason SeasonType, bool IsNight,
@@ -98,11 +98,12 @@ public sealed class GameForm : Form
         new("Rose Quartz", Color.FromArgb(203,110,142), Color.FromArgb(255,188,206), Color.FromArgb(104,48,78), Color.FromArgb(255,229,238), Color.FromArgb(255,226,239), SkinPattern.Coral),
         new("Diamond Skin", Color.FromArgb(100,183,205), Color.FromArgb(208,251,255), Color.FromArgb(42,103,133), Color.FromArgb(255,255,255), Color.FromArgb(225,255,255), SkinPattern.Prism, IsEpic: true),
         new("Shadow Ops", Color.FromArgb(66,79,91), Color.FromArgb(142,160,173), Color.FromArgb(22,29,39), Color.FromArgb(185,205,216), Color.FromArgb(114,235,203), SkinPattern.Circuit, IsEpic: true),
-        new("LEGENDARY PHOENIX", Color.FromArgb(151,74,205), Color.FromArgb(255,202,91), Color.FromArgb(74,31,130), Color.FromArgb(255,238,174), Color.FromArgb(255,178,63), SkinPattern.Legendary, true)
+        new("LEGENDARY PHOENIX", Color.FromArgb(151,74,205), Color.FromArgb(255,202,91), Color.FromArgb(74,31,130), Color.FromArgb(255,238,174), Color.FromArgb(255,178,63), SkinPattern.Legendary, true),
+        new("MYTHIC INFERNO", Color.FromArgb(142,8,28), Color.FromArgb(255,78,88), Color.FromArgb(43,2,12), Color.FromArgb(255,167,174), Color.FromArgb(255,37,64), SkinPattern.Mythic, IsMythic: true)
     ];
 
     private static readonly int[] SkinDisplayOrder =
-        [20, 5, 7, 9, 12, 13, 14, 15, 18, 19, 0, 1, 2, 3, 4, 6, 8, 10, 11, 16, 17];
+        [21, 20, 5, 7, 9, 12, 13, 14, 15, 18, 19, 0, 1, 2, 3, 4, 6, 8, 10, 11, 16, 17];
 
     private const int CellSize = 23;
     private const int Columns = 30;
@@ -154,6 +155,8 @@ public sealed class GameForm : Form
     private int _score;
     private int _bestScore;
     private int _foodEaten;
+    private int _totalApplesEaten;
+    private int _totalGoldenApplesEaten;
     private bool _soundEnabled = true;
     private bool _won;
     private bool _newRecord;
@@ -216,7 +219,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _homeNavButton = new(298, 18, 82, 36);
     private readonly Rectangle _playNavButton = new(390, 18, 82, 36);
     private readonly Rectangle _skinsNavButton = new(482, 18, 88, 36);
-    private readonly Rectangle _settingsNavButton = new(580, 18, 108, 36);
+    private readonly Rectangle _achievementsNavButton = new(580, 18, 156, 36);
+    private readonly Rectangle _settingsNavButton = new(746, 18, 108, 36);
     private readonly Rectangle _homePlayCard = new(78, 478, 190, 112);
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
@@ -354,6 +358,7 @@ public sealed class GameForm : Form
                  ControlStyles.ResizeRedraw, true);
 
         _bestScore = LoadBestScore();
+        LoadPlayerStats();
         UpdateViewTransform();
         _selectedTheme = LoadSelectedTheme();
         BackColor = RetroBackground;
@@ -479,6 +484,9 @@ public sealed class GameForm : Form
                 break;
             case AppView.Settings:
                 DrawSettingsPage(g);
+                break;
+            case AppView.Achievements:
+                DrawAchievementsPage(g);
                 break;
             case AppView.Play:
                 DrawRetroPlayChrome(g);
@@ -684,6 +692,7 @@ public sealed class GameForm : Form
 
         DrawNavigationButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawNavigationButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawNavigationButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawNavigationButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
     }
 
@@ -790,6 +799,7 @@ public sealed class GameForm : Form
         DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawRetroNavButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
     }
 
@@ -1021,8 +1031,6 @@ public sealed class GameForm : Form
     private void DrawSkinsPage(Graphics g)
     {
         DrawPixelText(g, "SNAKE SKINS", 310, 88, 4, RetroWhite);
-        DrawPixelText(g, "CHOOSE YOUR ARCADE LOOK", 310, 124, 1,
-            Color.FromArgb(175, RetroWhite));
         DrawRetroButton(g, _skinPickerClose, "BACK", 2,
             _skinPickerClose.Contains(_mousePoint));
 
@@ -1079,7 +1087,7 @@ public sealed class GameForm : Form
             g.FillRectangle(marker, tile.X + 7, tile.Y + 10, 3, tile.Height - 20);
             DrawSkinSwatch(g, tile, skin);
 
-            Color nameColor = skin.IsLegendary || skin.IsEpic
+            Color nameColor = skin.IsMythic || skin.IsLegendary || skin.IsEpic
                 ? rarityColor
                 : selected ? RetroWhite : Color.FromArgb(215, ActiveTheme.Text);
             int textCenter = tile.X + 82 + (tile.Width - 94) / 2;
@@ -1088,11 +1096,6 @@ public sealed class GameForm : Form
                 rarityColor);
         }
 
-        DrawPixelText(g, "LEGENDARY", 154, 632, 1,
-            Color.FromArgb(255, 255, 214, 86));
-        DrawPixelText(g, "EPIC", 390, 632, 1,
-            Color.FromArgb(255, 198, 145, 255));
-        DrawPixelText(g, "NORMAL", 626, 632, 1, RetroWhite);
     }
 
     private void DrawSkinSwatch(Graphics g, Rectangle tile, SnakeSkin skin)
@@ -1111,9 +1114,11 @@ public sealed class GameForm : Form
     }
 
     private static string SkinRarityLabel(SnakeSkin skin) =>
-        skin.IsLegendary ? "LEGENDARY" : skin.IsEpic ? "EPIC" : "NORMAL";
+        skin.IsMythic ? "MYTHIC" : skin.IsLegendary ? "LEGENDARY" :
+        skin.IsEpic ? "EPIC" : "NORMAL";
 
     private Color SkinRarityColor(SnakeSkin skin) =>
+        skin.IsMythic ? Color.FromArgb(255, 255, 65, 82) :
         skin.IsLegendary ? Color.FromArgb(255, 255, 214, 86) :
         skin.IsEpic ? Color.FromArgb(255, 198, 145, 255) : RetroWhite;
 
@@ -1139,6 +1144,7 @@ public sealed class GameForm : Form
         SkinPattern.Zebra => "ZEBRA",
         SkinPattern.Neon => "NEON",
         SkinPattern.Royal => "ROYAL",
+        SkinPattern.Mythic => "MYTHIC",
         _ => "PHOENIX"
     };
 
@@ -1164,6 +1170,8 @@ public sealed class GameForm : Form
         17 => "ROSE QUARTZ",
         18 => "DIAMOND",
         19 => "SHADOW OPS",
+        20 => "PHOENIX",
+        21 => "MYTHIC INFERNO",
         _ => "PHOENIX"
     };
 
@@ -1211,7 +1219,9 @@ public sealed class GameForm : Form
             g.FillRectangle(corner, area.Right - 13, area.Bottom - 13, 4, 4);
         }
 
-        if (skin.IsLegendary)
+        if (skin.IsMythic)
+            DrawRetroMythicAura(g, centers[0]);
+        else if (skin.IsLegendary)
             DrawRetroLegendaryAura(g, centers[0]);
         else if (skin.IsEpic)
             DrawRetroEpicAura(g, centers[0]);
@@ -1270,6 +1280,37 @@ public sealed class GameForm : Form
         }
     }
 
+    private void DrawRetroMythicAura(Graphics g, Point center)
+    {
+        float time = Environment.TickCount64 / 150f;
+        float pulse = 1f + MathF.Sin(time * 1.4f) * 0.12f;
+        using var outer = new Pen(Color.FromArgb(150, 255, 38, 62), 2);
+        using var inner = new Pen(Color.FromArgb(210, 255, 128, 139), 1);
+        using var spark = new SolidBrush(Color.FromArgb(235, 255, 55, 76));
+        using var core = new SolidBrush(Color.FromArgb(160, 255, 20, 42));
+
+        float radius = 31f * pulse;
+        g.DrawEllipse(outer, center.X - radius, center.Y - radius,
+            radius * 2, radius * 2);
+        g.DrawEllipse(inner, center.X - radius * 0.72f, center.Y - radius * 0.72f,
+            radius * 1.44f, radius * 1.44f);
+        g.FillRectangle(core, center.X - 3, center.Y - 3, 6, 6);
+
+        for (int i = 0; i < 10; i++)
+        {
+            float angle = time + i * MathF.Tau / 10f;
+            float distance = 39f + MathF.Sin(time * 2f + i) * 5f;
+            int x = center.X + (int)(MathF.Cos(angle) * distance);
+            int y = center.Y + (int)(MathF.Sin(angle) * distance);
+            g.FillRectangle(spark, x - 2, y - 2, 5, 5);
+            if (i % 2 == 0)
+            {
+                g.FillRectangle(spark, x - 5, y, 11, 2);
+                g.FillRectangle(spark, x, y - 5, 2, 11);
+            }
+        }
+    }
+
     private void DrawRetroSnakeBlock(Graphics g, int centerX, int centerY,
         int size, SnakeSkin skin, int index, bool head)
     {
@@ -1277,7 +1318,7 @@ public sealed class GameForm : Form
         int y = centerY - size / 2;
         int pad = Math.Max(2, size / 7);
 
-        bool glow = skin.IsEpic || skin.IsLegendary ||
+        bool glow = skin.IsMythic || skin.IsEpic || skin.IsLegendary ||
             skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
             SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
             SkinPattern.Honeycomb;
@@ -1441,6 +1482,16 @@ public sealed class GameForm : Form
                 g.FillRectangle(pattern, x + pad, y + size / 3, mark, mark);
                 g.FillRectangle(pattern, x + size - pad - mark, y + size / 3, mark, mark);
                 break;
+
+            case SkinPattern.Mythic:
+                g.FillRectangle(pattern, x + size / 2 - mark / 2, y + pad, mark, size - pad * 2);
+                g.FillRectangle(accent, x + pad, y + size / 2 - mark / 2,
+                    size - pad * 2, mark);
+                g.FillRectangle(pattern, x + pad, y + size / 3, mark, mark);
+                g.FillRectangle(pattern, x + size - pad - mark, y + size / 3, mark, mark);
+                g.FillRectangle(accent, x + size / 2 - mark / 2, y + size / 2 - mark / 2,
+                    mark, mark);
+                break;
         }
 
         if (head)
@@ -1497,6 +1548,48 @@ public sealed class GameForm : Form
         _ => "Legendary phoenix aura"
     };
 
+
+    private void DrawAchievementsPage(Graphics g)
+    {
+        DrawPixelText(g, "ACHIEVEMENTS", DesignWidth / 2, 112, 5, RetroWhite);
+        DrawPixelText(g, "LIFETIME GAME STATISTICS", DesignWidth / 2, 158, 2, RetroGold);
+
+        DrawAchievementCard(g, new Rectangle(54, 220, 328, 226),
+            "APPLES EATEN", _totalApplesEaten, Color.FromArgb(255, 111, 242, 145));
+        DrawAchievementCard(g, new Rectangle(416, 220, 328, 226),
+            "GOLDEN APPLES", _totalGoldenApplesEaten, Color.FromArgb(255, 255, 203, 91));
+        DrawAchievementCard(g, new Rectangle(778, 220, 328, 226),
+            "BEST SCORE", _bestScore, Color.FromArgb(255, 255, 91, 104));
+
+        DrawPixelText(g, "TOTALS FROM ALL YOUR GAMES",
+            DesignWidth / 2, 530, 2, RetroWhite);
+        DrawPixelText(g, "PROGRESS IS SAVED AUTOMATICALLY",
+            DesignWidth / 2, 568, 1, Color.FromArgb(165, ActiveTheme.Text));
+    }
+
+    private void DrawAchievementCard(Graphics g, Rectangle rect,
+        string title, int value, Color accent)
+    {
+        DrawPixelPanel(g, rect, true);
+        using var edge = new Pen(Color.FromArgb(180, accent), 2);
+        g.DrawRectangle(edge, rect.X + 9, rect.Y + 9,
+            rect.Width - 18, rect.Height - 18);
+
+        DrawPixelText(g, title, rect.X + rect.Width / 2,
+            rect.Y + 43, 2, accent);
+
+        string number = value.ToString(CultureInfo.InvariantCulture);
+        int numberSize = number.Length > 8 ? 3 :
+            number.Length > 6 ? 4 : number.Length > 4 ? 5 : 7;
+        DrawPixelText(g, number, rect.X + rect.Width / 2,
+            rect.Y + 112, numberSize, RetroWhite);
+
+        using var divider = new Pen(Color.FromArgb(115, accent), 2);
+        g.DrawLine(divider, rect.X + 50, rect.Y + 163,
+            rect.Right - 50, rect.Y + 163);
+        DrawPixelText(g, "LIFETIME TOTAL", rect.X + rect.Width / 2,
+            rect.Y + 181, 1, Color.FromArgb(165, ActiveTheme.Text));
+    }
 
     private void DrawSettingsPage(Graphics g)
     {
@@ -2433,6 +2526,7 @@ private void DrawThemeSectionCard(Graphics g)
     {
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
+        DrawRetroNavButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
     }
 
@@ -2983,7 +3077,7 @@ private void DrawThemeSectionCard(Graphics g)
         {
             if (skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
                 SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
-                SkinPattern.Honeycomb or SkinPattern.Legendary)
+                SkinPattern.Honeycomb or SkinPattern.Legendary or SkinPattern.Mythic)
                 g.DrawPath(_skinGlowPen, _snakePath);
 
             g.DrawPath(_snakeOutlinePen, _snakePath);
@@ -2995,7 +3089,9 @@ private void DrawThemeSectionCard(Graphics g)
         if (skin.Pattern != SkinPattern.Plain)
             DrawSkinPattern(g, centers, count, skin);
 
-        if (skin.IsLegendary)
+        if (skin.IsMythic)
+            DrawMythicAura(g, centers[0], centers, count);
+        else if (skin.IsLegendary)
             DrawLegendaryAura(g, centers[0], centers, count);
         else if (skin.IsEpic)
             DrawEpicAura(g, centers[0]);
@@ -3159,9 +3255,9 @@ private void DrawThemeSectionCard(Graphics g)
 
     private static Rectangle SkinTileRect(int index)
     {
-        int column = index % 3;
+        int column = index == SkinDisplayOrder.Length - 1 ? 1 : index % 3;
         int row = index / 3;
-        return new Rectangle(42 + column * 236, 170 + row * 66, 224, 58);
+        return new Rectangle(42 + column * 236, 170 + row * 58, 224, 54);
     }
 
     private void DrawSecondaryButton(Graphics g, Rectangle rect, string label, bool warning = false)
@@ -3197,9 +3293,9 @@ private void DrawThemeSectionCard(Graphics g)
         _headOutlinePen.Color = skin.Outline;
         _skinPatternPen.Color = skin.PatternColor;
         _skinAccentPen.Color = skin.Highlight;
-        int glowAlpha = skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
-            SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
-            SkinPattern.Honeycomb or SkinPattern.Legendary ? 58 : 0;
+        int glowAlpha = skin.IsMythic ? 115 : skin.Pattern is SkinPattern.Neon or
+            SkinPattern.Flames or SkinPattern.Frost or SkinPattern.Galaxy or
+            SkinPattern.Circuit or SkinPattern.Honeycomb or SkinPattern.Legendary ? 58 : 0;
         _skinGlowPen.Color = Color.FromArgb(glowAlpha, skin.PatternColor);
 
         InvalidateDesign(_field);
@@ -3465,9 +3561,18 @@ private void DrawThemeSectionCard(Graphics g)
                     g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
                     g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
                     break;
+                case SkinPattern.Mythic:
+                    g.DrawPolygon(_skinPatternPen, new[]
+                    {
+                        At(-7, 5), At(-5, -2), At(0, 2),
+                        At(5, -2), At(7, 5)
+                    });
+                    g.DrawLine(_skinAccentPen, At(-6, 0), At(6, 0));
+                    g.DrawLine(_skinAccentPen, At(0, -6), At(0, 6));
+                    break;
             }
 
-            if ((skin.Pattern is SkinPattern.Neon or SkinPattern.Galaxy or SkinPattern.Legendary) &&
+            if ((skin.Pattern is SkinPattern.Neon or SkinPattern.Galaxy or SkinPattern.Legendary or SkinPattern.Mythic) &&
                 i % (stride * 2) == 1)
             {
                 float sparkle = 2.5f + (MathF.Sin(phase + i) + 1f) * 1.1f;
@@ -3496,6 +3601,41 @@ private void DrawThemeSectionCard(Graphics g)
                 g.FillRectangle(spark, x - 5, y, 10, 2);
                 g.FillRectangle(spark, x, y - 5, 2, 10);
             }
+        }
+    }
+
+    private void DrawMythicAura(Graphics g, PointF head, PointF[] centers, int count)
+    {
+        float time = Environment.TickCount64 / 180f;
+        float pulse = 1f + MathF.Sin(time * 1.3f) * 0.13f;
+        using var outer = new Pen(Color.FromArgb(145, 255, 28, 52), 3);
+        using var middle = new Pen(Color.FromArgb(205, 255, 82, 98), 1.8f);
+        using var spark = new Pen(Color.FromArgb(225, 255, 145, 151), 1.5f);
+
+        for (int ring = 0; ring < 3; ring++)
+        {
+            float radius = (18 + ring * 8) * pulse;
+            g.DrawEllipse(ring == 1 ? middle : outer,
+                head.X - radius, head.Y - radius, radius * 2, radius * 2);
+        }
+
+        for (int i = 0; i < 12; i++)
+        {
+            float angle = time + i * MathF.Tau / 12f;
+            float radius = 34 + MathF.Sin(time * 2f + i) * 7;
+            float x = head.X + MathF.Cos(angle) * radius;
+            float y = head.Y + MathF.Sin(angle) * radius;
+            float arm = i % 2 == 0 ? 6f : 3f;
+            Pen pen = i % 3 == 0 ? spark : middle;
+            g.DrawLine(pen, x - arm, y, x + arm, y);
+            g.DrawLine(pen, x, y - arm, x, y + arm);
+        }
+
+        for (int i = 2; i < count; i += 2)
+        {
+            PointF p = centers[i];
+            float shine = 2f + (MathF.Sin(time * 2f + i) + 1f) * 2f;
+            g.DrawLine(spark, p.X - shine, p.Y, p.X + shine, p.Y);
         }
     }
 
@@ -3886,6 +4026,8 @@ private void DrawThemeSectionCard(Graphics g)
 
             if (eatingGolden)
             {
+                _totalGoldenApplesEaten++;
+                SavePlayerStats();
                 SpawnGoldBurst(_goldenFood!.Value, now);
                 _goldenFood = null;
                 _goldenExpiresAt = null;
@@ -3893,6 +4035,8 @@ private void DrawThemeSectionCard(Graphics g)
             else
             {
                 _foodEaten++;
+                _totalApplesEaten++;
+                SavePlayerStats();
                 PlaceFood();
 
                 if (_foodEaten % 5 == 0)
@@ -4308,6 +4452,7 @@ private void DrawThemeSectionCard(Graphics g)
         if (_homeNavButton.Contains(point)) return 17;
         if (_playNavButton.Contains(point)) return 18;
         if (_skinsNavButton.Contains(point)) return 19;
+        if (_achievementsNavButton.Contains(point)) return 32;
         if (_settingsNavButton.Contains(point)) return 20;
 
         if (_view == AppView.Home)
@@ -4354,6 +4499,8 @@ private void DrawThemeSectionCard(Graphics g)
             if (_settingsResetButton.Contains(point)) return 25;
             return 0;
         }
+
+        if (_view == AppView.Achievements) return 0;
 
         if (_skinButton.Contains(point)) return 14;
         if (_resetBestButton.Contains(point)) return 15;
@@ -4409,6 +4556,7 @@ private void DrawThemeSectionCard(Graphics g)
             29 => _themeCategoryTile,
             30 => _seasonBackButton,
             31 => _seasonCategoryTile,
+            32 => _achievementsNavButton,
             _ => Rectangle.Empty
         };
     }
@@ -4422,7 +4570,7 @@ private void DrawThemeSectionCard(Graphics g)
             !_closeButton.Contains(point) && !_minimizeButton.Contains(point) &&
             !_fullscreenButton.Contains(point) && !_homeNavButton.Contains(point) &&
             !_playNavButton.Contains(point) && !_skinsNavButton.Contains(point) &&
-            !_settingsNavButton.Contains(point))
+            !_achievementsNavButton.Contains(point) && !_settingsNavButton.Contains(point))
         {
             _dragging = true;
             _dragOffset = e.Location;
@@ -4452,6 +4600,7 @@ private void DrawThemeSectionCard(Graphics g)
         if (_homeNavButton.Contains(point)) { NavigateTo(AppView.Home); return; }
         if (_playNavButton.Contains(point)) { NavigateTo(AppView.Play); return; }
         if (_skinsNavButton.Contains(point)) { NavigateTo(AppView.Skins); return; }
+        if (_achievementsNavButton.Contains(point)) { NavigateTo(AppView.Achievements); return; }
         if (_settingsNavButton.Contains(point)) { NavigateTo(AppView.Settings); return; }
 
         if (_view == AppView.Home)
@@ -4553,6 +4702,9 @@ private void DrawThemeSectionCard(Graphics g)
                 ResetBestScore();
             return;
         }
+
+        if (_view == AppView.Achievements)
+            return;
 
         // The Game Over overlay is the only control that can start the next run.
         if (_state == GameState.GameOver && _overlayButton.Contains(point))
@@ -4687,6 +4839,67 @@ private void DrawThemeSectionCard(Graphics g)
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SnakeGame",
             "best-score.txt");
+ 
+    private static string PlayerStatsPath() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnakeGame",
+            "player-stats.txt");
+
+    private void LoadPlayerStats()
+    {
+        try
+        {
+            string path = PlayerStatsPath();
+            if (!File.Exists(path))
+                return;
+
+            string[] values = File.ReadAllLines(path);
+            if (values.Length > 0 &&
+                int.TryParse(values[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int apples))
+                _totalApplesEaten = Math.Max(0, apples);
+
+            if (values.Length > 1 &&
+                int.TryParse(values[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int golden))
+                _totalGoldenApplesEaten = Math.Max(0, golden);
+        }
+        catch
+        {
+            _totalApplesEaten = 0;
+            _totalGoldenApplesEaten = 0;
+        }
+    }
+
+    private void SavePlayerStats()
+    {
+        string path = PlayerStatsPath();
+        string temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllLines(temporaryPath, new[]
+            {
+                _totalApplesEaten.ToString(CultureInfo.InvariantCulture),
+                _totalGoldenApplesEaten.ToString(CultureInfo.InvariantCulture)
+            }, new UTF8Encoding(false));
+
+            File.Move(temporaryPath, path, true);
+        }
+        catch
+        {
+            try
+            {
+                if (File.Exists(temporaryPath))
+                    File.Delete(temporaryPath);
+            }
+            catch
+            {
+                // Keep the in-memory totals when local storage is unavailable.
+            }
+        }
+    }
+
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
@@ -4751,6 +4964,7 @@ private void DrawThemeSectionCard(Graphics g)
 
         if (_scoreSaveFailed)
             SaveBestScore();
+        SavePlayerStats();
 
         _leftFormat.Dispose();
         _centerFormat.Dispose();

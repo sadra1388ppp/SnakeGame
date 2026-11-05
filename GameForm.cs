@@ -655,16 +655,18 @@ public sealed class GameForm : Form
 
     private void DrawPageBackground(Graphics g)
     {
-        using var background = new LinearGradientBrush(
-            new Rectangle(0, 0, DesignWidth, DesignHeight),
-            Color.FromArgb(13, 22, 27), Background, 90f);
+        using var background = new SolidBrush(Color.FromArgb(10, 17, 21));
         g.FillRectangle(background, 0, 0, DesignWidth, DesignHeight);
 
-        using var glow = new SolidBrush(Color.FromArgb(18, 112, 198, 111));
-        g.FillEllipse(glow, -140, 400, 560, 480);
-        using var line = new Pen(Border, 1);
-        g.DrawLine(line, 0, 70, DesignWidth, 70);
-        g.DrawLine(line, 32, 724, 1128, 724);
+        using var grid = new Pen(Color.FromArgb(19, ActiveTheme.Grid), 1);
+        for (int x = 16; x < DesignWidth; x += 32)
+            g.DrawLine(grid, x, 72, x, 724);
+        for (int y = 88; y < 724; y += 32)
+            g.DrawLine(grid, 16, y, DesignWidth - 16, y);
+
+        using var edge = new Pen(Color.FromArgb(100, ActiveTheme.Accent), 2);
+        g.DrawLine(edge, 0, 70, DesignWidth, 70);
+        g.DrawLine(edge, 32, 724, 1128, 724);
     }
 
     private void DrawAppHeader(Graphics g)
@@ -686,14 +688,16 @@ public sealed class GameForm : Form
     private void DrawNavigationButton(Graphics g, Rectangle rect, string label, bool active)
     {
         bool hover = rect.Contains(_mousePoint);
-        Color fill = active ? Color.FromArgb(39, 68, 46) :
-            hover ? Color.FromArgb(34, 47, 52) : Color.Transparent;
-        FillRound(g, rect, 8, fill);
+        using var fill = new SolidBrush(active
+            ? Color.FromArgb(230, ActiveTheme.Grid)
+            : hover ? Color.FromArgb(170, ActiveTheme.Dark) : Color.Transparent);
+        using var edge = new Pen(active || hover ? ActiveTheme.Highlight : ActiveTheme.Grid, active ? 2 : 1);
+        g.FillRectangle(fill, rect);
+        g.DrawRectangle(edge, rect);
         if (active)
-            StrokeRound(g, rect, 8, Color.FromArgb(80, Green));
-        DrawLabel(g, label, _buttonFont,
-            active ? _greenBrush : hover ? _whiteBrush : _mutedBrush,
-            rect, _centerFormat);
+            g.FillRectangle(new SolidBrush(ActiveTheme.Accent), rect.X + 5, rect.Y + 5, 4, rect.Height - 10);
+        using var brush = new SolidBrush(active || hover ? ActiveTheme.Highlight : ActiveTheme.Text);
+        DrawLabel(g, label, _buttonFont, brush, rect, _centerFormat);
     }
 
     private void DrawLobbyArtwork(Graphics g)
@@ -719,59 +723,34 @@ public sealed class GameForm : Form
     private void DrawUiPanel(Graphics g, Rectangle rect, bool highlighted = false,
         int radius = 18)
     {
-        Rectangle shadowRect = new(rect.X + 2, rect.Y + 5, rect.Width, rect.Height);
-        using (var shadow = new SolidBrush(Color.FromArgb(54, 0, 0, 0)))
-            FillRound(g, shadowRect, radius, shadow);
-
-        Color top = Color.FromArgb(244, ActiveTheme.Dark);
-        Color bottom = Color.FromArgb(235, ActiveTheme.Background);
-        using (var fill = new LinearGradientBrush(rect, top, bottom, 90f))
-            FillRound(g, rect, radius, fill);
-
-        Color edge = highlighted
-            ? Color.FromArgb(145, ActiveTheme.Highlight)
-            : Color.FromArgb(105, ActiveTheme.Grid);
-        StrokeRound(g, rect, radius, edge);
-
-        using var shine = new Pen(Color.FromArgb(28, 255, 255, 255), 1);
-        g.DrawLine(shine, rect.X + radius, rect.Y + 1,
-            rect.Right - radius, rect.Y + 1);
+        using var fill = new SolidBrush(Color.FromArgb(235, ActiveTheme.Dark));
+        using var edge = new Pen(highlighted ? ActiveTheme.Highlight : ActiveTheme.Grid, highlighted ? 2 : 1);
+        using var inner = new Pen(Color.FromArgb(55, ActiveTheme.Text), 1);
+        g.FillRectangle(fill, rect);
+        g.DrawRectangle(edge, rect);
+        if (rect.Width > 18 && rect.Height > 18)
+            g.DrawRectangle(inner, rect.X + 5, rect.Y + 5, rect.Width - 10, rect.Height - 10);
+        using var corner = new SolidBrush(ActiveTheme.Accent);
+        g.FillRectangle(corner, rect.X - 2, rect.Y + 12, 4, 18);
+        g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
     }
 
     private void DrawUiButton(Graphics g, Rectangle rect, string label,
         bool primary = false, bool selected = false, bool warning = false)
     {
         bool hover = rect.Contains(_mousePoint);
-        Color fill = primary
-            ? Color.FromArgb(255, ActiveTheme.Accent)
-            : selected
-                ? Color.FromArgb(235, ActiveTheme.Grid)
-                : hover
-                    ? Color.FromArgb(225, ActiveTheme.Background)
-                    : Color.FromArgb(225, ActiveTheme.Dark);
-
-        FillRound(g, rect, 10, fill);
-        Color edge = primary
-            ? ActiveTheme.Highlight
-            : warning
-                ? Color.FromArgb(170, 190, 105, 91)
-                : selected || hover
-                    ? ActiveTheme.Highlight
-                    : Color.FromArgb(125, ActiveTheme.Grid);
-        StrokeRound(g, rect, 10, edge);
-
-        Color textColor = primary ? ActiveTheme.Dark :
-            warning && !hover ? Color.FromArgb(215, 185, 145, 140) :
-            selected || hover ? ActiveTheme.Text : ActiveTheme.Text;
-        using var textBrush = new SolidBrush(textColor);
+        Color fill = primary ? ActiveTheme.Accent :
+            selected ? ActiveTheme.Grid :
+            hover ? ActiveTheme.Background : ActiveTheme.Dark;
+        using var brush = new SolidBrush(fill);
+        using var edge = new Pen(primary || selected || hover ? ActiveTheme.Highlight : ActiveTheme.Grid, primary ? 3 : 2);
+        g.FillRectangle(brush, rect);
+        g.DrawRectangle(edge, rect);
+        using var textBrush = new SolidBrush(primary ? ActiveTheme.Dark :
+            warning && !hover ? Color.FromArgb(215, 185, 145, 140) : ActiveTheme.Text);
         DrawLabel(g, label, _buttonFont, textBrush, rect, _centerFormat);
-
-        if (primary)
-        {
-            using var accent = new Pen(Color.FromArgb(105, 255, 255, 255), 1);
-            g.DrawLine(accent, rect.X + 14, rect.Y + 2,
-                rect.Right - 14, rect.Y + 2);
-        }
+        g.FillRectangle(new SolidBrush(primary ? ActiveTheme.Dark : ActiveTheme.Accent),
+            rect.X + 5, rect.Y + 5, 4, rect.Height - 10);
     }
 
     private void DrawUiNavButton(Graphics g, Rectangle rect, string label, bool active)
@@ -779,43 +758,35 @@ public sealed class GameForm : Form
         bool hover = rect.Contains(_mousePoint);
         if (active || hover)
         {
-            FillRound(g, rect, 9, Color.FromArgb(active ? 220 : 125,
-                active ? ActiveTheme.Grid : ActiveTheme.Background));
-            StrokeRound(g, rect, 9, Color.FromArgb(active ? 190 : 120,
-                active ? ActiveTheme.Highlight : ActiveTheme.Grid));
+            using var fill = new SolidBrush(Color.FromArgb(active ? 220 : 100, ActiveTheme.Grid));
+            using var edge = new Pen(active ? ActiveTheme.Highlight : ActiveTheme.Grid, 2);
+            g.FillRectangle(fill, rect);
+            g.DrawRectangle(edge, rect);
         }
-
-        using var brush = new SolidBrush(active
-            ? ActiveTheme.Highlight
-            : hover ? ActiveTheme.Text : Color.FromArgb(190, ActiveTheme.Text));
+        using var brush = new SolidBrush(active ? ActiveTheme.Highlight : ActiveTheme.Text);
         DrawLabel(g, label, _buttonFont, brush, rect, _centerFormat);
     }
 
     private void DrawUiHeader(Graphics g)
     {
-        DrawUiPanel(g, new Rectangle(24, 12, 1112, 56), false, 14);
+        DrawUiPanel(g, new Rectangle(24, 12, 1112, 56), false);
 
-        FillRound(g, new Rectangle(40, 23, 34, 34), 10, ActiveTheme.Accent);
-        using (var logoBrush = new SolidBrush(ActiveTheme.Dark))
-            DrawLabel(g, "S", _heroFont, logoBrush,
-                new Rectangle(40, 20, 34, 38), _centerFormat);
+        using var logo = new SolidBrush(ActiveTheme.Accent);
+        g.FillRectangle(logo, 40, 23, 34, 34);
+        DrawPixelText(g, "S", 57, 29, 3, ActiveTheme.Dark);
 
-        using (var titleBrush = new SolidBrush(ActiveTheme.Text))
-            DrawLabel(g, "SNAKE", _sectionFont, titleBrush,
-                new Rectangle(84, 20, 95, 19), _leftFormat);
-        using (var subBrush = new SolidBrush(Color.FromArgb(175, ActiveTheme.Text)))
-            DrawLabel(g, "ARCADE EDITION", _microFont, subBrush,
-                new Rectangle(84, 38, 110, 17), _leftFormat);
+        using var title = new SolidBrush(ActiveTheme.Text);
+        DrawLabel(g, "SNAKE", _sectionFont, title, new Rectangle(84, 20, 95, 19), _leftFormat);
+        DrawLabel(g, "ARCADE EDITION", _microFont, title, new Rectangle(84, 38, 110, 17), _leftFormat);
 
         DrawUiNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawUiNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawUiNavButton(g, _skinsNavButton, "SKINS", _view == AppView.Skins);
         DrawUiNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
 
-        FillRound(g, new Rectangle(832, 36, 7, 7), 4, ActiveTheme.Highlight);
-        using (var status = new SolidBrush(Color.FromArgb(185, ActiveTheme.Text)))
-            DrawLabel(g, "READY TO PLAY", _microFont, status,
-                new Rectangle(846, 25, 115, 25), _leftFormat);
+        using var status = new SolidBrush(ActiveTheme.Highlight);
+        g.FillRectangle(status, 832, 36, 7, 7);
+        DrawLabel(g, "READY TO PLAY", _microFont, title, new Rectangle(846, 25, 115, 25), _leftFormat);
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -840,71 +811,32 @@ public sealed class GameForm : Form
 
     private void DrawHomePage(Graphics g)
     {
-        // Modern arcade presentation while keeping the original pixel-art identity.
-        var oldSmoothing = g.SmoothingMode;
-        g.SmoothingMode = SmoothingMode.None;
+        using var trail = new SolidBrush(RetroGold);
 
-        using var panel = new SolidBrush(Color.FromArgb(105, ActiveTheme.Dark));
-        using var panelEdge = new Pen(Color.FromArgb(115, ActiveTheme.Accent), 2);
-        using var softEdge = new Pen(Color.FromArgb(45, ActiveTheme.Text), 1);
-        using var glow = new SolidBrush(Color.FromArgb(24, ActiveTheme.Highlight));
-        using var pixel = new SolidBrush(Color.FromArgb(38, ActiveTheme.Text));
-        using var accent = new SolidBrush(ActiveTheme.Accent);
+        // Thin angular accents frame the title instead of crossing the text.
+        g.FillRectangle(trail, 792, 128, 112, 10);
+        g.FillRectangle(trail, 894, 128, 10, 108);
+        g.FillRectangle(trail, 760, 226, 144, 10);
+        g.FillRectangle(trail, 254, 275, 10, 96);
+        g.FillRectangle(trail, 254, 361, 150, 10);
 
-        // Quiet pixel-grid background gives the screen depth without adding clutter.
-        for (int x = 38; x < DesignWidth - 24; x += 32)
-        for (int y = 54; y < DesignHeight - 34; y += 32)
-            g.FillRectangle(pixel, x, y, 2, 2);
+        DrawPixelText(g, "SNAKE", DesignWidth / 2, 132, 12, RetroWhite);
+        DrawPixelText(g, "GAME", DesignWidth / 2, 226, 12, RetroWhite);
 
-        Point[] stars =
-        [
-            new(116, 154), new(166, 230), new(205, 112), new(948, 145),
-            new(1010, 218), new(1062, 112), new(130, 440), new(1030, 440),
-            new(220, 650), new(944, 650)
-        ];
-        foreach (Point star in stars)
-        {
-            g.FillRectangle(glow, star.X - 4, star.Y - 4, 12, 12);
-            g.FillRectangle(accent, star.X, star.Y, 4, 4);
-        }
-
-        // Main arcade frame: square corners and stepped pixel accents.
-        Rectangle hero = new(286, 92, 588, 365);
-        g.FillRectangle(panel, hero);
-        g.DrawRectangle(panelEdge, hero);
-        g.DrawRectangle(softEdge, hero.X + 7, hero.Y + 7, hero.Width - 14, hero.Height - 14);
-        g.FillRectangle(accent, hero.X - 5, hero.Y + 24, 5, 34);
-        g.FillRectangle(accent, hero.X + 24, hero.Y - 5, 34, 5);
-        g.FillRectangle(accent, hero.Right, hero.Bottom - 58, 5, 34);
-        g.FillRectangle(accent, hero.Right - 58, hero.Bottom, 34, 5);
-
-        DrawPixelText(g, "8-BIT ARCADE", DesignWidth / 2, 112, 2,
-            ActiveTheme.Accent);
-
-        // Layered title keeps the chunky original pixel lettering.
-        DrawPixelText(g, "SNAKE", DesignWidth / 2 + 4, 158, 12,
-            Color.FromArgb(110, ActiveTheme.Dark));
-        DrawPixelText(g, "SNAKE", DesignWidth / 2, 154, 12, RetroWhite);
-        DrawPixelText(g, "GAME", DesignWidth / 2 + 4, 252, 12,
-            Color.FromArgb(110, ActiveTheme.Dark));
-        DrawPixelText(g, "GAME", DesignWidth / 2, 248, 12, RetroWhite);
-
-        g.FillRectangle(accent, 476, 339, 208, 3);
-        g.FillRectangle(accent, 500, 345, 160, 2);
-        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 360, 2,
+        DrawPixelText(g, "SELECT DIFFICULTY", DesignWidth / 2, 340, 3,
             RetroWhite);
 
-        DrawRetroMenuSnake(g, 350, 402);
-        DrawPixelApple(g, 414, 395, 4);
+        DrawRetroMenuSnake(g, 345, 385);
+        DrawPixelApple(g, 410, 378, 5);
 
         Color leftArrowColor = _hoverId == 26 ? ActiveTheme.Highlight : RetroWhite;
         Color difficultyColor = _hoverId == 28 ? ActiveTheme.Highlight : RetroWhite;
         Color rightArrowColor = _hoverId == 27 ? ActiveTheme.Highlight : RetroWhite;
 
-        DrawPixelArrow(g, 470, 418, true, leftArrowColor);
+        DrawPixelArrow(g, 470, 399, true, leftArrowColor);
         DrawPixelText(g, DifficultyName(_difficulty).ToUpperInvariant(),
-            DesignWidth / 2, 414, 3, difficultyColor);
-        DrawPixelArrow(g, 670, 418, false, rightArrowColor);
+            DesignWidth / 2, 394, 4, difficultyColor);
+        DrawPixelArrow(g, 670, 399, false, rightArrowColor);
 
         DrawRetroButton(g, _retroStartButton, "PRESS ENTER TO PLAY",
             3, _retroStartButton.Contains(_mousePoint), true);
@@ -913,14 +845,8 @@ public sealed class GameForm : Form
         DrawRetroButton(g, _retroSettingsButton, "SETTINGS", 3,
             _retroSettingsButton.Contains(_mousePoint));
 
-        DrawPixelText(g, "BEST  " + _bestScore.ToString(CultureInfo.InvariantCulture),
-            174, 610, 2, RetroWhite);
-        DrawPixelText(g, "ARROW KEYS  /  WASD",
-            DesignWidth / 2, 650, 2, Color.FromArgb(190, RetroWhite));
-        DrawPixelText(g, "PIXEL ARCADE EDITION",
+        DrawPixelText(g, "ULTEK-CREATED BY SKY CAMPBELL",
             DesignWidth / 2, 704, 2, RetroWhite);
-
-        g.SmoothingMode = oldSmoothing;
     }
 
     private void DrawRetroButton(Graphics g, Rectangle rect, string label,
@@ -3391,46 +3317,50 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawChoice(Graphics g, Rectangle rect, string label, bool selected)
     {
         bool hover = rect.Contains(_mousePoint);
-        Color fill = selected ? Color.FromArgb(42, 75, 49) :
-            hover ? Color.FromArgb(34, 47, 51) : Panel;
-        Color foreground = selected ? Green : hover ? White : Muted;
-
-        FillRound(g, rect, 8, fill);
-        StrokeRound(g, rect, 8, selected ? Color.FromArgb(88, 148, 78) : Border);
-        DrawLabel(g, label, _buttonFont, selected ? _greenBrush : foreground == White ? _whiteBrush : _mutedBrush,
-            rect, _centerFormat);
+        using var fill = new SolidBrush(selected ? Color.FromArgb(235, ActiveTheme.Grid) :
+            hover ? Color.FromArgb(220, ActiveTheme.Background) : Panel);
+        using var edge = new Pen(selected || hover ? ActiveTheme.Highlight : ActiveTheme.Grid, selected ? 2 : 1);
+        g.FillRectangle(fill, rect);
+        g.DrawRectangle(edge, rect);
+        using var text = new SolidBrush(selected ? ActiveTheme.Highlight : ActiveTheme.Text);
+        DrawLabel(g, label, _buttonFont, text, rect, _centerFormat);
     }
 
     private void DrawActionButton(Graphics g, Rectangle rect, string label, bool primary)
     {
         bool hover = rect.Contains(_mousePoint);
-        Color fill = primary
-            ? hover ? Color.FromArgb(190, 255, 134) : Green
-            : hover ? Color.FromArgb(37, 53, 56) : Panel;
-        FillRound(g, rect, 10, fill);
-        if (!primary)
-            StrokeRound(g, rect, 10, Border);
-
-        DrawLabel(g, label, primary ? _buttonFont : _iconFont,
-            primary ? _darkBrush : _whiteBrush, rect, _centerFormat);
+        using var fill = new SolidBrush(primary ? ActiveTheme.Accent :
+            hover ? ActiveTheme.Grid : ActiveTheme.Dark);
+        using var edge = new Pen(primary || hover ? ActiveTheme.Highlight : ActiveTheme.Grid, 2);
+        g.FillRectangle(fill, rect);
+        g.DrawRectangle(edge, rect);
+        using var text = new SolidBrush(primary ? ActiveTheme.Dark : ActiveTheme.Text);
+        DrawLabel(g, label, primary ? _buttonFont : _iconFont, text, rect, _centerFormat);
     }
 
     private void DrawStaticPanel(Graphics g, Rectangle rect, Color? fill = null)
     {
-        FillRound(g, rect, 16, fill ?? Panel);
-        StrokeRound(g, rect, 16, Border);
+        using var background = new SolidBrush(fill ?? Panel);
+        using var edge = new Pen(ActiveTheme.Grid, 2);
+        g.FillRectangle(background, rect);
+        g.DrawRectangle(edge, rect);
+        if (rect.Width > 16 && rect.Height > 16)
+            g.DrawRectangle(new Pen(Color.FromArgb(45, ActiveTheme.Text), 1),
+                rect.X + 4, rect.Y + 4, rect.Width - 8, rect.Height - 8);
     }
 
     private void DrawStaticButton(Graphics g, Rectangle rect, bool primary = false)
     {
-        FillRound(g, rect, 9, primary ? Green : Panel);
-        StrokeRound(g, rect, 9, primary ? Color.FromArgb(180, Green) : Border);
+        using var fill = new SolidBrush(primary ? ActiveTheme.Accent : ActiveTheme.Dark);
+        using var edge = new Pen(primary ? ActiveTheme.Highlight : ActiveTheme.Grid, 2);
+        g.FillRectangle(fill, rect);
+        g.DrawRectangle(edge, rect);
     }
 
     private static void StaticText(Graphics g, string value, Rectangle rect, float size,
         FontStyle style, Color color, StringAlignment alignment = StringAlignment.Near)
     {
-        using var font = new Font("Segoe UI", size, style);
+        using var font = new Font("Consolas", size, style);
         using var brush = new SolidBrush(color);
         using var format = new StringFormat
         {
@@ -3438,12 +3368,15 @@ private void DrawThemeSectionCard(Graphics g)
             LineAlignment = StringAlignment.Center,
             FormatFlags = StringFormatFlags.NoWrap
         };
-        g.DrawString(value, font, brush, rect, format);
+        g.DrawString(value.ToUpperInvariant(), font, brush, rect, format);
     }
 
     private static void DrawLabel(Graphics g, string value, Font font, Brush brush,
-        Rectangle rect, StringFormat format) =>
-        g.DrawString(value, font, brush, rect, format);
+        Rectangle rect, StringFormat format)
+    {
+        using var pixelFont = new Font("Consolas", Math.Max(6, font.Size), font.Style);
+        g.DrawString(value.ToUpperInvariant(), pixelFont, brush, rect, format);
+    }
 
     private static RectangleF CellBounds(Point point, float diameter)
     {

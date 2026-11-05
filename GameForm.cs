@@ -1709,7 +1709,10 @@ public sealed class GameForm : Form
 
     private void ChangeDirection(Direction direction)
     {
-        if (_state == GameState.Ready || _state == GameState.GameOver)
+        if (_state == GameState.Ready)
+            return;
+
+        if (_state == GameState.GameOver)
             StartGame();
 
         if (_state != GameState.Playing)

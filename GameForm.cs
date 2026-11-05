@@ -1984,7 +1984,8 @@ public sealed class GameForm : Form
         if (_state != GameState.Ready && _mainButton.Contains(point)) return 3;
         if (_soundButton.Contains(point)) return 4;
         if (_state != GameState.Ready && _restartButton.Contains(point)) return 5;
-        if (_overlayButton.Contains(point) && _state is GameState.Paused or GameState.GameOver) return 6;
+        if (_overlayButton.Contains(point) &&
+            (_state is GameState.Paused or GameState.GameOver)) return 6;
         if (_classicButton.Contains(point)) return 7;
         if (_wrapButton.Contains(point)) return 8;
         if (_rushButton.Contains(point)) return 9;

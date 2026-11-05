@@ -216,8 +216,8 @@ public sealed class GameForm : Form
     private readonly Rectangle _homeSkinsCard = new(282, 478, 190, 112);
     private readonly Rectangle _homeSettingsCard = new(486, 478, 238, 112);
     private readonly Rectangle _themeCategoryTile = new(790, 560, 260, 70);
-    private readonly Rectangle _seasonCategoryTile = new(530, 540, 520, 130);
-    private readonly Rectangle _seasonBackButton = new(960, 78, 150, 42);
+    private readonly Rectangle _seasonCategoryTile = new(180, 175, 800, 470);
+    private readonly Rectangle _seasonBackButton = new(52, 82, 150, 42);
     private readonly Rectangle _settingsSoundButton = new(790, 166, 260, 52);
     private readonly Rectangle _settingsResetButton = new(790, 298, 260, 52);
     private readonly Rectangle _minimizeButton = new(986, 18, 40, 36);
@@ -1328,16 +1328,9 @@ public sealed class GameForm : Form
 
     private void DrawSettingsPage(Graphics g)
     {
-        if (_themeMenuLevel == 2)
+        if (_themeMenuLevel > 0)
         {
-            DrawPixelText(g, "SEASON THEMES", DesignWidth / 2, 78, 4, RetroWhite);
-            DrawRetroButton(g, _seasonBackButton, "BACK", 2,
-                _seasonBackButton.Contains(_mousePoint));
-            DrawPixelText(g, "SELECT YOUR THEME", DesignWidth / 2, 130, 2, RetroGold);
-
-            for (int i = 0; i < Themes.Length; i++)
-                DrawThemeCard(g, i);
-
+            DrawThemeBrowserPage(g);
             return;
         }
 
@@ -1368,22 +1361,36 @@ public sealed class GameForm : Form
         DrawPixelText(g, "MOVE : WASD / ARROWS", 650, 430, 2, RetroGold);
         DrawPixelText(g, "PAUSE : SPACE", 650, 472, 2, RetroWhite);
 
-        if (_themeMenuLevel == 0)
-            DrawThemeSectionCard(g);
-        else
+        DrawThemeSectionCard(g);
+    }
+
+    private void DrawThemeBrowserPage(Graphics g)
+    {
+        string title = _themeMenuLevel == 1 ? "THEMES" : "SEASON THEMES";
+        DrawPixelText(g, title, DesignWidth / 2, 91, 5, RetroWhite);
+        DrawRetroButton(g, _seasonBackButton, "BACK", 2,
+            _seasonBackButton.Contains(_mousePoint));
+
+        if (_themeMenuLevel == 1)
         {
-            DrawPixelText(g, "THEMES", 245, 582, 3, RetroWhite);
-            DrawRetroButton(g, _seasonBackButton, "BACK", 2,
-                _seasonBackButton.Contains(_mousePoint));
+            DrawPixelText(g, "CHOOSE A THEME CATEGORY",
+                DesignWidth / 2, 145, 2, RetroGold);
             DrawSeasonCategoryCard(g);
+            return;
         }
+
+        DrawPixelText(g, "CHOOSE YOUR WORLD",
+            DesignWidth / 2, 132, 2, RetroGold);
+
+        for (int i = 0; i < Themes.Length; i++)
+            DrawThemeCard(g, i);
     }
 
         private static Rectangle ThemeTileRect(int index)
     {
         int column = index % 4;
         int row = index / 4;
-        return new Rectangle(70 + column * 255, 160 + row * 225, 225, 205);
+        return new Rectangle(60 + column * 260, 158 + row * 264, 240, 232);
     }
 
 
@@ -1400,19 +1407,20 @@ public sealed class GameForm : Form
             selected ? theme.Highlight : hover ? theme.Text : theme.Accent,
             selected ? 4 : 2);
 
-        Rectangle art = new(tile.X + 8, tile.Y + 8, tile.Width - 16, 108);
+        Rectangle art = new(tile.X + 10, tile.Y + 10, tile.Width - 20, 132);
         using (var artFill = new SolidBrush(theme.Background))
             g.FillRectangle(artFill, art);
         DrawThemeThumbnail(g, art, theme);
+        DrawPixelOutline(g, art, theme.Grid, 1);
 
         DrawPixelText(g, theme.Season, tile.X + tile.Width / 2,
-            tile.Y + 126, 3, theme.Text);
+            tile.Y + 160, 3, theme.Text);
         DrawPixelText(g, theme.TimeOfDay, tile.X + tile.Width / 2,
-            tile.Y + 158, 2, theme.Accent);
+            tile.Y + 190, 2, theme.Accent);
 
         if (selected)
             DrawPixelText(g, "SELECTED", tile.X + tile.Width / 2,
-                tile.Y + 181, 1, theme.Highlight);
+                tile.Y + 214, 1, theme.Highlight);
     }
 
 private void DrawThemeSectionCard(Graphics g)
@@ -1425,25 +1433,34 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawSeasonCategoryCard(Graphics g)
     {
         Rectangle tile = _seasonCategoryTile;
+
         using var fill = new SolidBrush(RetroDark);
         g.FillRectangle(fill, tile);
-        DrawPixelOutline(g, tile, RetroGold, 3);
+        DrawPixelOutline(g, tile, RetroGold, 4);
 
         ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6]];
-        int gap = 8;
-        int artWidth = (tile.Width - 16 - gap * 3) / 4;
+        string[] names = ["SPRING", "SUMMER", "AUTUMN", "WINTER"];
+        int gap = 12;
+        int artWidth = (tile.Width - 40 - gap * 3) / 4;
 
         for (int i = 0; i < previews.Length; i++)
         {
-            Rectangle art = new(tile.X + 8 + i * (artWidth + gap),
-                tile.Y + 7, artWidth, 78);
+            int x = tile.X + 20 + i * (artWidth + gap);
+            Rectangle art = new(x, tile.Y + 24, artWidth, 240);
+
             using var artFill = new SolidBrush(previews[i].Background);
             g.FillRectangle(artFill, art);
             DrawThemeThumbnail(g, art, previews[i]);
+            DrawPixelOutline(g, art, previews[i].Accent, 2);
+
+            DrawPixelText(g, names[i], x + artWidth / 2,
+                tile.Y + 294, 2, previews[i].Text);
         }
 
         DrawPixelText(g, "SEASON THEMES",
-            tile.X + tile.Width / 2, tile.Y + 94, 2, RetroGold);
+            tile.X + tile.Width / 2, tile.Y + 390, 3, RetroGold);
+        DrawPixelText(g, "OPEN TO VIEW ALL SEASONAL THEMES",
+            tile.X + tile.Width / 2, tile.Y + 430, 1, RetroWhite);
     }
 
     private void DrawThemeNavigationCard(

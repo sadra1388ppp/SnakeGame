@@ -204,7 +204,6 @@ public sealed class GameForm : Form
     }
 
     private Bitmap? _chrome;
-    private Bitmap? _tileSurfaceCache;
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
     private readonly PointF[] _snakeCenters = new PointF[BoardCells];
@@ -312,7 +311,6 @@ public sealed class GameForm : Form
         LineJoin = LineJoin.Round
     };
     private readonly Pen _headOutlinePen = new(Color.FromArgb(190, 57, 123, 64), 1.2f);
-    private readonly Pen _retroDetailPen = new(Color.FromArgb(145, Gold), 2);
     private readonly Pen _skinPatternPen = new(Color.FromArgb(180, 255, 255, 255), 2.4f)
     {
         StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
@@ -359,8 +357,6 @@ public sealed class GameForm : Form
         LineAlignment = StringAlignment.Center,
         FormatFlags = StringFormatFlags.NoWrap
     };
-    private readonly Dictionary<int, SolidBrush> _pixelBrushCache = [];
-    private readonly Dictionary<(float Size, FontStyle Style), Font> _labelFontCache = [];
     private readonly StringFormat _rightFormat = new()
     {
         Alignment = StringAlignment.Far,
@@ -390,7 +386,6 @@ public sealed class GameForm : Form
         UpdateViewTransform();
         _selectedTheme = LoadSelectedTheme();
         _selectedTileTheme = LoadSelectedTileTheme();
-        BuildTileSurfaceCache();
         BackColor = RetroBackground;
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
@@ -402,7 +397,9 @@ public sealed class GameForm : Form
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
         _ambientTimer.Tick += (_, _) =>
         {
-            if (_view != AppView.Play)
+            if (_view == AppView.Play && _state == GameState.Playing)
+                InvalidateDesign(_field);
+            else
                 Invalidate();
         };
         _ambientTimer.Start();
@@ -488,17 +485,11 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
+        g.Clear(RetroBackground);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
+
         g.Transform = _viewMatrix;
-
-        if (_view == AppView.Play && _state == GameState.Playing &&
-            DesignToClient(_field).Contains(e.ClipRectangle))
-        {
-            DrawPlayfieldSurface(g);
-            DrawBoardDynamic(g);
-            DrawRecordCelebration(g);
-            return;
-        }
-
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
         g.Clear(RetroBackground);
@@ -903,7 +894,7 @@ public sealed class GameForm : Form
     private void DrawRetroButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool primary = false)
     {
-        SolidBrush fill = GetPixelBrush(hover
+        using var fill = new SolidBrush(hover
             ? Color.FromArgb(255, ActiveTheme.Background)
             : primary ? Color.FromArgb(255, ActiveTheme.Grid) : RetroDark);
         g.FillRectangle(fill, rect);
@@ -947,15 +938,12 @@ public sealed class GameForm : Form
         g.FillRectangle(shade, x + pixel * 6, y + pixel * 4, pixel, pixel);
     }
 
-    private void DrawPixelText(Graphics g, string text, int centerX,
+    private static void DrawPixelText(Graphics g, string text, int centerX,
         int top, int pixelSize, Color color)
     {
-        int widthUnits = -1;
-        foreach (char c in text)
-            widthUnits += c == ' ' ? 4 : 6;
-
+        int widthUnits = text.Sum(c => c == ' ' ? 4 : 6) - 1;
         int x = centerX - widthUnits * pixelSize / 2;
-        SolidBrush brush = GetPixelBrush(color);
+        using var brush = new SolidBrush(color);
 
         foreach (char raw in text)
         {
@@ -1155,18 +1143,6 @@ public sealed class GameForm : Form
 
     private static Rectangle TileThemeCardRect(int index) =>
         new(34 + index * 368, 184, 350, 438);
-
-    private void BuildTileSurfaceCache()
-    {
-        _tileSurfaceCache?.Dispose();
-        _tileSurfaceCache = new Bitmap(_field.Width, _field.Height, PixelFormat.Format32bppPArgb);
-
-        using Graphics g = Graphics.FromImage(_tileSurfaceCache);
-        g.SmoothingMode = SmoothingMode.None;
-        g.PixelOffsetMode = PixelOffsetMode.None;
-        DrawTileSurface(g, new Rectangle(Point.Empty, _field.Size),
-            BoardTileThemes[_selectedTileTheme], CellSize);
-    }
 
     private void DrawTileSurface(Graphics g, Rectangle area,
         BoardTileTheme theme, int cellSize)
@@ -1697,13 +1673,14 @@ public sealed class GameForm : Form
 
     private void DrawPixelPanel(Graphics g, Rectangle rect, bool goldBorder)
     {
-        g.FillRectangle(GetPixelBrush(RetroDark), rect);
+        using var fill = new SolidBrush(RetroDark);
+        g.FillRectangle(fill, rect);
         DrawPixelOutline(g, rect, goldBorder ? RetroGold : RetroWhite, 4);
     }
 
     private void DrawPixelOutline(Graphics g, Rectangle rect, Color color, int thickness)
     {
-        SolidBrush brush = GetPixelBrush(color);
+        using var brush = new SolidBrush(color);
         g.FillRectangle(brush, rect.X, rect.Y, rect.Width, thickness);
         g.FillRectangle(brush, rect.X, rect.Bottom - thickness, rect.Width, thickness);
         g.FillRectangle(brush, rect.X, rect.Y, thickness, rect.Height);
@@ -2749,18 +2726,6 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
     }
 
-    private void DrawPlayfieldSurface(Graphics g)
-    {
-        if (_tileSurfaceCache is not null)
-            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
-        else
-            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
-
-        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
-            Color.FromArgb(38, ActiveTheme.Highlight), 1);
-        DrawPixelOutline(g, _field, RetroGold, 3);
-    }
-
     private void DrawRetroPlayChrome(Graphics g)
     {
         DrawPixelPanel(g, _boardCard, true);
@@ -2772,9 +2737,13 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _difficultyArea, true);
         DrawPixelPanel(g, _actionArea, true);
 
-        DrawPlayfieldSurface(g);
+        DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
 
-        SolidBrush frameAccent = GetPixelBrush(ActiveTheme.Highlight);
+        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
+            Color.FromArgb(38, ActiveTheme.Highlight), 1);
+        DrawPixelOutline(g, _field, RetroGold, 3);
+
+        using var frameAccent = new SolidBrush(ActiveTheme.Highlight);
         for (int i = 1; i < 6; i++)
         {
             int x = _field.Left + i * (_field.Width / 6);
@@ -2790,23 +2759,23 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
         DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
 
-        _retroDetailPen.Color = Color.FromArgb(145, RetroGold);
-        g.DrawLine(_retroDetailPen, 965, 138, 965, 226);
-        g.DrawLine(_retroDetailPen, 854, 177, 926, 177);
-        g.DrawLine(_retroDetailPen, 1004, 177, 1076, 177);
+        using var detailLine = new Pen(Color.FromArgb(145, RetroGold), 2);
+        g.DrawLine(detailLine, 965, 138, 965, 226);
+        g.DrawLine(detailLine, 854, 177, 926, 177);
+        g.DrawLine(detailLine, 1004, 177, 1076, 177);
 
         // Section headings have short side rules, like a classic arcade cabinet.
         DrawPixelText(g, "MODE", 965, 270, 2, RetroWhite);
-        g.DrawLine(_retroDetailPen, 840, 277, 928, 277);
-        g.DrawLine(_retroDetailPen, 1002, 277, 1090, 277);
+        g.DrawLine(detailLine, 840, 277, 928, 277);
+        g.DrawLine(detailLine, 1002, 277, 1090, 277);
 
         DrawPixelText(g, "DIFFICULTY", 965, 392, 2, RetroWhite);
-        g.DrawLine(_retroDetailPen, 840, 399, 890, 399);
-        g.DrawLine(_retroDetailPen, 1040, 399, 1090, 399);
+        g.DrawLine(detailLine, 840, 399, 890, 399);
+        g.DrawLine(detailLine, 1040, 399, 1090, 399);
 
         DrawPixelText(g, "ACTIONS", 965, 514, 2, RetroWhite);
-        g.DrawLine(_retroDetailPen, 840, 521, 908, 521);
-        g.DrawLine(_retroDetailPen, 1022, 521, 1090, 521);
+        g.DrawLine(detailLine, 840, 521, 908, 521);
+        g.DrawLine(detailLine, 1022, 521, 1090, 521);
     }
     private void DrawRetroPlayButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool selected = false)
@@ -2886,7 +2855,8 @@ private void DrawThemeSectionCard(Graphics g)
     {
         GraphicsState state = g.Save();
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.Half;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.SetClip(_field);
 
         if (_state == GameState.Ready)
@@ -3537,7 +3507,6 @@ private void DrawThemeSectionCard(Graphics g)
     private void SelectTileTheme(int index)
     {
         _selectedTileTheme = Math.Clamp(index, 0, BoardTileThemes.Length - 1);
-        BuildTileSurfaceCache();
 
         try
         {
@@ -3986,29 +3955,11 @@ private void DrawThemeSectionCard(Graphics g)
         g.DrawString(value, font, brush, rect, format);
     }
 
-    private void DrawLabel(Graphics g, string value, Font font, Brush brush,
+    private static void DrawLabel(Graphics g, string value, Font font, Brush brush,
         Rectangle rect, StringFormat format)
     {
-        var key = (Math.Max(6, font.Size), font.Style);
-        if (!_labelFontCache.TryGetValue(key, out Font? pixelFont))
-        {
-            pixelFont = new Font("Consolas", key.Item1, key.Style);
-            _labelFontCache.Add(key, pixelFont);
-        }
-
+        using var pixelFont = new Font("Consolas", Math.Max(6, font.Size), font.Style);
         g.DrawString(value, pixelFont, brush, rect, format);
-    }
-
-    private SolidBrush GetPixelBrush(Color color)
-    {
-        int key = color.ToArgb();
-        if (!_pixelBrushCache.TryGetValue(key, out SolidBrush? brush))
-        {
-            brush = new SolidBrush(color);
-            _pixelBrushCache.Add(key, brush);
-        }
-
-        return brush;
     }
 
     private static RectangleF CellBounds(Point point, float diameter)
@@ -5215,7 +5166,6 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Stop();
         _ambientTimer.Dispose();
         _chrome?.Dispose();
-        _tileSurfaceCache?.Dispose();
         _overlayPath.Dispose();
 
         _smallFont.Dispose();
@@ -5269,7 +5219,6 @@ private void DrawThemeSectionCard(Graphics g)
         _snakeBodyPen.Dispose();
         _snakeHighlightPen.Dispose();
         _headOutlinePen.Dispose();
-        _retroDetailPen.Dispose();
 
         if (_scoreSaveFailed)
             SaveBestScore();
@@ -5278,10 +5227,6 @@ private void DrawThemeSectionCard(Graphics g)
         _leftFormat.Dispose();
         _centerFormat.Dispose();
         _rightFormat.Dispose();
-        foreach (SolidBrush brush in _pixelBrushCache.Values)
-            brush.Dispose();
-        foreach (Font font in _labelFontCache.Values)
-            font.Dispose();
 
         base.OnFormClosed(e);
     }

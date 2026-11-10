@@ -204,6 +204,7 @@ public sealed class GameForm : Form
     }
 
     private Bitmap? _chrome;
+    private Bitmap? _tileSurfaceCache;
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
     private readonly PointF[] _snakeCenters = new PointF[BoardCells];
@@ -386,6 +387,7 @@ public sealed class GameForm : Form
         UpdateViewTransform();
         _selectedTheme = LoadSelectedTheme();
         _selectedTileTheme = LoadSelectedTileTheme();
+        BuildTileSurfaceCache();
         BackColor = RetroBackground;
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
@@ -397,9 +399,7 @@ public sealed class GameForm : Form
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
         _ambientTimer.Tick += (_, _) =>
         {
-            if (_view == AppView.Play && _state == GameState.Playing)
-                InvalidateDesign(_field);
-            else
+            if (_view != AppView.Play)
                 Invalidate();
         };
         _ambientTimer.Start();
@@ -485,10 +485,6 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
-        g.Clear(RetroBackground);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.Half;
-
         g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
@@ -1143,6 +1139,18 @@ public sealed class GameForm : Form
 
     private static Rectangle TileThemeCardRect(int index) =>
         new(34 + index * 368, 184, 350, 438);
+
+    private void BuildTileSurfaceCache()
+    {
+        _tileSurfaceCache?.Dispose();
+        _tileSurfaceCache = new Bitmap(_field.Width, _field.Height, PixelFormat.Format32bppPArgb);
+
+        using Graphics g = Graphics.FromImage(_tileSurfaceCache);
+        g.SmoothingMode = SmoothingMode.None;
+        g.PixelOffsetMode = PixelOffsetMode.None;
+        DrawTileSurface(g, new Rectangle(Point.Empty, _field.Size),
+            BoardTileThemes[_selectedTileTheme], CellSize);
+    }
 
     private void DrawTileSurface(Graphics g, Rectangle area,
         BoardTileTheme theme, int cellSize)
@@ -2737,7 +2745,10 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _difficultyArea, true);
         DrawPixelPanel(g, _actionArea, true);
 
-        DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
+        if (_tileSurfaceCache is not null)
+            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
+        else
+            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
 
         DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
             Color.FromArgb(38, ActiveTheme.Highlight), 1);
@@ -2855,8 +2866,7 @@ private void DrawThemeSectionCard(Graphics g)
     {
         GraphicsState state = g.Save();
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
         g.SetClip(_field);
 
         if (_state == GameState.Ready)
@@ -3507,6 +3517,7 @@ private void DrawThemeSectionCard(Graphics g)
     private void SelectTileTheme(int index)
     {
         _selectedTileTheme = Math.Clamp(index, 0, BoardTileThemes.Length - 1);
+        BuildTileSurfaceCache();
 
         try
         {
@@ -5166,6 +5177,7 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Stop();
         _ambientTimer.Dispose();
         _chrome?.Dispose();
+        _tileSurfaceCache?.Dispose();
         _overlayPath.Dispose();
 
         _smallFont.Dispose();

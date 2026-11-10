@@ -803,12 +803,13 @@ public sealed class GameForm : Form
         Rectangle worldChip = new(866, 21, 106, 36);
         using (var chip = new SolidBrush(Color.FromArgb(175, ActiveTheme.Dark)))
             g.FillRectangle(chip, worldChip);
-        using (var chipEdge = new Pen(Color.FromArgb(105, ActiveTheme.Accent), 1))
+        using (var chipEdge = new Pen(Color.FromArgb(125, ActiveTheme.Accent), 1))
             g.DrawRectangle(chipEdge, worldChip);
-        DrawSeasonGlyph(g, 881, 39, 2, ActiveTheme, 220);
-        DrawPixelText(g, ActiveTheme.Season, 931, 26, 1, ActiveTheme.Text);
+        DrawSeasonGlyph(g, 887, 39, 2, ActiveTheme, 220);
+        using (var divider = new Pen(Color.FromArgb(80, ActiveTheme.Highlight), 1))
+            g.DrawLine(divider, 908, 27, 908, 51);
         DrawPixelText(g, ActiveTheme.IsNight ? "NIGHT" : "DAY",
-            931, 43, 1, ActiveTheme.Highlight);
+            940, 32, 1, ActiveTheme.Highlight);
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -2033,9 +2034,67 @@ private void DrawThemeSectionCard(Graphics g)
             g.FillRectangle(particles, x, y, i % 3 == 0 ? 3 : 2, i % 3 == 0 ? 3 : 2);
         }
 
+        DrawThemePreviewWeather(g, area, theme);
+
         using var frame = new Pen(Color.FromArgb(150, theme.Highlight), 1);
         g.DrawRectangle(frame, area.X + 2, area.Y + 2,
             Math.Max(1, area.Width - 5), Math.Max(1, area.Height - 5));
+    }
+
+    private void DrawThemePreviewWeather(Graphics g, Rectangle area, ArcadeTheme theme)
+    {
+        int width = Math.Max(1, area.Width);
+        int height = Math.Max(1, area.Height);
+        long phase = Environment.TickCount64 / 40;
+
+        _weatherPen.Color = Color.FromArgb(115, theme.Highlight);
+        _weatherBrightPen.Color = Color.FromArgb(175, theme.Text);
+        _weatherBrush.Color = Color.FromArgb(155, theme.Highlight);
+        _weatherAccentBrush.Color = Color.FromArgb(135, theme.Effect);
+
+        switch (theme.SeasonType)
+        {
+            case ThemeSeason.Spring:
+                for (int i = 0; i < 9; i++)
+                {
+                    int x = area.Left + (i * 31 + (int)(phase / 2) + width) % width;
+                    int y = area.Top + (i * 19 + (int)(phase / 5)) % height;
+                    g.FillRectangle(_weatherAccentBrush, x, y, 4, 2);
+                    g.FillRectangle(_weatherBrush, x + 2, y - 2, 2, 4);
+                }
+                break;
+
+            case ThemeSeason.Summer:
+                for (int i = 0; i < 5; i++)
+                {
+                    int x = area.Left + (i * 43 + (int)(phase / 3)) % width;
+                    int y = area.Top + 18 + (i * 17) % Math.Max(1, height - 24);
+                    g.FillRectangle(_weatherAccentBrush, x, y, 3, 3);
+                }
+                break;
+
+            case ThemeSeason.Autumn:
+                for (int i = 0; i < 9; i++)
+                {
+                    int x = area.Left + (i * 37 + (int)(phase / 2)) % width;
+                    int y = area.Top + (i * 23 + (int)phase) % height;
+                    g.DrawLine(i % 4 == 0 ? _weatherBrightPen : _weatherPen,
+                        x, y, x - 3, y + 8);
+                }
+                break;
+
+            case ThemeSeason.Winter:
+                for (int i = 0; i < 11; i++)
+                {
+                    int x = area.Left + (i * 29 + (int)(phase / 3) +
+                        (int)(MathF.Sin(phase / 20f + i) * 3) + width) % width;
+                    int y = area.Top + (i * 17 + (int)(phase / 2)) % height;
+                    int size = i % 4 == 0 ? 3 : 2;
+                    g.FillRectangle(i % 3 == 0 ? _weatherAccentBrush : _weatherBrush,
+                        x, y, size, size);
+                }
+                break;
+        }
     }
 
     private static void DrawPixelFlower(Graphics g, int x, int y,
@@ -2170,74 +2229,87 @@ private void DrawThemeSectionCard(Graphics g)
         ArcadeTheme theme = ActiveTheme;
         long tick = Environment.TickCount64;
         bool playfield = area.Width <= _field.Width + 2;
-        int count = playfield ? 16 : 42;
+        int count = playfield ? 22 : 58;
         int width = Math.Max(1, area.Width);
         int height = Math.Max(1, area.Height);
 
-        _weatherPen.Color = Color.FromArgb(105, theme.Highlight);
-        _weatherBrightPen.Color = Color.FromArgb(165, theme.Text);
-        _weatherBrush.Color = Color.FromArgb(145, theme.Highlight);
-        _weatherAccentBrush.Color = Color.FromArgb(125, theme.Effect);
+        _weatherPen.Color = Color.FromArgb(92, theme.Highlight);
+        _weatherBrightPen.Color = Color.FromArgb(170, theme.Text);
+        _weatherBrush.Color = Color.FromArgb(130, theme.Highlight);
+        _weatherAccentBrush.Color = Color.FromArgb(118, theme.Effect);
 
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
+                // Compact pixel petals drift on two slightly different layers.
                 for (int i = 0; i < count / 2; i++)
                 {
-                    int y = area.Top + (i * 79 + (int)(tick / 20)) % height;
-                    int drift = (int)(MathF.Sin(tick / 520f + i * 1.7f) * 8);
-                    int x = area.Left + (i * 113 + drift + width) % width;
-                    g.FillRectangle(_weatherAccentBrush, x, y, 3, 2);
-                    g.FillRectangle(_weatherBrush, x + 2, y - 1, 2, 2);
+                    float sway = MathF.Sin(tick / 470f + i * 1.63f) * (playfield ? 5 : 11);
+                    int x = area.Left + (i * 113 + (int)(tick / 26) +
+                        (int)sway + width) % width;
+                    int y = area.Top + (i * 71 + (int)(tick / (i % 3 == 0 ? 16 : 23))) % height;
+                    int size = i % 5 == 0 ? 3 : 2;
+                    g.FillRectangle(_weatherAccentBrush, x, y, size + 1, size);
+                    g.FillRectangle(_weatherBrush, x + size, y - 2, size, size);
                 }
                 break;
 
             case ThemeSeason.Summer:
-                // Short heat shimmer bars and sparse glints; no painted scenery.
-                for (int i = 0; i < 4; i++)
+                // Heat shimmer is restrained to a few moving scanline-like bands.
+                for (int i = 0; i < 5; i++)
                 {
-                    int y = area.Top + height * (30 + i * 13) / 100;
-                    int x = area.Left + (int)((MathF.Sin(tick / 650f + i) + 1f) * 0.5f *
-                        Math.Max(1, width - 80));
-                    g.DrawLine(_weatherPen, x, y, Math.Min(area.Right, x + 54), y - 2);
+                    int y = area.Top + height * (26 + i * 12) / 100;
+                    float wave = (MathF.Sin(tick / 570f + i * 1.2f) + 1f) * 0.5f;
+                    int x = area.Left + (int)(wave * Math.Max(1, width - 110));
+                    int length = playfield ? 34 : 68;
+                    g.DrawLine(_weatherPen, x, y, Math.Min(area.Right, x + length), y - 2);
                 }
+
                 for (int i = 0; i < count / 2; i++)
                 {
-                    int x = area.Left + (i * 89 + (int)(tick / 35)) % width;
-                    int y = area.Top + (i * 61 + (int)(tick / 70)) % height;
-                    int size = i % 4 == 0 ? 3 : 2;
+                    int x = area.Left + (i * 89 + (int)(tick / 38)) % width;
+                    int y = area.Top + (i * 61 + (int)(tick / 76)) % height;
+                    int size = i % 6 == 0 ? 3 : 2;
                     g.FillRectangle(_weatherAccentBrush, x, y, size, size);
+                    if (i % 7 == 0)
+                        g.FillRectangle(_weatherBrush, x + 3, y - 2, 2, 2);
                 }
                 break;
 
             case ThemeSeason.Autumn:
-                // Fine diagonal rain with a restrained highlight on every fifth streak.
+                // Two rain depths: faint distant streaks and brighter foreground drops.
                 for (int i = 0; i < count; i++)
                 {
-                    int x = area.Left + (i * 67 + (int)(tick / 9)) % width;
-                    int y = area.Top + (i * 43 + (int)(tick / 5)) % height;
-                    Pen pen = i % 5 == 0 ? _weatherBrightPen : _weatherPen;
-                    g.DrawLine(pen, x, y, x - 4, y + (playfield ? 10 : 14));
+                    int speed = i % 4 == 0 ? 4 : 6;
+                    int x = area.Left + (i * 67 + (int)(tick / speed)) % width;
+                    int y = area.Top + (i * 43 + (int)(tick / (i % 4 == 0 ? 4 : 3))) % height;
+                    int length = playfield ? (i % 3 == 0 ? 8 : 12) : (i % 3 == 0 ? 11 : 17);
+                    Pen pen = i % 7 == 0 ? _weatherBrightPen : _weatherPen;
+                    g.DrawLine(pen, x, y, x - (playfield ? 3 : 4), y + length);
+
+                    if (i % 5 == 0)
+                        g.FillRectangle(_weatherAccentBrush, x - 3, y + length, 2, 2);
                 }
                 break;
 
             case ThemeSeason.Winter:
-                // Small square flakes preserve the pixel-art identity and stay lightweight.
+                // Small flakes at several apparent depths, with gentle side drift.
                 for (int i = 0; i < count; i++)
                 {
-                    int x = area.Left + (i * 73 + (int)(tick / 42) +
-                        (int)(MathF.Sin(tick / 720f + i) * 5) + width) % width;
-                    int y = area.Top + (i * 53 + (int)(tick / 20)) % height;
-                    int size = i % 7 == 0 ? 4 : i % 3 == 0 ? 3 : 2;
-                    g.FillRectangle(i % 4 == 0 ? _weatherAccentBrush : _weatherBrush,
-                        x, y, size, size);
+                    int depth = i % 5;
+                    int size = depth == 0 ? 4 : depth < 3 ? 3 : 2;
+                    int speed = depth == 0 ? 13 : depth < 3 ? 18 : 24;
+                    int drift = (int)(MathF.Sin(tick / (depth == 0 ? 430f : 680f) + i * 1.4f) *
+                        (depth == 0 ? 7 : 3));
+                    int x = area.Left + (i * 73 + (int)(tick / 37) + drift + width) % width;
+                    int y = area.Top + (i * 53 + (int)(tick / speed)) % height;
 
-                    if (i % 9 == 0)
+                    g.FillRectangle(depth == 0 ? _weatherAccentBrush : _weatherBrush,
+                        x, y, size, size);
+                    if (depth == 0 && i % 3 == 0)
                     {
-                        g.DrawLine(_weatherPen, x - 2, y + size / 2,
-                            x + size + 2, y + size / 2);
-                        g.DrawLine(_weatherPen, x + size / 2, y - 2,
-                            x + size / 2, y + size + 2);
+                        g.FillRectangle(_weatherBrightPen.Brush, x - 2, y + 1, size + 4, 1);
+                        g.FillRectangle(_weatherBrightPen.Brush, x + 1, y - 2, 1, size + 4);
                     }
                 }
                 break;
@@ -3355,6 +3427,12 @@ private void DrawThemeSectionCard(Graphics g)
         if (skin.Pattern != SkinPattern.Plain)
             DrawSkinPattern(g, centers, count, skin);
 
+        // Keep the terminal end rounded and centered on the last body segment.
+        PointF tail = centers[count - 1];
+        float tailSize = CellSize - 6;
+        g.FillEllipse(_snakeBrush, tail.X - tailSize / 2f,
+            tail.Y - tailSize / 2f, tailSize, tailSize);
+
         if (skin.IsMythic)
             DrawMythicAura(g, centers[0], centers, count);
         else if (skin.IsLegendary)
@@ -3379,22 +3457,39 @@ private void DrawThemeSectionCard(Graphics g)
             return;
         }
 
-        _snakePath.StartFigure();
-        _snakeHighlightPath.StartFigure();
+        AddSmoothSnakePath(_snakePath, centers, start, end);
+        AddSmoothSnakePath(_snakeHighlightPath, _snakeHighlightCenters, start, end);
+    }
 
-        // Smooth each path directly from reusable arrays: no per-frame arrays.
-        if (end - start >= 2)
+    private static void AddSmoothSnakePath(
+        GraphicsPath path, PointF[] points, int start, int end)
+    {
+        path.StartFigure();
+        if (end <= start)
+            return;
+
+        if (end == start + 1)
         {
-            _snakePath.AddCurve(centers, start, end - start, 0.18f);
-            _snakeHighlightPath.AddCurve(
-                _snakeHighlightCenters, start, end - start, 0.18f);
+            path.AddLine(points[start], points[end]);
+            return;
         }
-        else
+
+        const float tension = 0.18f;
+        for (int i = start; i < end; i++)
         {
-            _snakePath.AddLine(centers[start], centers[end]);
-            _snakeHighlightPath.AddLine(
-                new PointF(centers[start].X - 1.2f, centers[start].Y - 3.2f),
-                new PointF(centers[end].X - 1.2f, centers[end].Y - 3.2f));
+            PointF first = points[i];
+            PointF second = points[i + 1];
+            PointF previous = i > start ? points[i - 1] : first;
+            PointF next = i + 2 <= end ? points[i + 2] : second;
+
+            PointF controlOne = new(
+                first.X + (second.X - previous.X) * tension,
+                first.Y + (second.Y - previous.Y) * tension);
+            PointF controlTwo = new(
+                second.X - (next.X - first.X) * tension,
+                second.Y - (next.Y - first.Y) * tension);
+
+            path.AddBezier(first, controlOne, controlTwo, second);
         }
     }
 

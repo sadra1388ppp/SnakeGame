@@ -399,7 +399,8 @@ public sealed class GameForm : Form
         SetStyle(ControlStyles.AllPaintingInWmPaint |
                  ControlStyles.UserPaint |
                  ControlStyles.OptimizedDoubleBuffer |
-                 ControlStyles.ResizeRedraw, true);
+                 ControlStyles.ResizeRedraw |
+                 ControlStyles.Opaque, true);
 
         _bestScore = LoadBestScore();
         LoadPlayerStats();
@@ -3286,9 +3287,9 @@ private void DrawThemeSectionCard(Graphics g)
         if (_snakePath.PointCount > 0)
         {
             if (!reducedEffects &&
-                skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+                (skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
                     SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
-                    SkinPattern.Honeycomb or SkinPattern.Legendary or SkinPattern.Mythic)
+                    SkinPattern.Honeycomb or SkinPattern.Legendary or SkinPattern.Mythic))
                 g.DrawPath(_skinGlowPen, _snakePath);
 
             g.DrawPath(_snakeOutlinePen, _snakePath);

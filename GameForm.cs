@@ -620,12 +620,6 @@ public sealed class GameForm : Form
             MaximumSize = Size.Empty;
         }
 
-        // A full-screen WinForms back buffer can become very large.
-        // The playfield is already rendered into its own bitmap, so avoid
-        // buffering the entire window while full-screen.
-        SetStyle(ControlStyles.OptimizedDoubleBuffer, !_isFullscreen);
-        UpdateStyles();
-
         UpdateViewTransform();
         Invalidate();
     }

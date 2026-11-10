@@ -3025,6 +3025,11 @@ private void DrawThemeSectionCard(Graphics g)
 
         DrawPlayfieldSurface(g);
 
+        if (ActiveTheme.SeasonType == ThemeSeason.Forest)
+            DrawPixelForest(g, new Rectangle(_boardCard.Left + 10,
+                _field.Bottom + 7, _boardCard.Width - 20,
+                _boardCard.Bottom - _field.Bottom - 16), ActiveTheme, 125);
+
         using var frameAccent = new SolidBrush(ActiveTheme.Highlight);
         for (int i = 1; i < 6; i++)
         {

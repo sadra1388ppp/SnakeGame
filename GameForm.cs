@@ -510,6 +510,17 @@ public sealed class GameForm : Form
         g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
+
+        if (_view == AppView.Play && _state == GameState.Playing &&
+            DesignToClient(_field).Contains(e.ClipRectangle))
+        {
+            DrawPlayfieldSurface(g);
+            DrawBoardDynamic(g);
+            DrawRecordCelebration(g);
+            UpdateRenderQuality(paintStart);
+            return;
+        }
+
         // Full seasonal scenery belongs to the menus. During gameplay, keep only
         // the clipped seasonal effects inside the board so trees and decorations
         // never cover the snake, food, or game controls.
@@ -544,18 +555,23 @@ public sealed class GameForm : Form
         DrawUiHeader(g);
         DrawUiWindowControls(g);
 
-        if (_view == AppView.Play && _state == GameState.Playing)
-        {
-            double paintMilliseconds = Stopwatch.GetElapsedTime(paintStart).TotalMilliseconds;
-            _averagePaintMilliseconds = _averagePaintMilliseconds == 0
-                ? paintMilliseconds
-                : _averagePaintMilliseconds * 0.9 + paintMilliseconds * 0.1;
+        UpdateRenderQuality(paintStart);
+    }
 
-            if (!_reducedVisualEffects && _averagePaintMilliseconds > 14)
-                _reducedVisualEffects = true;
-            else if (_reducedVisualEffects && _averagePaintMilliseconds < 9)
-                _reducedVisualEffects = false;
-        }
+    private void UpdateRenderQuality(long paintStart)
+    {
+        if (_view != AppView.Play || _state != GameState.Playing)
+            return;
+
+        double paintMilliseconds = Stopwatch.GetElapsedTime(paintStart).TotalMilliseconds;
+        _averagePaintMilliseconds = _averagePaintMilliseconds == 0
+            ? paintMilliseconds
+            : _averagePaintMilliseconds * 0.9 + paintMilliseconds * 0.1;
+
+        if (!_reducedVisualEffects && _averagePaintMilliseconds > 14)
+            _reducedVisualEffects = true;
+        else if (_reducedVisualEffects && _averagePaintMilliseconds < 9)
+            _reducedVisualEffects = false;
     }
 
     private void UpdateViewTransform()
@@ -2769,6 +2785,18 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
     }
 
+    private void DrawPlayfieldSurface(Graphics g)
+    {
+        if (_tileSurfaceCache is not null)
+            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
+        else
+            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
+
+        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
+            Color.FromArgb(38, ActiveTheme.Highlight), 1);
+        DrawPixelOutline(g, _field, RetroGold, 3);
+    }
+
     private void DrawRetroPlayChrome(Graphics g)
     {
         DrawPixelPanel(g, _boardCard, true);
@@ -2780,14 +2808,7 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _difficultyArea, true);
         DrawPixelPanel(g, _actionArea, true);
 
-        if (_tileSurfaceCache is not null)
-            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
-        else
-            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
-
-        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
-            Color.FromArgb(38, ActiveTheme.Highlight), 1);
-        DrawPixelOutline(g, _field, RetroGold, 3);
+        DrawPlayfieldSurface(g);
 
         using var frameAccent = new SolidBrush(ActiveTheme.Highlight);
         for (int i = 1; i < 6; i++)
@@ -4205,7 +4226,7 @@ private void DrawThemeSectionCard(Graphics g)
             _lastStepAt = now;
         }
 
-        // Only the playfield is repainted during animation; the dashboard is cached.
+        // The playfield is the only region that changes on a normal frame.
         InvalidateDesign(_field);
     }
 

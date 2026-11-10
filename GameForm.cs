@@ -159,7 +159,7 @@ public sealed class GameForm : Form
     private readonly SoundPlayer _pickupSound;
     private readonly MemoryStream _goldPickupSoundData;
     private readonly SoundPlayer _goldPickupSound;
-    private readonly System.Windows.Forms.Timer _ambientTimer = new() { Interval = 90 };
+    private readonly System.Windows.Forms.Timer _ambientTimer = new() { Interval = 40 };
     private readonly Random _random = new();
     private readonly List<Point> _snake = [];
     private readonly Point[] _previousSnake = new Point[BoardCells];
@@ -296,6 +296,10 @@ public sealed class GameForm : Form
     private readonly SolidBrush _mutedBrush = new(Muted);
     private readonly SolidBrush _greenBrush = new(Green);
     private readonly SolidBrush _goldBrush = new(Gold);
+    private readonly Pen _weatherPen = new(Color.FromArgb(120, 220, 240, 255), 1f);
+    private readonly Pen _weatherBrightPen = new(Color.FromArgb(170, 245, 250, 255), 1.2f);
+    private readonly SolidBrush _weatherBrush = new(Color.FromArgb(135, 220, 240, 255));
+    private readonly SolidBrush _weatherAccentBrush = new(Color.FromArgb(115, 180, 220, 255));
     private SolidBrush _snakeBrush = new(Color.FromArgb(104, 193, 91));
     private SolidBrush _headBrush = new(Color.FromArgb(183, 247, 122));
     private SolidBrush _headShadowBrush = new(Color.FromArgb(45, 138, 233, 104));
@@ -527,6 +531,7 @@ public sealed class GameForm : Form
         if (_view != AppView.Play)
         {
             DrawThemeAtmosphere(g);
+            DrawSeasonalWeather(g, new Rectangle(0, 0, DesignWidth, DesignHeight));
 
             switch (_view)
             {
@@ -767,21 +772,41 @@ public sealed class GameForm : Form
         Rectangle header = new(24, 12, 1112, 56);
         DrawPixelPanel(g, header, true);
 
+        using var topEdge = new Pen(Color.FromArgb(105, ActiveTheme.Highlight), 1);
         using var seam = new Pen(Color.FromArgb(125, ActiveTheme.Highlight), 1);
+        g.DrawLine(topEdge, 34, 15, 1126, 15);
         g.DrawLine(seam, 34, 61, 1126, 61);
 
-        using var logo = new SolidBrush(ActiveTheme.Accent);
-        g.FillRectangle(logo, 40, 21, 36, 36);
-        DrawPixelOutline(g, new Rectangle(40, 21, 36, 36), ActiveTheme.Highlight, 2);
+        // Brand block: strong pixel mark, clear type hierarchy and a small status light.
+        Rectangle logoRect = new(40, 21, 36, 36);
+        using (var logoShadow = new SolidBrush(Color.FromArgb(90, 0, 0, 0)))
+            g.FillRectangle(logoShadow, logoRect.X + 3, logoRect.Y + 3,
+                logoRect.Width, logoRect.Height);
+        using (var logo = new SolidBrush(ActiveTheme.Accent))
+            g.FillRectangle(logo, logoRect);
+        DrawPixelOutline(g, logoRect, ActiveTheme.Highlight, 2);
         DrawPixelText(g, "S", 58, 27, 3, ActiveTheme.Dark);
-        DrawPixelText(g, "SNAKE", 132, 24, 2, ActiveTheme.Text);
-        DrawPixelText(g, "ARCADE EDITION", 132, 45, 1, ActiveTheme.Highlight);
+        using (var statusLight = new SolidBrush(Color.FromArgb(220, ActiveTheme.Highlight)))
+            g.FillRectangle(statusLight, 82, 25, 3, 3);
+        DrawPixelText(g, "SNAKE", 132, 23, 2, ActiveTheme.Text);
+        DrawPixelText(g, "PIXEL ARCADE", 132, 44, 1, ActiveTheme.Highlight);
 
         DrawRetroNavButton(g, _homeNavButton, "HOME", _view == AppView.Home);
         DrawRetroNavButton(g, _playNavButton, "PLAY", _view == AppView.Play);
         DrawRetroNavButton(g, _skinsNavButton, "SKINS", _view is AppView.Skins or AppView.TileThemes);
         DrawRetroNavButton(g, _achievementsNavButton, "ACHIEVEMENTS", _view == AppView.Achievements);
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
+
+        // Compact live season indicator uses the same palette as the active world.
+        Rectangle worldChip = new(866, 21, 106, 36);
+        using (var chip = new SolidBrush(Color.FromArgb(175, ActiveTheme.Dark)))
+            g.FillRectangle(chip, worldChip);
+        using (var chipEdge = new Pen(Color.FromArgb(105, ActiveTheme.Accent), 1))
+            g.DrawRectangle(chipEdge, worldChip);
+        DrawSeasonGlyph(g, 881, 39, 2, ActiveTheme, 220);
+        DrawPixelText(g, ActiveTheme.Season, 931, 26, 1, ActiveTheme.Text);
+        DrawPixelText(g, ActiveTheme.IsNight ? "NIGHT" : "DAY",
+            931, 43, 1, ActiveTheme.Highlight);
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -2135,31 +2160,86 @@ private void DrawThemeSectionCard(Graphics g)
 
     private void DrawSeasonalPlayfieldEffects(Graphics g)
     {
-        GraphicsState state = g.Save();
-        g.SetClip(_field);
+        DrawSeasonalWeather(g, _field);
+    }
 
-        long tick = Environment.TickCount64;
+    private void DrawSeasonalWeather(Graphics g, Rectangle area)
+    {
         ArcadeTheme theme = ActiveTheme;
+        long tick = Environment.TickCount64;
+        bool playfield = area.Width <= _field.Width + 2;
+        int count = playfield ? 16 : 42;
+        int width = Math.Max(1, area.Width);
+        int height = Math.Max(1, area.Height);
+
+        _weatherPen.Color = Color.FromArgb(105, theme.Highlight);
+        _weatherBrightPen.Color = Color.FromArgb(165, theme.Text);
+        _weatherBrush.Color = Color.FromArgb(145, theme.Highlight);
+        _weatherAccentBrush.Color = Color.FromArgb(125, theme.Effect);
 
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
-                DrawFallingPetals(g, tick, theme, 12, _field);
+                for (int i = 0; i < count / 2; i++)
+                {
+                    int y = area.Top + (i * 79 + (int)(tick / 20)) % height;
+                    int drift = (int)(MathF.Sin(tick / 520f + i * 1.7f) * 8);
+                    int x = area.Left + (i * 113 + drift + width) % width;
+                    g.FillRectangle(_weatherAccentBrush, x, y, 3, 2);
+                    g.FillRectangle(_weatherBrush, x + 2, y - 1, 2, 2);
+                }
                 break;
+
             case ThemeSeason.Summer:
-                DrawWarmHaze(g, tick, theme, _field);
-                DrawSummerGlints(g, tick, theme, 12, _field);
+                // Short heat shimmer bars and sparse glints; no painted scenery.
+                for (int i = 0; i < 4; i++)
+                {
+                    int y = area.Top + height * (30 + i * 13) / 100;
+                    int x = area.Left + (int)((MathF.Sin(tick / 650f + i) + 1f) * 0.5f *
+                        Math.Max(1, width - 80));
+                    g.DrawLine(_weatherPen, x, y, Math.Min(area.Right, x + 54), y - 2);
+                }
+                for (int i = 0; i < count / 2; i++)
+                {
+                    int x = area.Left + (i * 89 + (int)(tick / 35)) % width;
+                    int y = area.Top + (i * 61 + (int)(tick / 70)) % height;
+                    int size = i % 4 == 0 ? 3 : 2;
+                    g.FillRectangle(_weatherAccentBrush, x, y, size, size);
+                }
                 break;
+
             case ThemeSeason.Autumn:
-                DrawFallingLeaves(g, tick, theme, 18, _field);
-                DrawRain(g, tick, theme, 52, _field);
+                // Fine diagonal rain with a restrained highlight on every fifth streak.
+                for (int i = 0; i < count; i++)
+                {
+                    int x = area.Left + (i * 67 + (int)(tick / 9)) % width;
+                    int y = area.Top + (i * 43 + (int)(tick / 3)) % height;
+                    Pen pen = i % 5 == 0 ? _weatherBrightPen : _weatherPen;
+                    g.DrawLine(pen, x, y, x - 4, y + (playfield ? 10 : 14));
+                }
                 break;
+
             case ThemeSeason.Winter:
-                DrawSnowfall(g, tick, theme, 48, _field);
+                // Small square flakes preserve the pixel-art identity and stay lightweight.
+                for (int i = 0; i < count; i++)
+                {
+                    int x = area.Left + (i * 73 + (int)(tick / 42) +
+                        (int)(MathF.Sin(tick / 720f + i) * 5) + width) % width;
+                    int y = area.Top + (i * 53 + (int)(tick / 16)) % height;
+                    int size = i % 7 == 0 ? 4 : i % 3 == 0 ? 3 : 2;
+                    g.FillRectangle(i % 4 == 0 ? _weatherAccentBrush : _weatherBrush,
+                        x, y, size, size);
+
+                    if (i % 9 == 0)
+                    {
+                        g.DrawLine(_weatherPen, x - 2, y + size / 2,
+                            x + size + 2, y + size / 2);
+                        g.DrawLine(_weatherPen, x + size / 2, y - 2,
+                            x + size / 2, y + size + 2);
+                    }
+                }
                 break;
         }
-
-        g.Restore(state);
     }
 
 
@@ -2691,16 +2771,33 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawRetroNavButton(Graphics g, Rectangle rect, string label, bool active)
     {
         bool hover = rect.Contains(_mousePoint);
-        using var fill = new SolidBrush(active
-            ? Color.FromArgb(255, ActiveTheme.Grid)
-            : hover ? Color.FromArgb(255, ActiveTheme.Background) : RetroDark);
+        Color fillColor = active
+            ? Color.FromArgb(205, ActiveTheme.Grid)
+            : hover ? Color.FromArgb(155, ActiveTheme.Background)
+            : Color.FromArgb(105, ActiveTheme.Dark);
+        using var fill = new SolidBrush(fillColor);
         g.FillRectangle(fill, rect);
 
-        Color edge = active ? ActiveTheme.Highlight : RetroGold;
-        DrawPixelOutline(g, rect, edge, 2);
+        using var edge = new Pen(active
+            ? ActiveTheme.Highlight
+            : Color.FromArgb(105, ActiveTheme.Accent), 1);
+        g.DrawRectangle(edge, rect);
+
+        if (active)
+        {
+            using var marker = new SolidBrush(ActiveTheme.Highlight);
+            g.FillRectangle(marker, rect.X + 7, rect.Bottom - 4,
+                rect.Width - 14, 2);
+        }
+        else if (hover)
+        {
+            using var marker = new SolidBrush(Color.FromArgb(155, ActiveTheme.Accent));
+            g.FillRectangle(marker, rect.X + 10, rect.Bottom - 3,
+                rect.Width - 20, 1);
+        }
 
         int textSize = 2;
-        int textTop = rect.Y + (rect.Height - 7 * textSize) / 2;
+        int textTop = rect.Y + (rect.Height - 7 * textSize) / 2 - 1;
         Color textColor = active ? ActiveTheme.Highlight : RetroWhite;
         DrawPixelText(g, label, rect.X + rect.Width / 2, textTop,
             textSize, textColor);
@@ -2874,6 +2971,7 @@ private void DrawThemeSectionCard(Graphics g)
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.Half;
         g.SetClip(_field, CombineMode.Intersect);
+        DrawSeasonalPlayfieldEffects(g);
 
         if (_state == GameState.Ready)
             DrawWelcomeScreen(g);
@@ -5277,6 +5375,10 @@ private void DrawThemeSectionCard(Graphics g)
         _bodyFont.Dispose();
         _microFont.Dispose();
 
+        _weatherPen.Dispose();
+        _weatherBrightPen.Dispose();
+        _weatherBrush.Dispose();
+        _weatherAccentBrush.Dispose();
         _whiteBrush.Dispose();
         _darkBrush.Dispose();
         _mutedBrush.Dispose();

@@ -547,14 +547,7 @@ public sealed class GameForm : Form
                 DrawPlayScore(g);
 
             if (clip.IntersectsWith(_field))
-            {
-                GraphicsState frameState = g.Save();
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 DrawBoardDynamic(g);
-                DrawRecordCelebration(g);
-                g.Restore(frameState);
-            }
 
             if (clip.IntersectsWith(_rightPanel))
                 DrawRetroPlayDashboard(g);
@@ -2853,6 +2846,7 @@ private void DrawThemeSectionCard(Graphics g)
             DrawGoldBurst(g);
         }
 
+        DrawRecordCelebration(g);
         g.Restore(state);
     }
 

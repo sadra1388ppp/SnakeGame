@@ -433,6 +433,8 @@ public sealed class GameForm : Form
         {
             if (_view != AppView.Play)
                 Invalidate();
+            else if (_state != GameState.Playing)
+                InvalidateDesign(_field);
         };
         _ambientTimer.Start();
         KeyDown += HandleKeyDown;
@@ -2213,7 +2215,7 @@ private void DrawThemeSectionCard(Graphics g)
                 for (int i = 0; i < count; i++)
                 {
                     int x = area.Left + (i * 67 + (int)(tick / 9)) % width;
-                    int y = area.Top + (i * 43 + (int)(tick / 3)) % height;
+                    int y = area.Top + (i * 43 + (int)(tick / 5)) % height;
                     Pen pen = i % 5 == 0 ? _weatherBrightPen : _weatherPen;
                     g.DrawLine(pen, x, y, x - 4, y + (playfield ? 10 : 14));
                 }
@@ -2225,7 +2227,7 @@ private void DrawThemeSectionCard(Graphics g)
                 {
                     int x = area.Left + (i * 73 + (int)(tick / 42) +
                         (int)(MathF.Sin(tick / 720f + i) * 5) + width) % width;
-                    int y = area.Top + (i * 53 + (int)(tick / 16)) % height;
+                    int y = area.Top + (i * 53 + (int)(tick / 20)) % height;
                     int size = i % 7 == 0 ? 4 : i % 3 == 0 ? 3 : 2;
                     g.FillRectangle(i % 4 == 0 ? _weatherAccentBrush : _weatherBrush,
                         x, y, size, size);

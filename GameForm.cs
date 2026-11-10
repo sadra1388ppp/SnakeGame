@@ -2797,16 +2797,16 @@ private void DrawThemeSectionCard(Graphics g)
 
         // Section headings have short side rules, like a classic arcade cabinet.
         DrawPixelText(g, "MODE", 965, 270, 2, RetroWhite);
-        g.DrawLine(detailLine, 840, 277, 928, 277);
-        g.DrawLine(detailLine, 1002, 277, 1090, 277);
+        g.DrawLine(_retroDetailPen, 840, 277, 928, 277);
+        g.DrawLine(_retroDetailPen, 1002, 277, 1090, 277);
 
         DrawPixelText(g, "DIFFICULTY", 965, 392, 2, RetroWhite);
-        g.DrawLine(detailLine, 840, 399, 890, 399);
-        g.DrawLine(detailLine, 1040, 399, 1090, 399);
+        g.DrawLine(_retroDetailPen, 840, 399, 890, 399);
+        g.DrawLine(_retroDetailPen, 1040, 399, 1090, 399);
 
         DrawPixelText(g, "ACTIONS", 965, 514, 2, RetroWhite);
-        g.DrawLine(detailLine, 840, 521, 908, 521);
-        g.DrawLine(detailLine, 1022, 521, 1090, 521);
+        g.DrawLine(_retroDetailPen, 840, 521, 908, 521);
+        g.DrawLine(_retroDetailPen, 1022, 521, 1090, 521);
     }
     private void DrawRetroPlayButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool selected = false)

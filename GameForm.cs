@@ -3257,14 +3257,8 @@ private void DrawThemeSectionCard(Graphics g)
         _snakePath.StartFigure();
         _snakeHighlightPath.StartFigure();
 
-        for (int i = start + 1; i <= end; i++)
-        {
-            PointF previous = centers[i - 1];
-            PointF current = centers[i];
-            // A low-tension spline rounds corners while keeping the snake's
-            // centerline close to the original grid path.
-        }
-
+        // A low-tension spline rounds corners while keeping the snake's
+        // centerline close to the original grid path.
         if (end - start >= 2)
         {
             int count = end - start + 1;

@@ -537,7 +537,7 @@ public sealed class GameForm : Form
         else
         {
             // Only copy the part of the cached screen that Windows asked us to repaint.
-            if (_playChromeCache is not null && !clip.IsEmpty)
+            if (_playChromeCache is not null && clip.Width > 0 && clip.Height > 0)
                 g.DrawImage(_playChromeCache, clip, clip, GraphicsUnit.Pixel);
 
             // The animation timer invalidates only the field. Do not redraw the

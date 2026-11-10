@@ -2921,8 +2921,8 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawBoardDynamic(Graphics g)
     {
         GraphicsState state = g.Save();
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.Half;
+        g.SmoothingMode = _reducedVisualEffects ? SmoothingMode.None : SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = _reducedVisualEffects ? PixelOffsetMode.None : PixelOffsetMode.Half;
         g.SetClip(_field);
 
         if (_state == GameState.Ready)
@@ -3285,14 +3285,15 @@ private void DrawThemeSectionCard(Graphics g)
 
         if (_snakePath.PointCount > 0)
         {
-            if (skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
-                SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
-                SkinPattern.Honeycomb or SkinPattern.Legendary or SkinPattern.Mythic)
+            if (!reducedEffects &&
+                skin.Pattern is SkinPattern.Neon or SkinPattern.Flames or
+                    SkinPattern.Frost or SkinPattern.Galaxy or SkinPattern.Circuit or
+                    SkinPattern.Honeycomb or SkinPattern.Legendary or SkinPattern.Mythic)
                 g.DrawPath(_skinGlowPen, _snakePath);
 
             g.DrawPath(_snakeOutlinePen, _snakePath);
             g.DrawPath(_snakeBodyPen, _snakePath);
-            if (_snakeHighlightPath.PointCount > 0)
+            if (!reducedEffects && _snakeHighlightPath.PointCount > 0)
                 g.DrawPath(_snakeHighlightPen, _snakeHighlightPath);
         }
 

@@ -358,6 +358,8 @@ public sealed class GameForm : Form
         LineAlignment = StringAlignment.Center,
         FormatFlags = StringFormatFlags.NoWrap
     };
+    private readonly Dictionary<int, SolidBrush> _pixelBrushCache = [];
+    private readonly Dictionary<(float Size, FontStyle Style), Font> _labelFontCache = [];
     private readonly StringFormat _rightFormat = new()
     {
         Alignment = StringAlignment.Far,
@@ -934,12 +936,15 @@ public sealed class GameForm : Form
         g.FillRectangle(shade, x + pixel * 6, y + pixel * 4, pixel, pixel);
     }
 
-    private static void DrawPixelText(Graphics g, string text, int centerX,
+    private void DrawPixelText(Graphics g, string text, int centerX,
         int top, int pixelSize, Color color)
     {
-        int widthUnits = text.Sum(c => c == ' ' ? 4 : 6) - 1;
+        int widthUnits = -1;
+        foreach (char c in text)
+            widthUnits += c == ' ' ? 4 : 6;
+
         int x = centerX - widthUnits * pixelSize / 2;
-        using var brush = new SolidBrush(color);
+        SolidBrush brush = GetPixelBrush(color);
 
         foreach (char raw in text)
         {
@@ -1688,7 +1693,7 @@ public sealed class GameForm : Form
 
     private void DrawPixelOutline(Graphics g, Rectangle rect, Color color, int thickness)
     {
-        using var brush = new SolidBrush(color);
+        SolidBrush brush = GetPixelBrush(color);
         g.FillRectangle(brush, rect.X, rect.Y, rect.Width, thickness);
         g.FillRectangle(brush, rect.X, rect.Bottom - thickness, rect.Width, thickness);
         g.FillRectangle(brush, rect.X, rect.Y, thickness, rect.Height);
@@ -3966,11 +3971,29 @@ private void DrawThemeSectionCard(Graphics g)
         g.DrawString(value, font, brush, rect, format);
     }
 
-    private static void DrawLabel(Graphics g, string value, Font font, Brush brush,
+    private void DrawLabel(Graphics g, string value, Font font, Brush brush,
         Rectangle rect, StringFormat format)
     {
-        using var pixelFont = new Font("Consolas", Math.Max(6, font.Size), font.Style);
+        var key = (Math.Max(6, font.Size), font.Style);
+        if (!_labelFontCache.TryGetValue(key, out Font? pixelFont))
+        {
+            pixelFont = new Font("Consolas", key.Item1, key.Style);
+            _labelFontCache.Add(key, pixelFont);
+        }
+
         g.DrawString(value, pixelFont, brush, rect, format);
+    }
+
+    private SolidBrush GetPixelBrush(Color color)
+    {
+        int key = color.ToArgb();
+        if (!_pixelBrushCache.TryGetValue(key, out SolidBrush? brush))
+        {
+            brush = new SolidBrush(color);
+            _pixelBrushCache.Add(key, brush);
+        }
+
+        return brush;
     }
 
     private static RectangleF CellBounds(Point point, float diameter)
@@ -5239,6 +5262,10 @@ private void DrawThemeSectionCard(Graphics g)
         _leftFormat.Dispose();
         _centerFormat.Dispose();
         _rightFormat.Dispose();
+        foreach (SolidBrush brush in _pixelBrushCache.Values)
+            brush.Dispose();
+        foreach (Font font in _labelFontCache.Values)
+            font.Dispose();
 
         base.OnFormClosed(e);
     }

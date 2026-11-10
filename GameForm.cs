@@ -212,6 +212,10 @@ public sealed class GameForm : Form
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
     private readonly PointF[] _snakeCenters = new PointF[BoardCells];
+    private readonly PointF[] _skinDiamond = new PointF[4];
+    private readonly PointF[] _skinPentagon = new PointF[5];
+    private readonly PointF[] _skinHexagon = new PointF[6];
+    private readonly PointF[] _skinCrown = new PointF[7];
     private readonly GraphicsPath _snakePath = new();
     private readonly GraphicsPath _snakeHighlightPath = new();
     private readonly GraphicsPath _overlayPath = RoundPath(new Rectangle(138, 220, 538, 334), 20);
@@ -321,6 +325,12 @@ public sealed class GameForm : Form
     private readonly Pen _mythicMiddlePen = new(Color.FromArgb(205, 255, 82, 98), 1.8f);
     private readonly Pen _mythicSparkPen = new(Color.FromArgb(225, 255, 145, 151), 1.5f);
     private readonly SolidBrush _epicSparkBrush = new(Color.FromArgb(205, 194, 128, 255));
+    private readonly SolidBrush _recordShadowBrush = new(Color.Black);
+    private readonly SolidBrush _recordFillBrush = new(Color.Black);
+    private readonly Pen _recordEdgePen = new(Color.Black, 3);
+    private readonly Pen _recordInnerPen = new(Color.Black, 1);
+    private readonly SolidBrush _recordSparkBrush = new(Color.Black);
+    private readonly SolidBrush _recordGreenSparkBrush = new(Color.Black);
     private readonly Pen _skinPatternPen = new(Color.FromArgb(180, 255, 255, 255), 2.4f)
     {
         StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
@@ -3641,6 +3651,11 @@ private void DrawThemeSectionCard(Graphics g)
         }
     }
 
+    private static PointF PatternPoint(PointF center, float tx, float ty,
+        float nx, float ny, float along, float across) =>
+        new(center.X + tx * along + nx * across,
+            center.Y + ty * along + ny * across);
+
     private void DrawSkinPattern(Graphics g, PointF[] centers, int count,
         SnakeSkin skin, bool reducedEffects = false)
     {
@@ -3674,54 +3689,51 @@ private void DrawThemeSectionCard(Graphics g)
             float nx = -ty;
             float ny = tx;
 
-            PointF At(float along, float across) =>
-                new(p.X + tx * along + nx * across,
-                    p.Y + ty * along + ny * across);
 
             switch (skin.Pattern)
             {
                 case SkinPattern.Stripes:
-                    g.DrawLine(_skinPatternPen, At(0, -7), At(0, 7));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 0, -7), PatternPoint(p, tx, ty, nx, ny, 0, 7));
                     break;
                 case SkinPattern.Dots:
                     g.DrawEllipse(_skinPatternPen, p.X - 3.2f, p.Y - 3.2f, 6.4f, 6.4f);
-                    g.DrawEllipse(_skinAccentPen, At(-5, 4).X - 1.8f,
-                        At(-5, 4).Y - 1.8f, 3.6f, 3.6f);
+                    g.DrawEllipse(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -5, 4).X - 1.8f,
+                        PatternPoint(p, tx, ty, nx, ny, -5, 4).Y - 1.8f, 3.6f, 3.6f);
                     break;
                 case SkinPattern.Waves:
-                    g.DrawBezier(_skinPatternPen, At(-7, 0), At(-3, -6),
-                        At(3, 6), At(7, 0));
+                    g.DrawBezier(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -7, 0), PatternPoint(p, tx, ty, nx, ny, -3, -6),
+                        PatternPoint(p, tx, ty, nx, ny, 3, 6), PatternPoint(p, tx, ty, nx, ny, 7, 0));
                     break;
                 case SkinPattern.Lightning:
-                    g.DrawLine(_skinPatternPen, At(-6, -4), At(0, 1));
-                    g.DrawLine(_skinPatternPen, At(0, 1), At(-2, 7));
-                    g.DrawLine(_skinPatternPen, At(-2, 7), At(7, -3));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -6, -4), PatternPoint(p, tx, ty, nx, ny, 0, 1));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 0, 1), PatternPoint(p, tx, ty, nx, ny, -2, 7));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -2, 7), PatternPoint(p, tx, ty, nx, ny, 7, -3));
                     break;
                 case SkinPattern.Scales:
                     g.DrawArc(_skinPatternPen, p.X - 6, p.Y - 5, 12, 10, 195, 150);
                     g.DrawArc(_skinAccentPen, p.X - 2, p.Y - 4, 11, 9, 195, 150);
                     break;
                 case SkinPattern.Flames:
-                    g.DrawLine(_skinPatternPen, At(-5, 6), At(-2, -2));
-                    g.DrawLine(_skinPatternPen, At(-2, -2), At(1, -7));
-                    g.DrawLine(_skinPatternPen, At(1, -7), At(3, 0));
-                    g.DrawLine(_skinPatternPen, At(3, 0), At(6, 5));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -5, 6), PatternPoint(p, tx, ty, nx, ny, -2, -2));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -2, -2), PatternPoint(p, tx, ty, nx, ny, 1, -7));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 1, -7), PatternPoint(p, tx, ty, nx, ny, 3, 0));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 3, 0), PatternPoint(p, tx, ty, nx, ny, 6, 5));
                     break;
                 case SkinPattern.Frost:
-                    g.DrawLine(_skinPatternPen, At(-6, 0), At(6, 0));
-                    g.DrawLine(_skinPatternPen, At(0, -6), At(0, 6));
-                    g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
-                    g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -6, 0), PatternPoint(p, tx, ty, nx, ny, 6, 0));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 0, -6), PatternPoint(p, tx, ty, nx, ny, 0, 6));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -4, -4), PatternPoint(p, tx, ty, nx, ny, 4, 4));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -4, 4), PatternPoint(p, tx, ty, nx, ny, 4, -4));
                     break;
                 case SkinPattern.Circuit:
-                    g.DrawLine(_skinPatternPen, At(-7, -4), At(1, -4));
-                    g.DrawLine(_skinPatternPen, At(1, -4), At(1, 4));
-                    g.DrawLine(_skinPatternPen, At(1, 4), At(7, 4));
-                    g.DrawEllipse(_skinAccentPen, At(5, 4).X - 2, At(5, 4).Y - 2, 4, 4);
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -7, -4), PatternPoint(p, tx, ty, nx, ny, 1, -4));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 1, -4), PatternPoint(p, tx, ty, nx, ny, 1, 4));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 1, 4), PatternPoint(p, tx, ty, nx, ny, 7, 4));
+                    g.DrawEllipse(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, 5, 4).X - 2, PatternPoint(p, tx, ty, nx, ny, 5, 4).Y - 2, 4, 4);
                     break;
                 case SkinPattern.Galaxy:
-                    g.DrawLine(_skinPatternPen, At(-5, 0), At(5, 0));
-                    g.DrawLine(_skinPatternPen, At(0, -5), At(0, 5));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -5, 0), PatternPoint(p, tx, ty, nx, ny, 5, 0));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 0, -5), PatternPoint(p, tx, ty, nx, ny, 0, 5));
                     g.DrawEllipse(_skinAccentPen, p.X - 5, p.Y - 3, 10, 6);
                     break;
                 case SkinPattern.Camo:
@@ -3729,70 +3741,77 @@ private void DrawThemeSectionCard(Graphics g)
                     g.DrawEllipse(_skinAccentPen, p.X + 1, p.Y - 4, 7, 5);
                     break;
                 case SkinPattern.Candy:
-                    g.DrawLine(_skinPatternPen, At(-6, -5), At(5, 5));
-                    g.DrawLine(_skinAccentPen, At(-6, 5), At(5, -5));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -6, -5), PatternPoint(p, tx, ty, nx, ny, 5, 5));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -6, 5), PatternPoint(p, tx, ty, nx, ny, 5, -5));
                     break;
                 case SkinPattern.Coral:
                     g.DrawEllipse(_skinPatternPen, p.X - 2.5f, p.Y - 2.5f, 5, 5);
-                    g.DrawLine(_skinAccentPen, At(-2, -2), At(-7, -7));
-                    g.DrawLine(_skinAccentPen, At(2, 2), At(7, 7));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -2, -2), PatternPoint(p, tx, ty, nx, ny, -7, -7));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, 2, 2), PatternPoint(p, tx, ty, nx, ny, 7, 7));
                     break;
                 case SkinPattern.Prism:
-                    g.DrawPolygon(_skinPatternPen, new[]
-                    {
-                        At(-6, 0), At(0, -6), At(6, 0), At(0, 6)
-                    });
-                    g.DrawLine(_skinAccentPen, At(-6, 0), At(0, 6));
+                    _skinDiamond[0] = PatternPoint(p, tx, ty, nx, ny, -6, 0);
+                    _skinDiamond[1] = PatternPoint(p, tx, ty, nx, ny, 0, -6);
+                    _skinDiamond[2] = PatternPoint(p, tx, ty, nx, ny, 6, 0);
+                    _skinDiamond[3] = PatternPoint(p, tx, ty, nx, ny, 0, 6);
+                    g.DrawPolygon(_skinPatternPen, _skinDiamond);
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -6, 0), PatternPoint(p, tx, ty, nx, ny, 0, 6));
                     break;
                 case SkinPattern.Stars:
-                    g.DrawLine(_skinPatternPen, At(-6, 0), At(6, 0));
-                    g.DrawLine(_skinPatternPen, At(0, -6), At(0, 6));
-                    g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
-                    g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -6, 0), PatternPoint(p, tx, ty, nx, ny, 6, 0));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 0, -6), PatternPoint(p, tx, ty, nx, ny, 0, 6));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -4, -4), PatternPoint(p, tx, ty, nx, ny, 4, 4));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -4, 4), PatternPoint(p, tx, ty, nx, ny, 4, -4));
                     break;
                 case SkinPattern.Honeycomb:
-                    g.DrawPolygon(_skinPatternPen, new[]
-                    {
-                        At(-5, -3), At(0, -6), At(5, -3),
-                        At(5, 3), At(0, 6), At(-5, 3)
-                    });
+                    _skinHexagon[0] = PatternPoint(p, tx, ty, nx, ny, -5, -3);
+                    _skinHexagon[1] = PatternPoint(p, tx, ty, nx, ny, 0, -6);
+                    _skinHexagon[2] = PatternPoint(p, tx, ty, nx, ny, 5, -3);
+                    _skinHexagon[3] = PatternPoint(p, tx, ty, nx, ny, 5, 3);
+                    _skinHexagon[4] = PatternPoint(p, tx, ty, nx, ny, 0, 6);
+                    _skinHexagon[5] = PatternPoint(p, tx, ty, nx, ny, -5, 3);
+                    g.DrawPolygon(_skinPatternPen, _skinHexagon);
                     break;
                 case SkinPattern.Tiger:
-                    g.DrawLine(_skinPatternPen, At(-2, -7), At(0, 1));
-                    g.DrawLine(_skinPatternPen, At(4, -6), At(6, 3));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -2, -7), PatternPoint(p, tx, ty, nx, ny, 0, 1));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 4, -6), PatternPoint(p, tx, ty, nx, ny, 6, 3));
                     break;
                 case SkinPattern.Zebra:
-                    g.DrawLine(_skinPatternPen, At(-5, -7), At(-3, 7));
-                    g.DrawLine(_skinAccentPen, At(0, -7), At(2, 7));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -5, -7), PatternPoint(p, tx, ty, nx, ny, -3, 7));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, 0, -7), PatternPoint(p, tx, ty, nx, ny, 2, 7));
                     break;
                 case SkinPattern.Neon:
-                    g.DrawLine(_skinPatternPen, At(-7, -4), At(7, -4));
-                    g.DrawLine(_skinAccentPen, At(-7, 4), At(7, 4));
-                    g.FillEllipse(_skinAccentPen.Brush, At(0, 0).X - 2,
-                        At(0, 0).Y - 2, 4, 4);
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -7, -4), PatternPoint(p, tx, ty, nx, ny, 7, -4));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -7, 4), PatternPoint(p, tx, ty, nx, ny, 7, 4));
+                    g.FillEllipse(_skinAccentPen.Brush, PatternPoint(p, tx, ty, nx, ny, 0, 0).X - 2,
+                        PatternPoint(p, tx, ty, nx, ny, 0, 0).Y - 2, 4, 4);
                     break;
                 case SkinPattern.Royal:
-                    g.DrawPolygon(_skinPatternPen, new[]
-                    {
-                        At(-7, 4), At(-6, -3), At(-2, 1),
-                        At(0, -6), At(3, 1), At(6, -3), At(7, 4)
-                    });
-                    g.DrawLine(_skinAccentPen, At(-7, 5), At(7, 5));
+                    _skinCrown[0] = PatternPoint(p, tx, ty, nx, ny, -7, 4);
+                    _skinCrown[1] = PatternPoint(p, tx, ty, nx, ny, -6, -3);
+                    _skinCrown[2] = PatternPoint(p, tx, ty, nx, ny, -2, 1);
+                    _skinCrown[3] = PatternPoint(p, tx, ty, nx, ny, 0, -6);
+                    _skinCrown[4] = PatternPoint(p, tx, ty, nx, ny, 3, 1);
+                    _skinCrown[5] = PatternPoint(p, tx, ty, nx, ny, 6, -3);
+                    _skinCrown[6] = PatternPoint(p, tx, ty, nx, ny, 7, 4);
+                    g.DrawPolygon(_skinPatternPen, _skinCrown);
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -7, 5), PatternPoint(p, tx, ty, nx, ny, 7, 5));
                     break;
                 case SkinPattern.Legendary:
-                    g.DrawLine(_skinPatternPen, At(-6, 0), At(6, 0));
-                    g.DrawLine(_skinPatternPen, At(0, -6), At(0, 6));
-                    g.DrawLine(_skinAccentPen, At(-4, -4), At(4, 4));
-                    g.DrawLine(_skinAccentPen, At(-4, 4), At(4, -4));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, -6, 0), PatternPoint(p, tx, ty, nx, ny, 6, 0));
+                    g.DrawLine(_skinPatternPen, PatternPoint(p, tx, ty, nx, ny, 0, -6), PatternPoint(p, tx, ty, nx, ny, 0, 6));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -4, -4), PatternPoint(p, tx, ty, nx, ny, 4, 4));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -4, 4), PatternPoint(p, tx, ty, nx, ny, 4, -4));
                     break;
                 case SkinPattern.Mythic:
-                    g.DrawPolygon(_skinPatternPen, new[]
-                    {
-                        At(-7, 5), At(-5, -2), At(0, 2),
-                        At(5, -2), At(7, 5)
-                    });
-                    g.DrawLine(_skinAccentPen, At(-6, 0), At(6, 0));
-                    g.DrawLine(_skinAccentPen, At(0, -6), At(0, 6));
+                    _skinPentagon[0] = PatternPoint(p, tx, ty, nx, ny, -7, 5);
+                    _skinPentagon[1] = PatternPoint(p, tx, ty, nx, ny, -5, -2);
+                    _skinPentagon[2] = PatternPoint(p, tx, ty, nx, ny, 0, 2);
+                    _skinPentagon[3] = PatternPoint(p, tx, ty, nx, ny, 5, -2);
+                    _skinPentagon[4] = PatternPoint(p, tx, ty, nx, ny, 7, 5);
+                    g.DrawPolygon(_skinPatternPen, _skinPentagon);
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, -6, 0), PatternPoint(p, tx, ty, nx, ny, 6, 0));
+                    g.DrawLine(_skinAccentPen, PatternPoint(p, tx, ty, nx, ny, 0, -6), PatternPoint(p, tx, ty, nx, ny, 0, 6));
                     break;
             }
 
@@ -4342,15 +4361,15 @@ private void DrawThemeSectionCard(Graphics g)
         Rectangle banner = new(centerX - bannerWidth / 2, _field.Top + 12,
             bannerWidth, 54);
 
-        using var shadow = new SolidBrush(Color.FromArgb(alpha * 3 / 4, 0, 0, 0));
-        using var fill = new SolidBrush(Color.FromArgb(alpha * 9 / 10, ActiveTheme.Dark));
-        using var edge = new Pen(Color.FromArgb(alpha, 111, 242, 145), 3);
-        using var inner = new Pen(Color.FromArgb(alpha / 2, ActiveTheme.Highlight), 1);
+        _recordShadowBrush.Color = Color.FromArgb(alpha * 3 / 4, 0, 0, 0);
+        _recordFillBrush.Color = Color.FromArgb(alpha * 9 / 10, ActiveTheme.Dark);
+        _recordEdgePen.Color = Color.FromArgb(alpha, 111, 242, 145);
+        _recordInnerPen.Color = Color.FromArgb(alpha / 2, ActiveTheme.Highlight);
 
-        g.FillRectangle(shadow, banner.X + 5, banner.Y + 5, banner.Width, banner.Height);
-        g.FillRectangle(fill, banner);
-        g.DrawRectangle(edge, banner);
-        g.DrawRectangle(inner, banner.X + 6, banner.Y + 6,
+        g.FillRectangle(_recordShadowBrush, banner.X + 5, banner.Y + 5, banner.Width, banner.Height);
+        g.FillRectangle(_recordFillBrush, banner);
+        g.DrawRectangle(_recordEdgePen, banner);
+        g.DrawRectangle(_recordInnerPen, banner.X + 6, banner.Y + 6,
             banner.Width - 12, banner.Height - 12);
 
         Color green = Color.FromArgb(alpha, 111, 242, 145);
@@ -4358,15 +4377,15 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, "NEW RECORD", centerX, banner.Y + 9, 2, green);
         DrawPixelText(g, "PERSONAL BEST ACHIEVED", centerX, banner.Y + 34, 1, subtitle);
 
-        using var spark = new SolidBrush(Color.FromArgb(alpha, 255, 220, 112));
-        using var greenSpark = new SolidBrush(Color.FromArgb(alpha, 111, 242, 145));
+        _recordSparkBrush.Color = Color.FromArgb(alpha, 255, 220, 112);
+        _recordGreenSparkBrush.Color = Color.FromArgb(alpha, 111, 242, 145);
         for (int i = 0; i < 12; i++)
         {
             float angle = (float)elapsed * 1.8f + i * MathF.PI / 6f;
             float radius = 178 + MathF.Sin((float)elapsed * 4f + i) * 13f;
             int x = centerX + (int)(MathF.Cos(angle) * radius);
             int y = banner.Y + banner.Height / 2 + (int)(MathF.Sin(angle) * 30f);
-            SolidBrush brush = i % 2 == 0 ? spark : greenSpark;
+            SolidBrush brush = i % 2 == 0 ? _recordSparkBrush : _recordGreenSparkBrush;
             g.FillRectangle(brush, x - 2, y - 2, 4, 4);
             if (i % 3 == 0)
             {
@@ -5265,6 +5284,12 @@ private void DrawThemeSectionCard(Graphics g)
         _mythicMiddlePen.Dispose();
         _mythicSparkPen.Dispose();
         _epicSparkBrush.Dispose();
+        _recordShadowBrush.Dispose();
+        _recordFillBrush.Dispose();
+        _recordEdgePen.Dispose();
+        _recordInnerPen.Dispose();
+        _recordSparkBrush.Dispose();
+        _recordGreenSparkBrush.Dispose();
 
         if (_bestScoreDirty || _scoreSaveFailed)
             SaveBestScore();

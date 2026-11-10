@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Diagnostics;
 using System.Globalization;
 using System.Media;
 using System.Text;
@@ -152,7 +153,7 @@ public sealed class GameForm : Form
     private Color RetroWhite => ActiveTheme.Text;
     private Color RetroDark => ActiveTheme.Dark;
 
-    private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 16 };
+    private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 8 };
     private readonly System.Windows.Forms.Timer _ambientTimer = new() { Interval = 90 };
     private readonly Random _random = new();
     private readonly List<Point> _snake = [];
@@ -168,7 +169,7 @@ public sealed class GameForm : Form
     private Difficulty _difficulty = Difficulty.Normal;
     private GameMode _mode = GameMode.Classic;
 
-    private DateTime _lastStepAt;
+    private long _lastStepTimestamp;
     private DateTime _lastFrameAt;
     private DateTime? _goldenExpiresAt;
     private TimeSpan _rushTimeLeft = TimeSpan.FromSeconds(60);
@@ -205,7 +206,6 @@ public sealed class GameForm : Form
     }
 
     private Bitmap? _playChromeCache;
-    private Bitmap? _playfieldFrameCache;
     private Bitmap? _tileSurfaceCache;
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
@@ -548,9 +548,12 @@ public sealed class GameForm : Form
 
             if (clip.IntersectsWith(_field))
             {
-                RenderPlayfieldFrame();
-                if (_playfieldFrameCache is not null)
-                    g.DrawImageUnscaled(_playfieldFrameCache, _field.Location);
+                GraphicsState frameState = g.Save();
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                DrawBoardDynamic(g);
+                DrawRecordCelebration(g);
+                g.Restore(frameState);
             }
 
             if (clip.IntersectsWith(_rightPanel))
@@ -2745,20 +2748,7 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
     }
 
-    private void RenderPlayfieldFrame()
-    {
-        _playfieldFrameCache ??= new Bitmap(
-            _field.Width, _field.Height, PixelFormat.Format32bppPArgb);
 
-        using Graphics g = Graphics.FromImage(_playfieldFrameCache);
-        g.Clear(Color.Transparent);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.Half;
-        g.TranslateTransform(-_field.Left, -_field.Top);
-
-        DrawBoardDynamic(g);
-        DrawRecordCelebration(g);
-    }
 
     private void BuildPlayChromeCache()
     {
@@ -2850,7 +2840,7 @@ private void DrawThemeSectionCard(Graphics g)
         GraphicsState state = g.Save();
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.PixelOffsetMode = PixelOffsetMode.Half;
-        g.SetClip(_field);
+        g.SetClip(_field, CombineMode.Intersect);
 
         if (_state == GameState.Ready)
             DrawWelcomeScreen(g);
@@ -3383,7 +3373,7 @@ private void DrawThemeSectionCard(Graphics g)
         if (elapsed < 0.7f)
         {
             int yOffset = (int)(elapsed * 30f);
-            DrawLabel(g, "+30", _effectFont, _goldBrush,
+            DrawLabel(g, "×3", _effectFont, _goldBrush,
                 new Rectangle((int)_goldBurstCenter.X - 30,
                     (int)_goldBurstCenter.Y - 42 - yOffset, 60, 24), _centerFormat);
         }
@@ -4044,8 +4034,8 @@ private void DrawThemeSectionCard(Graphics g)
         ResetSnake();
 
         _state = GameState.Playing;
-        _lastStepAt = DateTime.UtcNow;
-        _lastFrameAt = _lastStepAt;
+        _lastStepTimestamp = Stopwatch.GetTimestamp();
+        _lastFrameAt = DateTime.UtcNow;
         _frozenProgress = 0;
         _animationTimer.Start();
         Focus();
@@ -4065,9 +4055,10 @@ private void DrawThemeSectionCard(Graphics g)
         if (state == GameState.Playing)
         {
             _lastFrameAt = now;
-            _lastStepAt = resuming
-                ? now - TimeSpan.FromMilliseconds(CurrentStepMilliseconds() * _frozenProgress)
-                : now;
+            long nowTicks = Stopwatch.GetTimestamp();
+            _lastStepTimestamp = resuming
+                ? nowTicks - (long)(CurrentStepTicks() * _frozenProgress)
+                : nowTicks;
             _animationTimer.Start();
             Focus();
         }
@@ -4099,10 +4090,13 @@ private void DrawThemeSectionCard(Graphics g)
         return start;
     }
 
+    private long CurrentStepTicks() =>
+        CurrentStepMilliseconds() * Stopwatch.Frequency / 1000;
+
     private float CurrentProgress()
     {
-        double elapsed = (DateTime.UtcNow - _lastStepAt).TotalMilliseconds;
-        return Math.Clamp((float)(elapsed / CurrentStepMilliseconds()), 0f, 1f);
+        long elapsed = Stopwatch.GetTimestamp() - _lastStepTimestamp;
+        return Math.Clamp((float)(elapsed / (double)CurrentStepTicks()), 0f, 1f);
     }
 
     private void UpdateGameFrame()
@@ -4140,12 +4134,21 @@ private void DrawThemeSectionCard(Graphics g)
             _goldenExpiresAt = null;
         }
 
-        if (now - _lastStepAt >= TimeSpan.FromMilliseconds(CurrentStepMilliseconds()))
+        long nowTicks = Stopwatch.GetTimestamp();
+        long stepTicks = CurrentStepTicks();
+
+        if (nowTicks - _lastStepTimestamp >= stepTicks)
         {
             if (!MoveSnake(now))
                 return;
 
-            _lastStepAt = now;
+            // Keep the movement on a steady schedule instead of shifting every
+            // step by the timer's small scheduling delays.
+            _lastStepTimestamp += stepTicks;
+
+            // Avoid a burst of catch-up moves after the UI has been blocked.
+            if (nowTicks - _lastStepTimestamp >= stepTicks)
+                _lastStepTimestamp = nowTicks;
         }
 
         // The playfield is the only region that changes on a normal frame.
@@ -5168,7 +5171,6 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Stop();
         _ambientTimer.Dispose();
         _playChromeCache?.Dispose();
-        _playfieldFrameCache?.Dispose();
         _tileSurfaceCache?.Dispose();
         _overlayPath.Dispose();
 

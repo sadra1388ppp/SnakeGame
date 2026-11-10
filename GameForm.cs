@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
@@ -186,8 +185,6 @@ public sealed class GameForm : Form
     private DateTime? _recordCelebrationStarted;
     private bool _scoreSaveFailed;
     private bool _bestScoreDirty;
-    private double _averagePaintMilliseconds;
-    private bool _reducedVisualEffects;
     private bool _isFullscreen;
     private int _selectedSkin;
     private Rectangle _windowedBounds;
@@ -287,7 +284,6 @@ public sealed class GameForm : Form
     private readonly Font _bodyFont = new("Segoe UI", 9, FontStyle.Regular);
     private readonly Font _microFont = new("Segoe UI", 7.5f, FontStyle.Bold);
 
-    private readonly SolidBrush _paintBackgroundBrush = new(Background);
     private readonly SolidBrush _whiteBrush = new(White);
     private readonly SolidBrush _darkBrush = new(Color.FromArgb(12, 23, 17));
     private readonly SolidBrush _mutedBrush = new(Muted);
@@ -399,8 +395,7 @@ public sealed class GameForm : Form
         SetStyle(ControlStyles.AllPaintingInWmPaint |
                  ControlStyles.UserPaint |
                  ControlStyles.OptimizedDoubleBuffer |
-                 ControlStyles.ResizeRedraw |
-                 ControlStyles.Opaque, true);
+                 ControlStyles.ResizeRedraw, true);
 
         _bestScore = LoadBestScore();
         LoadPlayerStats();
@@ -500,27 +495,15 @@ public sealed class GameForm : Form
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        long paintStart = Stopwatch.GetTimestamp();
         base.OnPaint(e);
         if (_chrome is null)
             return;
 
         Graphics g = e.Graphics;
-        _paintBackgroundBrush.Color = RetroBackground;
-        g.FillRectangle(_paintBackgroundBrush, e.ClipRectangle);
+        g.Clear(RetroBackground);
         g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
-
-        if (_view == AppView.Play && _state == GameState.Playing &&
-            DesignToClient(_field).Contains(e.ClipRectangle))
-        {
-            DrawPlayfieldSurface(g);
-            DrawBoardDynamic(g);
-            DrawRecordCelebration(g);
-            UpdateRenderQuality(paintStart);
-            return;
-        }
 
         // Full seasonal scenery belongs to the menus. During gameplay, keep only
         // the clipped seasonal effects inside the board so trees and decorations
@@ -556,23 +539,6 @@ public sealed class GameForm : Form
         DrawUiHeader(g);
         DrawUiWindowControls(g);
 
-        UpdateRenderQuality(paintStart);
-    }
-
-    private void UpdateRenderQuality(long paintStart)
-    {
-        if (_view != AppView.Play || _state != GameState.Playing)
-            return;
-
-        double paintMilliseconds = Stopwatch.GetElapsedTime(paintStart).TotalMilliseconds;
-        _averagePaintMilliseconds = _averagePaintMilliseconds == 0
-            ? paintMilliseconds
-            : _averagePaintMilliseconds * 0.9 + paintMilliseconds * 0.1;
-
-        if (!_reducedVisualEffects && _averagePaintMilliseconds > 14)
-            _reducedVisualEffects = true;
-        else if (_reducedVisualEffects && _averagePaintMilliseconds < 9)
-            _reducedVisualEffects = false;
     }
 
     private void UpdateViewTransform()
@@ -2922,8 +2888,8 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawBoardDynamic(Graphics g)
     {
         GraphicsState state = g.Save();
-        g.SmoothingMode = _reducedVisualEffects ? SmoothingMode.None : SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = _reducedVisualEffects ? PixelOffsetMode.None : PixelOffsetMode.Half;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
         g.SetClip(_field);
 
         if (_state == GameState.Ready)
@@ -3210,8 +3176,7 @@ private void DrawThemeSectionCard(Graphics g)
                 _field.Top + cellY * CellSize + CellSize / 2f);
         }
 
-        DrawSnakeVisual(g, _snakeCenters, _snake.Count, Skins[_selectedSkin],
-            _direction, _reducedVisualEffects);
+        DrawSnakeVisual(g, _snakeCenters, _snake.Count, Skins[_selectedSkin], _direction);
     }
 
     private void DrawSnakePreview(Graphics g, Rectangle area, SnakeSkin skin)
@@ -3261,7 +3226,7 @@ private void DrawThemeSectionCard(Graphics g)
     }
 
     private void DrawSnakeVisual(Graphics g, PointF[] centers, int count,
-        SnakeSkin skin, Direction direction, bool reducedEffects = false)
+        SnakeSkin skin, Direction direction)
     {
         if (count == 0)
             return;
@@ -3299,12 +3264,12 @@ private void DrawThemeSectionCard(Graphics g)
         }
 
         if (skin.Pattern != SkinPattern.Plain)
-            DrawSkinPattern(g, centers, count, skin, reducedEffects);
+            DrawSkinPattern(g, centers, count, skin);
 
         if (skin.IsMythic)
-            DrawMythicAura(g, centers[0], centers, count, reducedEffects);
+            DrawMythicAura(g, centers[0], centers, count);
         else if (skin.IsLegendary)
-            DrawLegendaryAura(g, centers[0], centers, count, reducedEffects);
+            DrawLegendaryAura(g, centers[0], centers, count);
         else if (skin.IsEpic)
             DrawEpicAura(g, centers[0]);
 
@@ -3679,8 +3644,7 @@ private void DrawThemeSectionCard(Graphics g)
         new(center.X + tx * along + nx * across,
             center.Y + ty * along + ny * across);
 
-    private void DrawSkinPattern(Graphics g, PointF[] centers, int count,
-        SnakeSkin skin, bool reducedEffects = false)
+    private void DrawSkinPattern(Graphics g, PointF[] centers, int count, SnakeSkin skin)
     {
         _skinPatternPen.Color = skin.PatternColor;
         _skinAccentPen.Color = skin.Highlight;
@@ -3688,8 +3652,6 @@ private void DrawThemeSectionCard(Graphics g)
         float phase = Environment.TickCount64 / 180f;
         int stride = skin.Pattern is SkinPattern.Dots or SkinPattern.Stars or
             SkinPattern.Galaxy or SkinPattern.Coral ? 2 : 3;
-        if (reducedEffects)
-            stride = Math.Max(stride, 5);
 
         for (int i = 1; i < count - 1; i += stride)
         {
@@ -3838,8 +3800,7 @@ private void DrawThemeSectionCard(Graphics g)
                     break;
             }
 
-            if (!reducedEffects &&
-                (skin.Pattern is SkinPattern.Neon or SkinPattern.Galaxy or SkinPattern.Legendary or SkinPattern.Mythic) &&
+            if ((skin.Pattern is SkinPattern.Neon or SkinPattern.Galaxy or SkinPattern.Legendary or SkinPattern.Mythic) &&
                 i % (stride * 2) == 1)
             {
                 float sparkle = 2.5f + (MathF.Sin(phase + i) + 1f) * 1.1f;
@@ -3870,8 +3831,7 @@ private void DrawThemeSectionCard(Graphics g)
         }
     }
 
-    private void DrawMythicAura(Graphics g, PointF head, PointF[] centers, int count,
-        bool reducedEffects = false)
+    private void DrawMythicAura(Graphics g, PointF head, PointF[] centers, int count)
     {
         float time = Environment.TickCount64 / 180f;
         float pulse = 1f + MathF.Sin(time * 1.3f) * 0.13f;
@@ -3895,7 +3855,7 @@ private void DrawThemeSectionCard(Graphics g)
             g.DrawLine(pen, x, y - arm, x, y + arm);
         }
 
-        for (int i = 2; i < count; i += reducedEffects ? 5 : 2)
+        for (int i = 2; i < count; i += 2)
         {
             PointF p = centers[i];
             float shine = 2f + (MathF.Sin(time * 2f + i) + 1f) * 2f;
@@ -3903,8 +3863,7 @@ private void DrawThemeSectionCard(Graphics g)
         }
     }
 
-    private void DrawLegendaryAura(Graphics g, PointF head, PointF[] centers, int count,
-        bool reducedEffects = false)
+    private void DrawLegendaryAura(Graphics g, PointF head, PointF[] centers, int count)
     {
         float time = Environment.TickCount64 / 260f;
         float pulse = 1f + MathF.Sin(time) * 0.12f;
@@ -3928,7 +3887,7 @@ private void DrawThemeSectionCard(Graphics g)
             g.DrawLine(_legendaryPens[i % 3], x, y - arm, x, y + arm);
         }
 
-        for (int i = 3; i < count; i += reducedEffects ? 6 : 3)
+        for (int i = 3; i < count; i += 3)
         {
             PointF p = centers[i];
             float twinkle = 2.5f + (MathF.Sin(time * 2 + i) + 1f) * 1.5f;
@@ -5267,7 +5226,6 @@ private void DrawThemeSectionCard(Graphics g)
         _bodyFont.Dispose();
         _microFont.Dispose();
 
-        _paintBackgroundBrush.Dispose();
         _whiteBrush.Dispose();
         _darkBrush.Dispose();
         _mutedBrush.Dispose();

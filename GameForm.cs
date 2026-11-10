@@ -2308,8 +2308,8 @@ private void DrawThemeSectionCard(Graphics g)
                         x, y, size, size);
                     if (depth == 0 && i % 3 == 0)
                     {
-                        g.FillRectangle(_weatherBrightPen.Brush, x - 2, y + 1, size + 4, 1);
-                        g.FillRectangle(_weatherBrightPen.Brush, x + 1, y - 2, 1, size + 4);
+                        g.FillRectangle(_weatherAccentBrush, x - 2, y + 1, size + 4, 1);
+                        g.FillRectangle(_weatherAccentBrush, x + 1, y - 2, 1, size + 4);
                     }
                 }
                 break;
@@ -3427,18 +3427,18 @@ private void DrawThemeSectionCard(Graphics g)
         if (skin.Pattern != SkinPattern.Plain)
             DrawSkinPattern(g, centers, count, skin);
 
-        // Keep the terminal end rounded and centered on the last body segment.
-        PointF tail = centers[count - 1];
-        float tailSize = CellSize - 6;
-        g.FillEllipse(_snakeBrush, tail.X - tailSize / 2f,
-            tail.Y - tailSize / 2f, tailSize, tailSize);
-
         if (skin.IsMythic)
             DrawMythicAura(g, centers[0], centers, count);
         else if (skin.IsLegendary)
             DrawLegendaryAura(g, centers[0], centers, count);
         else if (skin.IsEpic)
             DrawEpicAura(g, centers[0]);
+
+        // Draw the tail cap last so skin details cannot distort its rounded tip.
+        PointF tail = centers[count - 1];
+        float tailSize = CellSize - 6;
+        g.FillEllipse(_snakeBrush, tail.X - tailSize / 2f,
+            tail.Y - tailSize / 2f, tailSize, tailSize);
 
         DrawSnakeHead(g, centers[0], direction);
     }

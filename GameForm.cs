@@ -3,6 +3,7 @@ using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.Globalization;
 using System.Media;
+using System.IO;
 using System.Text;
 
 namespace SnakeGame;
@@ -154,6 +155,10 @@ public sealed class GameForm : Form
     private Color RetroDark => ActiveTheme.Dark;
 
     private readonly System.Windows.Forms.Timer _animationTimer = new() { Interval = 8 };
+    private readonly MemoryStream _pickupSoundData;
+    private readonly SoundPlayer _pickupSound;
+    private readonly MemoryStream _goldPickupSoundData;
+    private readonly SoundPlayer _goldPickupSound;
     private readonly System.Windows.Forms.Timer _ambientTimer = new() { Interval = 90 };
     private readonly Random _random = new();
     private readonly List<Point> _snake = [];
@@ -411,6 +416,12 @@ public sealed class GameForm : Form
         _appleSprite = CreateAppleSprite(false);
         _goldAppleSprite = CreateAppleSprite(true);
         BuildPlayChromeCache();
+        _pickupSoundData = new MemoryStream(CreatePickupWave(false));
+        _pickupSound = new SoundPlayer(_pickupSoundData);
+        _pickupSound.Load();
+        _goldPickupSoundData = new MemoryStream(CreatePickupWave(true));
+        _goldPickupSound = new SoundPlayer(_goldPickupSoundData);
+        _goldPickupSound.Load();
 
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
         _ambientTimer.Tick += (_, _) =>
@@ -1627,9 +1638,19 @@ public sealed class GameForm : Form
 
     private void DrawPixelPanel(Graphics g, Rectangle rect, bool goldBorder)
     {
+        using var shadow = new SolidBrush(Color.FromArgb(95, 0, 0, 0));
+        g.FillRectangle(shadow, rect.X + 4, rect.Y + 5, rect.Width, rect.Height);
+
         using var fill = new SolidBrush(RetroDark);
         g.FillRectangle(fill, rect);
         DrawPixelOutline(g, rect, goldBorder ? RetroGold : RetroWhite, 4);
+
+        using var inner = new Pen(Color.FromArgb(48, ActiveTheme.Highlight), 1);
+        g.DrawRectangle(inner, rect.X + 7, rect.Y + 7,
+            rect.Width - 15, rect.Height - 15);
+        using var topLight = new SolidBrush(Color.FromArgb(38, ActiveTheme.Highlight));
+        g.FillRectangle(topLight, rect.X + 8, rect.Y + 8,
+            Math.Max(1, rect.Width - 16), 2);
     }
 
     private void DrawPixelOutline(Graphics g, Rectangle rect, Color color, int thickness)
@@ -3240,10 +3261,29 @@ private void DrawThemeSectionCard(Graphics g)
         {
             PointF previous = centers[i - 1];
             PointF current = centers[i];
-            _snakePath.AddLine(previous, current);
+            // A low-tension spline rounds corners while keeping the snake's
+            // centerline close to the original grid path.
+        }
+
+        if (end - start >= 2)
+        {
+            int count = end - start + 1;
+            PointF[] bodyPoints = new PointF[count];
+            PointF[] highlightPoints = new PointF[count];
+            Array.Copy(centers, start, bodyPoints, 0, count);
+            for (int i = 0; i < count; i++)
+                highlightPoints[i] = new PointF(bodyPoints[i].X - 1.2f,
+                    bodyPoints[i].Y - 3.2f);
+
+            _snakePath.AddCurve(bodyPoints, 0, count - 1, 0.22f);
+            _snakeHighlightPath.AddCurve(highlightPoints, 0, count - 1, 0.22f);
+        }
+        else
+        {
+            _snakePath.AddLine(centers[start], centers[end]);
             _snakeHighlightPath.AddLine(
-                new PointF(previous.X - 1.2f, previous.Y - 3.2f),
-                new PointF(current.X - 1.2f, current.Y - 3.2f));
+                new PointF(centers[start].X - 1.2f, centers[start].Y - 3.2f),
+                new PointF(centers[end].X - 1.2f, centers[end].Y - 3.2f));
         }
     }
 
@@ -4409,6 +4449,46 @@ private void DrawThemeSectionCard(Graphics g)
         InvalidateDesign(_rightPanel);
     }
 
+    private static byte[] CreatePickupWave(bool golden)
+    {
+        const int sampleRate = 22050;
+        const double duration = 0.24;
+        int sampleCount = (int)(sampleRate * duration);
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+
+        writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+        writer.Write(36 + sampleCount * 2);
+        writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+        writer.Write(16);
+        writer.Write((short)1);
+        writer.Write((short)1);
+        writer.Write(sampleRate);
+        writer.Write(sampleRate * 2);
+        writer.Write((short)2);
+        writer.Write((short)16);
+        writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+        writer.Write(sampleCount * 2);
+
+        double startFrequency = golden ? 760 : 560;
+        double rise = golden ? 900 : 560;
+        for (int i = 0; i < sampleCount; i++)
+        {
+            double t = i / (double)sampleRate;
+            double progress = t / duration;
+            double frequency = startFrequency + rise * progress;
+            double envelope = Math.Min(1, t / 0.012) * Math.Pow(1 - progress, 1.65);
+            double fundamental = Math.Sin(2 * Math.PI * frequency * t);
+            double overtone = Math.Sin(2 * Math.PI * frequency * 2.01 * t) * 0.28;
+            double sparkle = Math.Sin(2 * Math.PI * (frequency * 3.02) * t) * 0.08;
+            double sample = (fundamental + overtone + sparkle) * envelope * 0.48;
+            writer.Write((short)Math.Clamp((int)(sample * short.MaxValue),
+                short.MinValue, short.MaxValue));
+        }
+
+        return stream.ToArray();
+    }
+
     private void PlaySound(int type)
     {
         if (!_soundEnabled)
@@ -4417,11 +4497,11 @@ private void DrawThemeSectionCard(Graphics g)
         try
         {
             if (type == 0)
-                SystemSounds.Asterisk.Play();
-            else if (type == 1)
-                SystemSounds.Hand.Play();
+                _pickupSound.Play();
+            else if (type == 2)
+                _goldPickupSound.Play();
             else
-                SystemSounds.Exclamation.Play();
+                SystemSounds.Hand.Play();
         }
         catch
         {
@@ -5162,6 +5242,12 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Dispose();
         _playChromeCache?.Dispose();
         _tileSurfaceCache?.Dispose();
+        _pickupSound.Stop();
+        _goldPickupSound.Stop();
+        _pickupSound.Dispose();
+        _goldPickupSound.Dispose();
+        _pickupSoundData.Dispose();
+        _goldPickupSoundData.Dispose();
         _overlayPath.Dispose();
 
         _smallFont.Dispose();

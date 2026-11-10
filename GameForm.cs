@@ -4085,7 +4085,7 @@ private void DrawThemeSectionCard(Graphics g)
     }
 
     private long CurrentStepTicks() =>
-        CurrentStepMilliseconds() * Stopwatch.Frequency / 1000;
+        (long)CurrentStepMilliseconds() * Stopwatch.Frequency / 1000;
 
     private float CurrentProgress()
     {
@@ -4136,13 +4136,9 @@ private void DrawThemeSectionCard(Graphics g)
             if (!MoveSnake(now))
                 return;
 
-            // Keep the movement on a steady schedule instead of shifting every
-            // step by the timer's small scheduling delays.
-            _lastStepTimestamp += stepTicks;
-
-            // Avoid a burst of catch-up moves after the UI has been blocked.
-            if (nowTicks - _lastStepTimestamp >= stepTicks)
-                _lastStepTimestamp = nowTicks;
+            // Keep the original movement speed. Each new cell starts a full
+            // movement interval from the moment the previous move completed.
+            _lastStepTimestamp = nowTicks;
         }
 
         // The playfield is the only region that changes on a normal frame.

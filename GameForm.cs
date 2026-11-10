@@ -15,7 +15,7 @@ public sealed class GameForm : Form
     private enum Direction { Up, Down, Left, Right }
     private enum Difficulty { Easy, Normal, Hard }
     private enum GameMode { Classic, Wrap, Rush }
-    private enum ThemeSeason { Spring, Summer, Autumn, Winter }
+    private enum ThemeSeason { Spring, Summer, Autumn, Winter, Forest }
     private enum TilePattern { Classic, Circuit, Molten }
 
     private sealed record BoardTileTheme(
@@ -96,7 +96,17 @@ public sealed class GameForm : Form
             Color.FromArgb(18, 29, 58), Color.FromArgb(8, 16, 37),
             Color.FromArgb(139, 190, 245), Color.FromArgb(237, 244, 255),
             Color.FromArgb(160, 177, 255), Color.FromArgb(48, 65, 104),
-            Color.FromArgb(193, 231, 255))
+            Color.FromArgb(193, 231, 255)),
+        new("FOREST", "DAY", ThemeSeason.Forest, false,
+            Color.FromArgb(39, 83, 52), Color.FromArgb(10, 36, 25),
+            Color.FromArgb(130, 190, 91), Color.FromArgb(239, 250, 222),
+            Color.FromArgb(183, 224, 111), Color.FromArgb(54, 105, 63),
+            Color.FromArgb(94, 164, 91)),
+        new("FOREST", "NIGHT", ThemeSeason.Forest, true,
+            Color.FromArgb(20, 43, 48), Color.FromArgb(6, 21, 27),
+            Color.FromArgb(88, 154, 126), Color.FromArgb(222, 245, 224),
+            Color.FromArgb(135, 190, 151), Color.FromArgb(34, 79, 69),
+            Color.FromArgb(76, 137, 101))
     ];
 
     private static readonly SnakeSkin[] Skins =
@@ -800,16 +810,12 @@ public sealed class GameForm : Form
         DrawRetroNavButton(g, _settingsNavButton, "SETTINGS", _view == AppView.Settings);
 
         // Compact live season indicator uses the same palette as the active world.
-        Rectangle worldChip = new(866, 21, 106, 36);
+        Rectangle worldChip = new(866, 21, 40, 36);
         using (var chip = new SolidBrush(Color.FromArgb(175, ActiveTheme.Dark)))
             g.FillRectangle(chip, worldChip);
         using (var chipEdge = new Pen(Color.FromArgb(125, ActiveTheme.Accent), 1))
             g.DrawRectangle(chipEdge, worldChip);
-        DrawSeasonGlyph(g, 887, 39, 2, ActiveTheme, 220);
-        using (var divider = new Pen(Color.FromArgb(80, ActiveTheme.Highlight), 1))
-            g.DrawLine(divider, 908, 27, 908, 51);
-        DrawPixelText(g, ActiveTheme.IsNight ? "NIGHT" : "DAY",
-            940, 32, 1, ActiveTheme.Highlight);
+        DrawSeasonGlyph(g, 886, 39, 2, ActiveTheme, 220);
     }
 
     private void DrawUiWindowControls(Graphics g)
@@ -1799,7 +1805,7 @@ public sealed class GameForm : Form
 
     private void DrawThemeBrowserPage(Graphics g)
     {
-        string title = _themeMenuLevel == 1 ? "THEMES" : "SEASON THEMES";
+        string title = _themeMenuLevel == 1 ? "THEMES" : "WORLD THEMES";
         DrawPixelText(g, title, DesignWidth / 2, 91, 5, RetroWhite);
         DrawRetroButton(g, _seasonBackButton, "BACK", 2,
             _seasonBackButton.Contains(_mousePoint));
@@ -1894,10 +1900,10 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(fill, tile);
         DrawPixelOutline(g, tile, RetroGold, 4);
 
-        ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6]];
-        string[] names = ["SPRING", "SUMMER", "AUTUMN", "WINTER"];
-        int gap = 8;
-        int artWidth = (tile.Width - 40 - gap * 3) / 4;
+        ArcadeTheme[] previews = [Themes[0], Themes[2], Themes[4], Themes[6], Themes[8]];
+        string[] names = ["SPRING", "SUMMER", "AUTUMN", "WINTER", "FOREST"];
+        int gap = 6;
+        int artWidth = (tile.Width - 40 - gap * 4) / 5;
 
         for (int i = 0; i < previews.Length; i++)
         {
@@ -1913,9 +1919,9 @@ private void DrawThemeSectionCard(Graphics g)
                 tile.Y + 190, 1, previews[i].Text);
         }
 
-        DrawPixelText(g, "SEASON THEMES",
+        DrawPixelText(g, "SEASON + FOREST WORLDS",
             tile.X + tile.Width / 2, tile.Y + 242, 2, RetroGold);
-        DrawPixelText(g, "OPEN TO VIEW ALL SEASONAL THEMES",
+        DrawPixelText(g, "OPEN TO VIEW ALL WORLDS",
             tile.X + tile.Width / 2, tile.Y + 285, 1, RetroWhite);
     }
 
@@ -2034,6 +2040,9 @@ private void DrawThemeSectionCard(Graphics g)
             g.FillRectangle(particles, x, y, i % 3 == 0 ? 3 : 2, i % 3 == 0 ? 3 : 2);
         }
 
+        if (theme.SeasonType == ThemeSeason.Forest)
+            DrawPixelForest(g, area, theme, 190);
+
         DrawThemePreviewWeather(g, area, theme);
 
         using var frame = new Pen(Color.FromArgb(150, theme.Highlight), 1);
@@ -2094,6 +2103,16 @@ private void DrawThemeSectionCard(Graphics g)
                         x, y, size, size);
                 }
                 break;
+
+            case ThemeSeason.Forest:
+                for (int i = 0; i < 10; i++)
+                {
+                    int x = area.Left + (i * 31 + (int)(phase / 2)) % width;
+                    int y = area.Top + (i * 23 + (int)(phase / 3)) % height;
+                    g.FillRectangle(_weatherAccentBrush, x, y, 4, 2);
+                    g.FillRectangle(_weatherBrush, x + 2, y - 2, 2, 4);
+                }
+                break;
         }
     }
 
@@ -2123,6 +2142,71 @@ private void DrawThemeSectionCard(Graphics g)
         g.DrawLine(pen, x - size + 1, y + size - 1, x + size - 1, y - size + 1);
     }
 
+
+    private static void DrawPixelForest(Graphics g, Rectangle area,
+        ArcadeTheme theme, int alpha)
+    {
+        int groundY = area.Bottom - Math.Max(8, area.Height / 9);
+        int scale = Math.Clamp(area.Height / 145, 1, 5);
+
+        using var ground = new SolidBrush(Color.FromArgb(alpha, theme.Dark));
+        using var farLeaves = new SolidBrush(Color.FromArgb(alpha, theme.Grid));
+        using var nearLeaves = new SolidBrush(Color.FromArgb(Math.Min(255, alpha + 24), theme.Accent));
+        using var leafLight = new SolidBrush(Color.FromArgb(Math.Min(255, alpha + 35), theme.Highlight));
+        using var trunk = new SolidBrush(Color.FromArgb(alpha, 75, 57, 39));
+
+        g.FillRectangle(ground, area.Left, groundY, area.Width, area.Bottom - groundY);
+
+        int farScale = Math.Max(1, scale - 1);
+        int farStep = Math.Max(25, area.Width / 8);
+        for (int x = area.Left + farStep / 2, i = 0; x < area.Right; x += farStep, i++)
+            DrawPixelForestTree(g, x, groundY + 2, farScale,
+                farLeaves, leafLight, trunk, i % 2 == 0);
+
+        int nearStep = Math.Max(34, area.Width / 6);
+        for (int x = area.Left + nearStep / 2, i = 0; x < area.Right; x += nearStep, i++)
+            DrawPixelForestTree(g, x, area.Bottom - 1, scale,
+                nearLeaves, leafLight, trunk, i % 2 != 0);
+    }
+
+    private static void DrawPixelForestTree(Graphics g, int centerX, int groundY,
+        int scale, Brush leaves, Brush highlight, Brush trunk, bool pine)
+    {
+        g.FillRectangle(trunk, centerX - scale, groundY - scale * 8,
+            scale * 2, scale * 8);
+
+        if (pine)
+        {
+            g.FillRectangle(leaves, centerX - scale * 5, groundY - scale * 15,
+                scale * 10, scale * 5);
+            g.FillRectangle(leaves, centerX - scale * 4, groundY - scale * 20,
+                scale * 8, scale * 5);
+            g.FillRectangle(leaves, centerX - scale * 3, groundY - scale * 25,
+                scale * 6, scale * 5);
+            g.FillRectangle(leaves, centerX - scale, groundY - scale * 29,
+                scale * 2, scale * 4);
+            g.FillRectangle(highlight, centerX - scale * 3, groundY - scale * 22,
+                scale * 2, scale * 2);
+            g.FillRectangle(highlight, centerX - scale * 4, groundY - scale * 16,
+                scale * 2, scale * 2);
+        }
+        else
+        {
+            g.FillRectangle(leaves, centerX - scale * 6, groundY - scale * 22,
+                scale * 12, scale * 9);
+            g.FillRectangle(leaves, centerX - scale * 9, groundY - scale * 19,
+                scale * 7, scale * 7);
+            g.FillRectangle(leaves, centerX + scale * 2, groundY - scale * 19,
+                scale * 7, scale * 7);
+            g.FillRectangle(leaves, centerX - scale * 4, groundY - scale * 27,
+                scale * 8, scale * 7);
+            g.FillRectangle(highlight, centerX - scale * 4, groundY - scale * 24,
+                scale * 3, scale * 2);
+            g.FillRectangle(highlight, centerX + scale * 3, groundY - scale * 18,
+                scale * 2, scale * 2);
+        }
+    }
+
     private void DrawThemeAtmosphere(Graphics g)
     {
         ArcadeTheme theme = ActiveTheme;
@@ -2146,6 +2230,10 @@ private void DrawThemeSectionCard(Graphics g)
 
         using var topGlow = new SolidBrush(Color.FromArgb(16, theme.Highlight));
         g.FillRectangle(topGlow, 24, 80, DesignWidth - 48, 112);
+
+        if (theme.SeasonType == ThemeSeason.Forest)
+            DrawPixelForest(g, new Rectangle(18, 88, DesignWidth - 36,
+                DesignHeight - 104), theme, 76);
 
         // Small pixel particles add atmosphere but stay visually quiet.
         using var particles = new SolidBrush(Color.FromArgb(95, theme.Highlight));
@@ -2215,6 +2303,15 @@ private void DrawThemeSectionCard(Graphics g)
                 g.FillRectangle(detail, centerX + size * 2, centerY + size, size, size * 2);
                 g.FillRectangle(detail, centerX + size * 2, centerY - size * 3, size, size * 2);
                 g.FillRectangle(detail, centerX - size * 3, centerY + size, size, size * 2);
+                break;
+
+            case ThemeSeason.Forest:
+                g.FillRectangle(main, centerX - size, centerY - size * 5, size * 2, size * 3);
+                g.FillRectangle(main, centerX - size * 3, centerY - size * 3, size * 6, size * 3);
+                g.FillRectangle(main, centerX - size * 4, centerY, size * 8, size * 2);
+                g.FillRectangle(detail, centerX - size, centerY + size * 2, size * 2, size * 4);
+                g.FillRectangle(detail, centerX - size * 2, centerY - size * 3, size, size * 2);
+                g.FillRectangle(detail, centerX + size, centerY - size * 2, size, size * 2);
                 break;
         }
     }
@@ -2311,6 +2408,18 @@ private void DrawThemeSectionCard(Graphics g)
                         g.FillRectangle(_weatherAccentBrush, x - 2, y + 1, size + 4, 1);
                         g.FillRectangle(_weatherAccentBrush, x + 1, y - 2, 1, size + 4);
                     }
+                }
+                break;
+
+            case ThemeSeason.Forest:
+                // Small pixel leaves drift through the forest world.
+                for (int i = 0; i < count / 2; i++)
+                {
+                    int x = area.Left + (i * 83 + (int)(tick / 25)) % width;
+                    int y = area.Top + (i * 47 + (int)(tick / 34)) % height;
+                    int size = i % 4 == 0 ? 4 : 3;
+                    g.FillRectangle(_weatherAccentBrush, x, y, size, 2);
+                    g.FillRectangle(_weatherBrush, x + size / 2, y - 2, 2, 2);
                 }
                 break;
         }

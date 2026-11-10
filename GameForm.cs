@@ -489,6 +489,16 @@ public sealed class GameForm : Form
 
         Graphics g = e.Graphics;
         g.Transform = _viewMatrix;
+
+        if (_view == AppView.Play && _state == GameState.Playing &&
+            DesignToClient(_field).Contains(e.ClipRectangle))
+        {
+            DrawPlayfieldSurface(g);
+            DrawBoardDynamic(g);
+            DrawRecordCelebration(g);
+            return;
+        }
+
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
         g.Clear(RetroBackground);
@@ -2739,6 +2749,18 @@ private void DrawThemeSectionCard(Graphics g)
         g.FillRectangle(corner, rect.Right - 2, rect.Bottom - 30, 4, 18);
     }
 
+    private void DrawPlayfieldSurface(Graphics g)
+    {
+        if (_tileSurfaceCache is not null)
+            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
+        else
+            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
+
+        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
+            Color.FromArgb(38, ActiveTheme.Highlight), 1);
+        DrawPixelOutline(g, _field, RetroGold, 3);
+    }
+
     private void DrawRetroPlayChrome(Graphics g)
     {
         DrawPixelPanel(g, _boardCard, true);
@@ -2750,14 +2772,7 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _difficultyArea, true);
         DrawPixelPanel(g, _actionArea, true);
 
-        if (_tileSurfaceCache is not null)
-            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
-        else
-            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
-
-        DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
-            Color.FromArgb(38, ActiveTheme.Highlight), 1);
-        DrawPixelOutline(g, _field, RetroGold, 3);
+        DrawPlayfieldSurface(g);
 
         SolidBrush frameAccent = GetPixelBrush(ActiveTheme.Highlight);
         for (int i = 1; i < 6; i++)

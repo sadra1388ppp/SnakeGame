@@ -206,6 +206,7 @@ public sealed class GameForm : Form
 
     private Bitmap? _chrome;
     private Bitmap? _playChromeCache;
+    private Bitmap? _playfieldFrameCache;
     private Bitmap? _tileSurfaceCache;
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
@@ -547,8 +548,9 @@ public sealed class GameForm : Form
 
             if (clip.IntersectsWith(_field))
             {
-                DrawBoardDynamic(g);
-                DrawRecordCelebration(g);
+                RenderPlayfieldFrame();
+                if (_playfieldFrameCache is not null)
+                    g.DrawImageUnscaled(_playfieldFrameCache, _field.Location);
             }
 
             if (clip.IntersectsWith(_rightPanel))
@@ -2835,6 +2837,21 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, "BEST", 1040, 158, 2, RetroGold);
         DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
         DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
+    }
+
+    private void RenderPlayfieldFrame()
+    {
+        _playfieldFrameCache ??= new Bitmap(
+            _field.Width, _field.Height, PixelFormat.Format32bppPArgb);
+
+        using Graphics g = Graphics.FromImage(_playfieldFrameCache);
+        g.Clear(Color.Transparent);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
+        g.TranslateTransform(-_field.Left, -_field.Top);
+
+        DrawBoardDynamic(g);
+        DrawRecordCelebration(g);
     }
 
     private void BuildPlayChromeCache()
@@ -5246,6 +5263,7 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Dispose();
         _chrome?.Dispose();
         _playChromeCache?.Dispose();
+        _playfieldFrameCache?.Dispose();
         _tileSurfaceCache?.Dispose();
         _overlayPath.Dispose();
 

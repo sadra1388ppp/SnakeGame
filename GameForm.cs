@@ -215,6 +215,7 @@ public sealed class GameForm : Form
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
     private readonly PointF[] _snakeCenters = new PointF[BoardCells];
+    private readonly PointF[] _snakeHighlightCenters = new PointF[BoardCells];
     private readonly PointF[] _skinDiamond = new PointF[4];
     private readonly PointF[] _skinPentagon = new PointF[5];
     private readonly PointF[] _skinHexagon = new PointF[6];
@@ -1817,25 +1818,36 @@ public sealed class GameForm : Form
         bool selected = index == _selectedTheme;
         bool hover = tile.Contains(_mousePoint);
 
-        using var fill = new SolidBrush(theme.Dark);
-        g.FillRectangle(fill, tile);
+        using (var shadow = new SolidBrush(Color.FromArgb(95, 0, 0, 0)))
+            g.FillRectangle(shadow, tile.X + 4, tile.Y + 5, tile.Width, tile.Height);
+        using (var fill = new LinearGradientBrush(
+                   tile, theme.Background, theme.Dark, LinearGradientMode.Vertical))
+            g.FillRectangle(fill, tile);
+
         DrawPixelOutline(g, tile,
             selected ? theme.Highlight : hover ? theme.Text : theme.Accent,
             selected ? 4 : 2);
+        DrawPixelOutline(g, Rectangle.Inflate(tile, -6, -6),
+            Color.FromArgb(70, theme.Highlight), 1);
 
         Rectangle art = new(tile.X + 10, tile.Y + 10, tile.Width - 20, 132);
-        using (var artFill = new SolidBrush(theme.Background))
-            g.FillRectangle(artFill, art);
         DrawThemeThumbnail(g, art, theme);
-        DrawPixelOutline(g, art, theme.Grid, 1);
+        DrawPixelOutline(g, art, theme.Accent, 2);
+
+        using var separator = new Pen(Color.FromArgb(100, theme.Grid), 1);
+        g.DrawLine(separator, tile.X + 18, tile.Y + 151, tile.Right - 18, tile.Y + 151);
 
         DrawPixelText(g, theme.Season, tile.X + tile.Width / 2,
-            tile.Y + 160, 3, theme.Text);
+            tile.Y + 164, 3, theme.Text);
         DrawPixelText(g, theme.TimeOfDay, tile.X + tile.Width / 2,
             tile.Y + 190, 2, theme.Accent);
 
+        using var status = new SolidBrush(selected
+            ? Color.FromArgb(190, theme.Highlight)
+            : Color.FromArgb(80, theme.Grid));
+        g.FillRectangle(status, tile.X + 18, tile.Bottom - 9, tile.Width - 36, 3);
         if (selected)
-            DrawPixelText(g, "SELECTED", tile.X + tile.Width / 2,
+            DrawPixelText(g, "EQUIPPED", tile.X + tile.Width / 2,
                 tile.Y + 214, 1, theme.Highlight);
     }
 
@@ -1938,81 +1950,65 @@ private void DrawThemeSectionCard(Graphics g)
             new Rectangle(tile.Right - 76, tile.Y + 145, 54, 58), _centerFormat);
     }
 
-        private void DrawThemeThumbnail(Graphics g, Rectangle area, ArcadeTheme theme)
+    private void DrawThemeThumbnail(Graphics g, Rectangle area, ArcadeTheme theme)
     {
-        using var ground = new SolidBrush(theme.Dark);
-        g.FillRectangle(ground, area.X, area.Bottom - 18, area.Width, 18);
+        using (var background = new LinearGradientBrush(
+                   area, theme.Background, theme.Dark, LinearGradientMode.Vertical))
+            g.FillRectangle(background, area);
 
-        int sunX = area.Right - 27;
-        int sunY = area.Y + 23;
-        using var skyAccent = new SolidBrush(theme.Accent);
+        // Crisp technical grid, layered horizon and palette accents replace
+        // the old illustrated trees, hills and hand-painted scenery.
+        using var grid = new Pen(Color.FromArgb(48, theme.Grid), 1);
+        for (int x = area.Left + 8; x < area.Right; x += 16)
+            g.DrawLine(grid, x, area.Top, x, area.Bottom);
+        for (int y = area.Top + 8; y < area.Bottom; y += 16)
+            g.DrawLine(grid, area.Left, y, area.Right, y);
 
+        int horizon = area.Bottom - Math.Max(22, area.Height / 4);
+        using var ground = new SolidBrush(Color.FromArgb(175, theme.Dark));
+        g.FillRectangle(ground, area.Left, horizon, area.Width, area.Bottom - horizon);
+
+        using var horizonLine = new Pen(Color.FromArgb(170, theme.Accent), 2);
+        g.DrawLine(horizonLine, area.Left, horizon, area.Right, horizon);
+        using var accentLine = new SolidBrush(Color.FromArgb(100, theme.Highlight));
+        for (int i = 0; i < 5; i++)
+        {
+            int width = 14 + (i % 3) * 9;
+            int x = area.Left + 12 + i * (area.Width - 38) / 5;
+            g.FillRectangle(accentLine, x, horizon + 8 + (i % 2) * 7, width, 2);
+        }
+
+        // A clean pixel emblem identifies each season at a glance.
+        DrawSeasonGlyph(g, area.Left + area.Width / 2,
+            area.Top + area.Height / 2 - 4, Math.Max(3, area.Width / 42), theme, 225);
+
+        using var skyMark = new SolidBrush(Color.FromArgb(205, theme.Accent));
+        int markX = area.Right - 28;
+        int markY = area.Top + 22;
         if (theme.IsNight)
         {
-            g.FillEllipse(skyAccent, sunX - 8, sunY - 8, 18, 18);
-            using var cutout = new SolidBrush(theme.Background);
-            g.FillEllipse(cutout, sunX - 1, sunY - 12, 18, 18);
-
-            using var stars = new SolidBrush(theme.Highlight);
-            Point[] starPoints =
-            [
-                new(area.X + 15, area.Y + 16),
-                new(area.X + 48, area.Y + 30),
-                new(area.X + 79, area.Y + 13)
-            ];
-            foreach (Point star in starPoints)
-                g.FillRectangle(stars, star.X, star.Y, 3, 3);
+            g.FillRectangle(skyMark, markX, markY, 10, 10);
+            g.FillRectangle(skyMark, markX - 4, markY + 4, 4, 4);
+            using var cutout = new SolidBrush(theme.Dark);
+            g.FillRectangle(cutout, markX + 4, markY - 3, 10, 10);
         }
         else
         {
-            g.FillEllipse(skyAccent, sunX - 9, sunY - 9, 18, 18);
-            using var rays = new Pen(theme.Accent, 2);
-            g.DrawLine(rays, sunX, sunY - 15, sunX, sunY - 12);
-            g.DrawLine(rays, sunX, sunY + 12, sunX, sunY + 15);
-            g.DrawLine(rays, sunX - 15, sunY, sunX - 12, sunY);
-            g.DrawLine(rays, sunX + 12, sunY, sunX + 15, sunY);
+            g.FillRectangle(skyMark, markX + 3, markY - 4, 6, 20);
+            g.FillRectangle(skyMark, markX - 4, markY + 3, 20, 6);
         }
 
-        Point[] hills =
-        [
-            new(area.X, area.Bottom - 18),
-            new(area.X + 31, area.Y + 48),
-            new(area.X + 67, area.Bottom - 18),
-            new(area.X + 91, area.Y + 53),
-            new(area.Right, area.Bottom - 18)
-        ];
-        using var landscape = new SolidBrush(theme.Grid);
-        g.FillPolygon(landscape, hills);
-
-        using var detail = new SolidBrush(theme.Effect);
-        switch (theme.SeasonType)
+        using var particles = new SolidBrush(Color.FromArgb(155, theme.Highlight));
+        for (int i = 0; i < 8; i++)
         {
-            case ThemeSeason.Spring:
-                DrawBlossomTree(g, area.X + 25, area.Bottom - 12, 0.20f, theme);
-                DrawPixelFlower(g, area.X + 78, area.Bottom - 25, detail, theme.Accent);
-                DrawPixelFlower(g, area.X + 95, area.Bottom - 31, detail, theme.Accent);
-                break;
-            case ThemeSeason.Summer:
-                DrawPalmTree(g, area.X + 24, area.Bottom - 12, 0.20f, theme);
-                g.FillRectangle(detail, area.X + 48, area.Bottom - 25, 25, 3);
-                g.FillRectangle(detail, area.X + 70, area.Bottom - 30, 24, 3);
-                break;
-            case ThemeSeason.Autumn:
-                DrawBareTree(g, area.X + 26, area.Bottom - 12, 0.20f, theme);
-                DrawPixelLeaf(g, area.X + 78, area.Bottom - 24, detail, 8);
-                DrawPixelLeaf(g, area.X + 96, area.Bottom - 28, detail, 7);
-                using (var rain = new Pen(Color.FromArgb(145, theme.Highlight), 1))
-                {
-                    g.DrawLine(rain, area.X + 60, area.Y + 9, area.X + 56, area.Y + 23);
-                    g.DrawLine(rain, area.X + 84, area.Y + 6, area.X + 80, area.Y + 20);
-                }
-                break;
-            case ThemeSeason.Winter:
-                DrawPineTree(g, area.X + 26, area.Bottom - 12, 0.22f, theme);
-                DrawPixelSnowflake(g, area.X + 83, area.Bottom - 30, detail, 5);
-                DrawPixelSnowflake(g, area.X + 99, area.Bottom - 38, detail, 4);
-                break;
+            int x = area.Left + 12 + (i * 29) % Math.Max(1, area.Width - 24);
+            int y = area.Top + 12 + (i * 17) % Math.Max(1, area.Height - 24);
+            g.FillRectangle(particles, x, y, i % 3 == 0 ? 3 : 2, i % 3 == 0 ? 3 : 2);
         }
+
+        using var frame = new Pen(Color.FromArgb(150, theme.Highlight), 1);
+        g.DrawRectangle(frame, area.X + 2, area.Y + 2,
+            Math.Max(1, area.Width - 5), Math.Max(1, area.Height - 5));
     }
 
     private static void DrawPixelFlower(Graphics g, int x, int y,
@@ -2046,70 +2042,93 @@ private void DrawThemeSectionCard(Graphics g)
         ArcadeTheme theme = ActiveTheme;
         long tick = Environment.TickCount64;
 
+        using (var background = new LinearGradientBrush(
+                   new Rectangle(0, 0, DesignWidth, DesignHeight),
+                   theme.Background, theme.Dark, LinearGradientMode.Vertical))
+            g.FillRectangle(background, 0, 0, DesignWidth, DesignHeight);
+
+        // A restrained cabinet grid gives the menus depth without painted scenery.
+        using var grid = new Pen(Color.FromArgb(24, theme.Grid), 1);
+        for (int x = 24; x < DesignWidth; x += 40)
+            g.DrawLine(grid, x, 82, x, DesignHeight - 20);
+        for (int y = 92; y < DesignHeight - 12; y += 40)
+            g.DrawLine(grid, 18, y, DesignWidth - 18, y);
+
+        using var rail = new Pen(Color.FromArgb(100, theme.Accent), 2);
+        g.DrawLine(rail, 24, 78, DesignWidth - 24, 78);
+        g.DrawLine(rail, 24, DesignHeight - 28, DesignWidth - 24, DesignHeight - 28);
+
+        using var topGlow = new SolidBrush(Color.FromArgb(16, theme.Highlight));
+        g.FillRectangle(topGlow, 24, 80, DesignWidth - 48, 112);
+
+        // Small pixel particles add atmosphere but stay visually quiet.
+        using var particles = new SolidBrush(Color.FromArgb(95, theme.Highlight));
+        for (int i = 0; i < 22; i++)
+        {
+            int x = 34 + (i * 97 + (int)(tick / 85)) % (DesignWidth - 68);
+            int y = 104 + (i * 53) % 570;
+            int size = (i % 5 == 0) ? 4 : 2;
+            g.FillRectangle(particles, x, y, size, size);
+        }
+
+        DrawSeasonGlyph(g, 78, 666, 5, theme, 145);
+
+        // Day and night are represented with crisp blocks instead of soft illustrations.
+        using var skyMark = new SolidBrush(Color.FromArgb(185, theme.Accent));
+        int markX = 1062;
+        int markY = 112;
         if (theme.IsNight)
         {
-            using (var moon = new SolidBrush(Color.FromArgb(220, theme.Accent)))
-                g.FillEllipse(moon, 1058, 80, 42, 42);
-            using (var shadow = new SolidBrush(theme.Background))
-                g.FillEllipse(shadow, 1075, 73, 42, 42);
-
-            using var stars = new SolidBrush(theme.Highlight);
-            for (int i = 0; i < 28; i++)
-            {
-                int x = 25 + (i * 83) % (DesignWidth - 50);
-                int y = 82 + (i * 47) % 585;
-                int twinkle = (i + (int)(tick / 280)) % 4 == 0 ? 4 : 2;
-                g.FillRectangle(stars, x, y, twinkle, twinkle);
-            }
+            g.FillRectangle(skyMark, markX, markY, 18, 18);
+            g.FillRectangle(skyMark, markX - 6, markY + 6, 6, 6);
+            g.FillRectangle(skyMark, markX + 18, markY + 6, 6, 6);
+            using var cutout = new SolidBrush(theme.Dark);
+            g.FillRectangle(cutout, markX + 7, markY - 3, 16, 16);
         }
         else
         {
-            using var sunGlow = new SolidBrush(Color.FromArgb(40, theme.Accent));
-            using var sun = new SolidBrush(Color.FromArgb(220, theme.Accent));
-            g.FillEllipse(sunGlow, 1034, 56, 100, 100);
-            g.FillEllipse(sun, 1058, 80, 52, 52);
-
-            using var rays = new Pen(Color.FromArgb(135, theme.Accent), 3);
-            for (int i = 0; i < 12; i++)
-            {
-                double angle = i * Math.PI / 6;
-                float x1 = 1084 + (float)Math.Cos(angle) * 31;
-                float y1 = 106 + (float)Math.Sin(angle) * 31;
-                float x2 = 1084 + (float)Math.Cos(angle) * 41;
-                float y2 = 106 + (float)Math.Sin(angle) * 41;
-                g.DrawLine(rays, x1, y1, x2, y2);
-            }
+            g.FillRectangle(skyMark, markX + 5, markY - 5, 12, 28);
+            g.FillRectangle(skyMark, markX - 3, markY + 3, 28, 12);
         }
+    }
+
+    private static void DrawSeasonGlyph(
+        Graphics g, int centerX, int centerY, int size, ArcadeTheme theme, int alpha = 190)
+    {
+        using var main = new SolidBrush(Color.FromArgb(alpha, theme.Accent));
+        using var detail = new SolidBrush(Color.FromArgb(alpha, theme.Highlight));
 
         switch (theme.SeasonType)
         {
             case ThemeSeason.Spring:
-                DrawBlossomTree(g, 14, 724, 0.98f, theme);
-                DrawBlossomTree(g, 1146, 724, 0.92f, theme);
-                DrawFlowerMeadow(g, tick, theme);
-                DrawFallingPetals(g, tick, theme, 22);
+                g.FillRectangle(main, centerX - size, centerY - size * 3, size * 2, size * 2);
+                g.FillRectangle(main, centerX - size, centerY + size, size * 2, size * 2);
+                g.FillRectangle(detail, centerX - size * 3, centerY - size, size * 2, size * 2);
+                g.FillRectangle(detail, centerX + size, centerY - size, size * 2, size * 2);
+                g.FillRectangle(main, centerX - size / 2, centerY - size / 2, size, size);
                 break;
 
             case ThemeSeason.Summer:
-                DrawPalmTree(g, 14, 724, 0.98f, theme);
-                DrawPalmTree(g, 1146, 724, 0.92f, theme);
-                DrawWarmHaze(g, tick, theme);
-                DrawSummerGlints(g, tick, theme, 20);
+                g.FillRectangle(main, centerX - size, centerY - size * 3, size * 2, size * 2);
+                g.FillRectangle(main, centerX - size * 3, centerY - size, size * 6, size * 2);
+                g.FillRectangle(detail, centerX - size * 4, centerY + size * 2, size * 8, size);
+                g.FillRectangle(detail, centerX - size * 3, centerY + size * 4, size * 6, size);
                 break;
 
             case ThemeSeason.Autumn:
-                DrawBareTree(g, 14, 724, 1.0f, theme);
-                DrawBareTree(g, 1146, 724, 0.94f, theme);
-                DrawAutumnGround(g, theme);
-                DrawFallingLeaves(g, tick, theme, 30);
-                DrawRain(g, tick, theme, 76);
+                g.FillRectangle(main, centerX - size * 2, centerY - size * 2, size * 4, size * 4);
+                g.FillRectangle(main, centerX - size * 3, centerY - size, size * 6, size * 2);
+                g.FillRectangle(detail, centerX, centerY + size, size, size * 4);
+                g.FillRectangle(detail, centerX + size, centerY + size * 2, size * 2, size);
                 break;
 
             case ThemeSeason.Winter:
-                DrawPineTree(g, 14, 724, 1.0f, theme);
-                DrawPineTree(g, 1146, 724, 0.94f, theme);
-                DrawSnowGround(g, theme);
-                DrawSnowfall(g, tick, theme, 64);
+                g.FillRectangle(main, centerX - size / 2, centerY - size * 4, size, size * 8);
+                g.FillRectangle(main, centerX - size * 4, centerY - size / 2, size * 8, size);
+                g.FillRectangle(detail, centerX - size * 3, centerY - size * 3, size, size * 2);
+                g.FillRectangle(detail, centerX + size * 2, centerY + size, size, size * 2);
+                g.FillRectangle(detail, centerX + size * 2, centerY - size * 3, size, size * 2);
+                g.FillRectangle(detail, centerX - size * 3, centerY + size, size, size * 2);
                 break;
         }
     }
@@ -3199,6 +3218,12 @@ private void DrawThemeSectionCard(Graphics g)
         _snakePath.Reset();
         _snakeHighlightPath.Reset();
 
+        // Reuse the highlight points. Allocating arrays for every snake segment
+        // on every paint caused avoidable garbage collection during gameplay.
+        for (int i = 0; i < count; i++)
+            _snakeHighlightCenters[i] = new PointF(
+                centers[i].X - 1.2f, centers[i].Y - 3.2f);
+
         int sectionStart = 0;
         for (int i = 1; i < count; i++)
         {
@@ -3257,20 +3282,12 @@ private void DrawThemeSectionCard(Graphics g)
         _snakePath.StartFigure();
         _snakeHighlightPath.StartFigure();
 
-        // A low-tension spline rounds corners while keeping the snake's
-        // centerline close to the original grid path.
+        // Smooth each path directly from reusable arrays: no per-frame arrays.
         if (end - start >= 2)
         {
-            int count = end - start + 1;
-            PointF[] bodyPoints = new PointF[count];
-            PointF[] highlightPoints = new PointF[count];
-            Array.Copy(centers, start, bodyPoints, 0, count);
-            for (int i = 0; i < count; i++)
-                highlightPoints[i] = new PointF(bodyPoints[i].X - 1.2f,
-                    bodyPoints[i].Y - 3.2f);
-
-            _snakePath.AddCurve(bodyPoints, 0, count - 1, 0.22f);
-            _snakeHighlightPath.AddCurve(highlightPoints, 0, count - 1, 0.22f);
+            _snakePath.AddCurve(centers, start, end - start, 0.18f);
+            _snakeHighlightPath.AddCurve(
+                _snakeHighlightCenters, start, end - start, 0.18f);
         }
         else
         {

@@ -312,6 +312,7 @@ public sealed class GameForm : Form
         LineJoin = LineJoin.Round
     };
     private readonly Pen _headOutlinePen = new(Color.FromArgb(190, 57, 123, 64), 1.2f);
+    private readonly Pen _retroDetailPen = new(Color.FromArgb(145, Gold), 2);
     private readonly Pen _skinPatternPen = new(Color.FromArgb(180, 255, 255, 255), 2.4f)
     {
         StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
@@ -892,7 +893,7 @@ public sealed class GameForm : Form
     private void DrawRetroButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool primary = false)
     {
-        using var fill = new SolidBrush(hover
+        SolidBrush fill = GetPixelBrush(hover
             ? Color.FromArgb(255, ActiveTheme.Background)
             : primary ? Color.FromArgb(255, ActiveTheme.Grid) : RetroDark);
         g.FillRectangle(fill, rect);
@@ -1686,8 +1687,7 @@ public sealed class GameForm : Form
 
     private void DrawPixelPanel(Graphics g, Rectangle rect, bool goldBorder)
     {
-        using var fill = new SolidBrush(RetroDark);
-        g.FillRectangle(fill, rect);
+        g.FillRectangle(GetPixelBrush(RetroDark), rect);
         DrawPixelOutline(g, rect, goldBorder ? RetroGold : RetroWhite, 4);
     }
 
@@ -2759,7 +2759,7 @@ private void DrawThemeSectionCard(Graphics g)
             Color.FromArgb(38, ActiveTheme.Highlight), 1);
         DrawPixelOutline(g, _field, RetroGold, 3);
 
-        using var frameAccent = new SolidBrush(ActiveTheme.Highlight);
+        SolidBrush frameAccent = GetPixelBrush(ActiveTheme.Highlight);
         for (int i = 1; i < 6; i++)
         {
             int x = _field.Left + i * (_field.Width / 6);
@@ -2775,10 +2775,10 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
         DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
 
-        using var detailLine = new Pen(Color.FromArgb(145, RetroGold), 2);
-        g.DrawLine(detailLine, 965, 138, 965, 226);
-        g.DrawLine(detailLine, 854, 177, 926, 177);
-        g.DrawLine(detailLine, 1004, 177, 1076, 177);
+        _retroDetailPen.Color = Color.FromArgb(145, RetroGold);
+        g.DrawLine(_retroDetailPen, 965, 138, 965, 226);
+        g.DrawLine(_retroDetailPen, 854, 177, 926, 177);
+        g.DrawLine(_retroDetailPen, 1004, 177, 1076, 177);
 
         // Section headings have short side rules, like a classic arcade cabinet.
         DrawPixelText(g, "MODE", 965, 270, 2, RetroWhite);
@@ -5254,6 +5254,7 @@ private void DrawThemeSectionCard(Graphics g)
         _snakeBodyPen.Dispose();
         _snakeHighlightPen.Dispose();
         _headOutlinePen.Dispose();
+        _retroDetailPen.Dispose();
 
         if (_scoreSaveFailed)
             SaveBestScore();

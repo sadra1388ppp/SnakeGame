@@ -489,7 +489,7 @@ public sealed class GameForm : Form
 
     protected override void OnPaintBackground(PaintEventArgs e)
     {
-        if (_chrome is null)
+        if (_playChromeCache is null)
             base.OnPaintBackground(e);
     }
 

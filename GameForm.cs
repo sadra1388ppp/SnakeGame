@@ -184,6 +184,7 @@ public sealed class GameForm : Form
     private bool _newRecord;
     private DateTime? _recordCelebrationStarted;
     private bool _scoreSaveFailed;
+    private bool _bestScoreDirty;
     private bool _isFullscreen;
     private int _selectedSkin;
     private Rectangle _windowedBounds;
@@ -204,6 +205,7 @@ public sealed class GameForm : Form
     }
 
     private Bitmap? _chrome;
+    private Bitmap? _tileSurfaceCache;
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
     private readonly PointF[] _snakeCenters = new PointF[BoardCells];
@@ -311,6 +313,10 @@ public sealed class GameForm : Form
         LineJoin = LineJoin.Round
     };
     private readonly Pen _headOutlinePen = new(Color.FromArgb(190, 57, 123, 64), 1.2f);
+    private readonly Pen _mythicOuterPen = new(Color.FromArgb(145, 255, 28, 52), 3);
+    private readonly Pen _mythicMiddlePen = new(Color.FromArgb(205, 255, 82, 98), 1.8f);
+    private readonly Pen _mythicSparkPen = new(Color.FromArgb(225, 255, 145, 151), 1.5f);
+    private readonly SolidBrush _epicSparkBrush = new(Color.FromArgb(205, 194, 128, 255));
     private readonly Pen _skinPatternPen = new(Color.FromArgb(180, 255, 255, 255), 2.4f)
     {
         StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round
@@ -386,6 +392,7 @@ public sealed class GameForm : Form
         UpdateViewTransform();
         _selectedTheme = LoadSelectedTheme();
         _selectedTileTheme = LoadSelectedTileTheme();
+        BuildTileSurfaceCache();
         BackColor = RetroBackground;
         _selectedSkin = LoadSelectedSkin();
         ApplySkin(_selectedSkin);
@@ -397,9 +404,7 @@ public sealed class GameForm : Form
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
         _ambientTimer.Tick += (_, _) =>
         {
-            if (_view == AppView.Play && _state == GameState.Playing)
-                InvalidateDesign(_field);
-            else
+            if (_view != AppView.Play)
                 Invalidate();
         };
         _ambientTimer.Start();
@@ -485,10 +490,6 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
-        g.Clear(RetroBackground);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.Half;
-
         g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
@@ -1143,6 +1144,19 @@ public sealed class GameForm : Form
 
     private static Rectangle TileThemeCardRect(int index) =>
         new(34 + index * 368, 184, 350, 438);
+
+    private void BuildTileSurfaceCache()
+    {
+        _tileSurfaceCache?.Dispose();
+        _tileSurfaceCache = new Bitmap(_field.Width, _field.Height,
+            PixelFormat.Format32bppPArgb);
+
+        using Graphics g = Graphics.FromImage(_tileSurfaceCache);
+        g.SmoothingMode = SmoothingMode.None;
+        g.PixelOffsetMode = PixelOffsetMode.None;
+        DrawTileSurface(g, new Rectangle(Point.Empty, _field.Size),
+            BoardTileThemes[_selectedTileTheme], CellSize);
+    }
 
     private void DrawTileSurface(Graphics g, Rectangle area,
         BoardTileTheme theme, int cellSize)
@@ -2737,7 +2751,10 @@ private void DrawThemeSectionCard(Graphics g)
         DrawPixelPanel(g, _difficultyArea, true);
         DrawPixelPanel(g, _actionArea, true);
 
-        DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
+        if (_tileSurfaceCache is not null)
+            g.DrawImageUnscaled(_tileSurfaceCache, _field.Location);
+        else
+            DrawTileSurface(g, _field, BoardTileThemes[_selectedTileTheme], CellSize);
 
         DrawPixelOutline(g, Rectangle.Inflate(_field, -5, -5),
             Color.FromArgb(38, ActiveTheme.Highlight), 1);
@@ -2855,8 +2872,7 @@ private void DrawThemeSectionCard(Graphics g)
     {
         GraphicsState state = g.Save();
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.PixelOffsetMode = PixelOffsetMode.Half;
         g.SetClip(_field);
 
         if (_state == GameState.Ready)
@@ -3507,6 +3523,7 @@ private void DrawThemeSectionCard(Graphics g)
     private void SelectTileTheme(int index)
     {
         _selectedTileTheme = Math.Clamp(index, 0, BoardTileThemes.Length - 1);
+        BuildTileSurfaceCache();
 
         try
         {
@@ -3771,7 +3788,6 @@ private void DrawThemeSectionCard(Graphics g)
     private void DrawEpicAura(Graphics g, PointF head)
     {
         float time = Environment.TickCount64 / 240f;
-        using var spark = new SolidBrush(Color.FromArgb(205, 194, 128, 255));
 
         for (int i = 0; i < 4; i++)
         {
@@ -3779,11 +3795,11 @@ private void DrawThemeSectionCard(Graphics g)
             float radius = 22 + MathF.Sin(time * 1.7f + i) * 3;
             int x = (int)(head.X + MathF.Cos(angle) * radius);
             int y = (int)(head.Y + MathF.Sin(angle) * radius);
-            g.FillRectangle(spark, x - 2, y - 2, 4, 4);
+            g.FillRectangle(_epicSparkBrush, x - 2, y - 2, 4, 4);
             if (i % 2 == 0)
             {
-                g.FillRectangle(spark, x - 5, y, 10, 2);
-                g.FillRectangle(spark, x, y - 5, 2, 10);
+                g.FillRectangle(_epicSparkBrush, x - 5, y, 10, 2);
+                g.FillRectangle(_epicSparkBrush, x, y - 5, 2, 10);
             }
         }
     }
@@ -3792,14 +3808,11 @@ private void DrawThemeSectionCard(Graphics g)
     {
         float time = Environment.TickCount64 / 180f;
         float pulse = 1f + MathF.Sin(time * 1.3f) * 0.13f;
-        using var outer = new Pen(Color.FromArgb(145, 255, 28, 52), 3);
-        using var middle = new Pen(Color.FromArgb(205, 255, 82, 98), 1.8f);
-        using var spark = new Pen(Color.FromArgb(225, 255, 145, 151), 1.5f);
 
         for (int ring = 0; ring < 3; ring++)
         {
             float radius = (18 + ring * 8) * pulse;
-            g.DrawEllipse(ring == 1 ? middle : outer,
+            g.DrawEllipse(ring == 1 ? _mythicMiddlePen : _mythicOuterPen,
                 head.X - radius, head.Y - radius, radius * 2, radius * 2);
         }
 
@@ -3810,7 +3823,7 @@ private void DrawThemeSectionCard(Graphics g)
             float x = head.X + MathF.Cos(angle) * radius;
             float y = head.Y + MathF.Sin(angle) * radius;
             float arm = i % 2 == 0 ? 6f : 3f;
-            Pen pen = i % 3 == 0 ? spark : middle;
+            Pen pen = i % 3 == 0 ? _mythicSparkPen : _mythicMiddlePen;
             g.DrawLine(pen, x - arm, y, x + arm, y);
             g.DrawLine(pen, x, y - arm, x, y + arm);
         }
@@ -3819,7 +3832,7 @@ private void DrawThemeSectionCard(Graphics g)
         {
             PointF p = centers[i];
             float shine = 2f + (MathF.Sin(time * 2f + i) + 1f) * 2f;
-            g.DrawLine(spark, p.X - shine, p.Y, p.X + shine, p.Y);
+            g.DrawLine(_mythicSparkPen, p.X - shine, p.Y, p.X + shine, p.Y);
         }
     }
 
@@ -4201,9 +4214,9 @@ private void DrawThemeSectionCard(Graphics g)
             if (_score > _bestScore)
             {
                 _bestScore = _score;
+                _bestScoreDirty = true;
                 if (!_newRecord)
                     TriggerRecordCelebration();
-                SaveBestScore();
             }
 
             PlaySound(eatingGolden ? 2 : 0);
@@ -4211,7 +4224,6 @@ private void DrawThemeSectionCard(Graphics g)
             if (eatingGolden)
             {
                 _totalGoldenApplesEaten++;
-                SavePlayerStats();
                 SpawnGoldBurst(_goldenFood!.Value, now);
                 _goldenFood = null;
                 _goldenExpiresAt = null;
@@ -4220,7 +4232,6 @@ private void DrawThemeSectionCard(Graphics g)
             {
                 _foodEaten++;
                 _totalApplesEaten++;
-                SavePlayerStats();
                 PlaceFood();
 
                 if (_foodEaten % 5 == 0)
@@ -4350,8 +4361,15 @@ private void DrawThemeSectionCard(Graphics g)
                 TriggerRecordCelebration();
         }
 
-        if (_newRecord || _scoreSaveFailed)
+        if (_score > _bestScore)
+        {
+            _bestScore = _score;
+            _bestScoreDirty = true;
+        }
+
+        if (_bestScoreDirty || _scoreSaveFailed)
             SaveBestScore();
+        SavePlayerStats();
 
         PlaySound(_won ? 2 : 1);
         Invalidate();
@@ -5075,6 +5093,7 @@ private void DrawThemeSectionCard(Graphics g)
             }
 
             _scoreSaveFailed = false;
+            _bestScoreDirty = false;
         }
         catch
         {
@@ -5166,6 +5185,7 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Stop();
         _ambientTimer.Dispose();
         _chrome?.Dispose();
+        _tileSurfaceCache?.Dispose();
         _overlayPath.Dispose();
 
         _smallFont.Dispose();
@@ -5219,6 +5239,10 @@ private void DrawThemeSectionCard(Graphics g)
         _snakeBodyPen.Dispose();
         _snakeHighlightPen.Dispose();
         _headOutlinePen.Dispose();
+        _mythicOuterPen.Dispose();
+        _mythicMiddlePen.Dispose();
+        _mythicSparkPen.Dispose();
+        _epicSparkBrush.Dispose();
 
         if (_scoreSaveFailed)
             SaveBestScore();

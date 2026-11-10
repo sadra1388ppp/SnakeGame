@@ -503,7 +503,8 @@ public sealed class GameForm : Form
             return;
 
         Graphics g = e.Graphics;
-        g.Clear(RetroBackground);
+        using (var background = new SolidBrush(RetroBackground))
+            g.FillRectangle(background, e.ClipRectangle);
 
         Rectangle clip = ClientToDesign(e.ClipRectangle);
         clip.Intersect(new Rectangle(0, 0, DesignWidth, DesignHeight));

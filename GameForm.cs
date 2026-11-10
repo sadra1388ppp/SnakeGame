@@ -204,7 +204,6 @@ public sealed class GameForm : Form
         public float X, Y, VelocityX, VelocityY, Age, Lifetime, Size;
     }
 
-    private Bitmap? _chrome;
     private Bitmap? _playChromeCache;
     private Bitmap? _playfieldFrameCache;
     private Bitmap? _tileSurfaceCache;
@@ -411,7 +410,6 @@ public sealed class GameForm : Form
         ResetSnake();
         _appleSprite = CreateAppleSprite(false);
         _goldAppleSprite = CreateAppleSprite(true);
-        BuildChrome();
         BuildPlayChromeCache();
 
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
@@ -432,11 +430,10 @@ public sealed class GameForm : Form
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
-        if (_chrome is null || ClientSize.Width < 1 || ClientSize.Height < 1)
+        if (_playChromeCache is null || ClientSize.Width < 1 || ClientSize.Height < 1)
             return;
 
         UpdateViewTransform();
-        BuildChrome();
         Invalidate();
     }
 
@@ -499,7 +496,7 @@ public sealed class GameForm : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        if (_chrome is null)
+        if (_playChromeCache is null)
             return;
 
         Graphics g = e.Graphics;
@@ -512,6 +509,8 @@ public sealed class GameForm : Form
         g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
+        g.InterpolationMode = InterpolationMode.NearestNeighbor;
+        g.CompositingQuality = CompositingQuality.HighSpeed;
 
         if (_view != AppView.Play)
         {
@@ -624,101 +623,7 @@ public sealed class GameForm : Form
         Invalidate();
     }
 
-    private void BuildChrome()
-    {
-        _chrome?.Dispose();
-        _chrome = new Bitmap(ClientSize.Width, ClientSize.Height, PixelFormat.Format32bppPArgb);
 
-        using Graphics g = Graphics.FromImage(_chrome);
-        g.Transform = _viewMatrix;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-
-        using (var background = new LinearGradientBrush(
-                   new Rectangle(0, 0, DesignWidth, DesignHeight),
-                   Color.FromArgb(13, 21, 25), Background, 90f))
-            g.FillRectangle(background, new Rectangle(0, 0, DesignWidth, DesignHeight));
-
-        using (var ambientGlow = new SolidBrush(Color.FromArgb(15, 132, 205, 105)))
-            g.FillEllipse(ambientGlow, -210, 430, 500, 500);
-
-        using (var topLine = new Pen(Border, 1))
-        {
-            g.DrawLine(topLine, 0, 70, DesignWidth, 70);
-            g.DrawLine(topLine, 32, 724, 1128, 724);
-        }
-
-        FillRound(g, new Rectangle(34, 18, 34, 34), 11, Green);
-        StaticText(g, "S", new Rectangle(34, 17, 34, 35), 18, FontStyle.Bold,
-            Background, StringAlignment.Center);
-
-        StaticText(g, "SNAKE", new Rectangle(80, 15, 105, 23), 14, FontStyle.Bold, White);
-        StaticText(g, "ARCADE", new Rectangle(81, 38, 100, 15), 7, FontStyle.Bold, Muted);
-
-        FillRound(g, new Rectangle(864, 24, 7, 7), 4, Green);
-        StaticText(g, "OFFLINE", new Rectangle(879, 17, 80, 20), 8, FontStyle.Bold, Muted);
-        StaticText(g, "NO LOGIN  ·  NO ADS", new Rectangle(879, 37, 145, 15), 7, FontStyle.Regular,
-            Color.FromArgb(90, 111, 115));
-
-        DrawStaticPanel(g, _boardCard);
-        DrawStaticPanel(g, _rightPanel);
-        DrawStaticPanel(g, _scoreArea, PanelLight);
-        using (var scoreDivider = new Pen(Border, 1))
-            g.DrawLine(scoreDivider, 968, 142, 968, 238);
-        DrawStaticPanel(g, _modeArea, PanelLight);
-        DrawStaticPanel(g, _difficultyArea, PanelLight);
-        DrawStaticPanel(g, _actionArea, PanelLight);
-
-        StaticText(g, "PLAYFIELD", new Rectangle(62, 116, 180, 22), 8, FontStyle.Bold, Muted);
-        FillRound(g, _field, 12, Color.FromArgb(8, 15, 18));
-        StrokeRound(g, _field, 12, Color.FromArgb(48, 74, 66));
-
-        using (var grid = new Pen(Color.FromArgb(19, 135, 163, 133), 1))
-        {
-            for (int x = 1; x < Columns; x++)
-            {
-                int px = _field.Left + x * CellSize;
-                g.DrawLine(grid, px, _field.Top + 1, px, _field.Bottom - 1);
-            }
-
-            for (int y = 1; y < Rows; y++)
-            {
-                int py = _field.Top + y * CellSize;
-                g.DrawLine(grid, _field.Left + 1, py, _field.Right - 1, py);
-            }
-        }
-
-
-
-        StaticText(g, "GAME MODE", new Rectangle(842, 282, 180, 18), 8, FontStyle.Bold, Muted);
-        StaticText(g, "Choose your run", new Rectangle(842, 302, 180, 16), 7, FontStyle.Regular,
-            Color.FromArgb(105, 126, 128));
-
-        StaticText(g, "DIFFICULTY", new Rectangle(842, 402, 180, 18), 8, FontStyle.Bold, Muted);
-        StaticText(g, "Choose your pace", new Rectangle(842, 422, 180, 16), 7, FontStyle.Regular,
-            Color.FromArgb(105, 126, 128));
-
-        StaticText(g, "YOUR SESSION", new Rectangle(842, 528, 180, 18), 8, FontStyle.Bold, Muted);
-
-        DrawStaticButton(g, _classicButton);
-        DrawStaticButton(g, _wrapButton);
-        DrawStaticButton(g, _rushButton);
-        DrawStaticButton(g, _easyButton);
-        DrawStaticButton(g, _normalButton);
-        DrawStaticButton(g, _hardButton);
-        DrawStaticButton(g, _soundButton);
-        DrawStaticButton(g, _restartButton);
-        DrawStaticButton(g, _fullscreenButton);
-        DrawStaticButton(g, _skinButton);
-        DrawStaticButton(g, _resetBestButton);
-
-        StaticText(g, "SPACE  PAUSE", new Rectangle(62, 650, 130, 20), 7, FontStyle.Bold,
-            Color.FromArgb(95, 118, 118));
-        StaticText(g, "WASD  /  ARROWS", new Rectangle(201, 650, 160, 20), 7, FontStyle.Bold,
-            Color.FromArgb(95, 118, 118));
-        StaticText(g, "GOLDEN FRUIT  +30", new Rectangle(540, 650, 210, 20), 7, FontStyle.Bold,
-            Color.FromArgb(133, 115, 78));
-    }
 
     private void NavigateTo(AppView view)
     {
@@ -5262,7 +5167,6 @@ private void DrawThemeSectionCard(Graphics g)
         _animationTimer.Dispose();
         _ambientTimer.Stop();
         _ambientTimer.Dispose();
-        _chrome?.Dispose();
         _playChromeCache?.Dispose();
         _playfieldFrameCache?.Dispose();
         _tileSurfaceCache?.Dispose();

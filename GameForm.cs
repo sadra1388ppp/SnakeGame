@@ -503,46 +503,66 @@ public sealed class GameForm : Form
 
         Graphics g = e.Graphics;
         g.Clear(RetroBackground);
+
+        Rectangle clip = ClientToDesign(e.ClipRectangle);
+        clip.Intersect(new Rectangle(0, 0, DesignWidth, DesignHeight));
+
         g.Transform = _viewMatrix;
         g.SmoothingMode = SmoothingMode.None;
         g.PixelOffsetMode = PixelOffsetMode.None;
 
-        // Full seasonal scenery belongs to the menus. During gameplay, keep only
-        // the clipped seasonal effects inside the board so trees and decorations
-        // never cover the snake, food, or game controls.
         if (_view != AppView.Play)
+        {
             DrawThemeAtmosphere(g);
 
-        switch (_view)
+            switch (_view)
+            {
+                case AppView.Home:
+                    DrawHomePage(g);
+                    break;
+                case AppView.Skins:
+                    DrawSkinsPage(g);
+                    break;
+                case AppView.TileThemes:
+                    DrawTileThemesPage(g);
+                    break;
+                case AppView.Settings:
+                    DrawSettingsPage(g);
+                    break;
+                case AppView.Achievements:
+                    DrawAchievementsPage(g);
+                    break;
+            }
+        }
+        else
         {
-            case AppView.Home:
-                DrawHomePage(g);
-                break;
-            case AppView.Skins:
-                DrawSkinsPage(g);
-                break;
-            case AppView.TileThemes:
-                DrawTileThemesPage(g);
-                break;
-            case AppView.Settings:
-                DrawSettingsPage(g);
-                break;
-            case AppView.Achievements:
-                DrawAchievementsPage(g);
-                break;
-            case AppView.Play:
-                if (_playChromeCache is not null)
-                    g.DrawImageUnscaled(_playChromeCache, 0, 0);
+            // Only copy the part of the cached screen that Windows asked us to repaint.
+            if (_playChromeCache is not null && !clip.IsEmpty)
+                g.DrawImage(_playChromeCache, clip, clip, GraphicsUnit.Pixel);
+
+            // The animation timer invalidates only the field. Do not redraw the
+            // score, dashboard buttons, header, or window controls on those frames.
+            if (clip.IntersectsWith(_scoreArea))
                 DrawPlayScore(g);
+
+            if (clip.IntersectsWith(_field))
+            {
                 DrawBoardDynamic(g);
-                DrawRetroPlayDashboard(g);
                 DrawRecordCelebration(g);
-                break;
+            }
+
+            if (clip.IntersectsWith(_rightPanel))
+                DrawRetroPlayDashboard(g);
         }
 
-        DrawUiHeader(g);
-        DrawUiWindowControls(g);
+        Rectangle header = new(24, 12, 1112, 56);
+        if (clip.IntersectsWith(header))
+            DrawUiHeader(g);
 
+        if (clip.IntersectsWith(_minimizeButton) ||
+            clip.IntersectsWith(_fullscreenButton) ||
+            clip.IntersectsWith(_closeButton))
+            DrawUiWindowControls(g);
     }
 
     private void UpdateViewTransform()

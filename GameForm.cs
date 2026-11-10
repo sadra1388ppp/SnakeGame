@@ -205,6 +205,7 @@ public sealed class GameForm : Form
     }
 
     private Bitmap? _chrome;
+    private Bitmap? _playChromeCache;
     private Bitmap? _tileSurfaceCache;
     private Bitmap? _appleSprite;
     private Bitmap? _goldAppleSprite;
@@ -410,6 +411,7 @@ public sealed class GameForm : Form
         _appleSprite = CreateAppleSprite(false);
         _goldAppleSprite = CreateAppleSprite(true);
         BuildChrome();
+        BuildPlayChromeCache();
 
         _animationTimer.Tick += (_, _) => UpdateGameFrame();
         _ambientTimer.Tick += (_, _) =>
@@ -529,7 +531,9 @@ public sealed class GameForm : Form
                 DrawAchievementsPage(g);
                 break;
             case AppView.Play:
-                DrawRetroPlayChrome(g);
+                if (_playChromeCache is not null)
+                    g.DrawImageUnscaled(_playChromeCache, 0, 0);
+                DrawPlayScore(g);
                 DrawBoardDynamic(g);
                 DrawRetroPlayDashboard(g);
                 DrawRecordCelebration(g);
@@ -2785,14 +2789,6 @@ private void DrawThemeSectionCard(Graphics g)
             g.FillRectangle(frameAccent, x, _field.Bottom + 3, 5, 2);
         }
 
-        // Score card: two equal columns with generous space around the numbers.
-        DrawPixelText(g, "SCORE", 890, 154, 2, RetroWhite);
-        if (_newRecord)
-            DrawPixelText(g, "NEW", 1040, 132, 1, Color.FromArgb(255, 111, 242, 145));
-        DrawPixelText(g, "BEST", 1040, 158, 2, RetroGold);
-        DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
-        DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
-
         using var detailLine = new Pen(Color.FromArgb(145, RetroGold), 2);
         g.DrawLine(detailLine, 965, 138, 965, 226);
         g.DrawLine(detailLine, 854, 177, 926, 177);
@@ -2811,6 +2807,27 @@ private void DrawThemeSectionCard(Graphics g)
         g.DrawLine(detailLine, 840, 521, 908, 521);
         g.DrawLine(detailLine, 1022, 521, 1090, 521);
     }
+    private void DrawPlayScore(Graphics g)
+    {
+        DrawPixelText(g, "SCORE", 890, 154, 2, RetroWhite);
+        if (_newRecord)
+            DrawPixelText(g, "NEW", 1040, 132, 1, Color.FromArgb(255, 111, 242, 145));
+        DrawPixelText(g, "BEST", 1040, 158, 2, RetroGold);
+        DrawPixelText(g, FormatScore(_score), 890, 190, 3, RetroWhite);
+        DrawPixelText(g, FormatScore(_bestScore), 1040, 190, 3, RetroGold);
+    }
+
+    private void BuildPlayChromeCache()
+    {
+        _playChromeCache?.Dispose();
+        _playChromeCache = new Bitmap(DesignWidth, DesignHeight, PixelFormat.Format32bppPArgb);
+
+        using Graphics g = Graphics.FromImage(_playChromeCache);
+        g.SmoothingMode = SmoothingMode.None;
+        g.PixelOffsetMode = PixelOffsetMode.None;
+        DrawRetroPlayChrome(g);
+    }
+
     private void DrawRetroPlayButton(Graphics g, Rectangle rect, string label,
         int pixelSize, bool hover, bool selected = false)
     {
@@ -3541,6 +3558,7 @@ private void DrawThemeSectionCard(Graphics g)
     {
         _selectedTileTheme = Math.Clamp(index, 0, BoardTileThemes.Length - 1);
         BuildTileSurfaceCache();
+        BuildPlayChromeCache();
 
         try
         {
@@ -3587,6 +3605,7 @@ private void DrawThemeSectionCard(Graphics g)
 
         _selectedTheme = index;
         BackColor = RetroBackground;
+        BuildPlayChromeCache();
         try
         {
             string path = ThemePath();
@@ -5206,6 +5225,7 @@ private void DrawThemeSectionCard(Graphics g)
         _ambientTimer.Stop();
         _ambientTimer.Dispose();
         _chrome?.Dispose();
+        _playChromeCache?.Dispose();
         _tileSurfaceCache?.Dispose();
         _overlayPath.Dispose();
 
